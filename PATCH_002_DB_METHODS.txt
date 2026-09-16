@@ -1,0 +1,153 @@
+    # ---- Temporal action-warrant gate (Patch 002) ----
+
+    def insert_temporal_warrant(self, warrant) -> str:
+        raw = warrant.to_dict() if hasattr(warrant, "to_dict") else dict(warrant)
+        conn = self._connection()
+        conn.execute(
+            """INSERT INTO temporal_warrants
+            (warrant_id,domain,action_class,subject,target,claim_ids_json,evidence_ids_json,
+             issuer,policy_basis,issued_at,valid_from,valid_to,status,scope_json,
+             completion_condition,provenance_json,created_at,updated_at,superseded_by,
+             revoked_reason,completed_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                raw["warrant_id"], raw["domain"], raw["action_class"], raw["subject"],
+                raw.get("target", ""),
+                json.dumps(raw.get("claim_ids") or [], ensure_ascii=False),
+                json.dumps(raw.get("evidence_ids") or [], ensure_ascii=False),
+                raw.get("issuer", ""), raw.get("policy_basis", ""),
+                raw["issued_at"], raw["valid_from"], raw.get("valid_to"), raw["status"],
+                json.dumps(raw.get("scope") or {}, ensure_ascii=False),
+                raw.get("completion_condition", ""),
+                json.dumps(raw.get("provenance") or {}, ensure_ascii=False),
+                raw["created_at"], raw["updated_at"], raw.get("superseded_by"),
+                raw.get("revoked_reason", ""), raw.get("completed_at"),
+            ),
+        )
+        conn.commit()
+        return str(raw["warrant_id"])
+
+    def get_temporal_warrant(self, warrant_id: str):
+        from .temporal.warrants import Warrant
+        row = self._connection().execute(
+            "SELECT * FROM temporal_warrants WHERE warrant_id=?", (warrant_id,)
+        ).fetchone()
+        if not row:
+            return None
+        raw = dict(row)
+        return Warrant.from_dict(
+            {
+                "warrant_id": raw["warrant_id"],
+                "domain": raw["domain"],
+                "action_class": raw["action_class"],
+                "subject": raw["subject"],
+                "target": raw.get("target") or "",
+                "claim_ids": json.loads(raw["claim_ids_json"]),
+                "evidence_ids": json.loads(raw["evidence_ids_json"]),
+                "issuer": raw.get("issuer") or "",
+                "policy_basis": raw.get("policy_basis") or "",
+                "issued_at": raw["issued_at"],
+                "valid_from": raw["valid_from"],
+                "valid_to": raw.get("valid_to"),
+                "status": raw["status"],
+                "scope": json.loads(raw["scope_json"]),
+                "completion_condition": raw.get("completion_condition") or "",
+                "provenance": json.loads(raw["provenance_json"]),
+                "created_at": raw["created_at"],
+                "updated_at": raw["updated_at"],
+                "superseded_by": raw.get("superseded_by"),
+                "revoked_reason": raw.get("revoked_reason") or "",
+                "completed_at": raw.get("completed_at"),
+            }
+        )
+
+    def bind_action_warrant(self, action_id: str, warrant_id: str) -> None:
+        conn = self._connection()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            action = conn.execute(
+                "SELECT warrant_id FROM action_requests WHERE id=?", (action_id,)
+            ).fetchone()
+            if not action:
+                raise KeyError(action_id)
+            if action["warrant_id"] and action["warrant_id"] != warrant_id:
+                raise RuntimeError("action already bound to a different warrant")
+            warrant = conn.execute(
+                "SELECT status FROM temporal_warrants WHERE warrant_id=?", (warrant_id,)
+            ).fetchone()
+            if not warrant or warrant["status"] != "active":
+                raise RuntimeError("cannot bind missing or non-active warrant")
+            conn.execute(
+                "UPDATE action_requests SET warrant_id=?,warrant_bound_at=?,updated_at=? WHERE id=?",
+                (warrant_id, utcnow(), utcnow(), action_id),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
+    def count_warrant_consumptions(self, warrant_id: str) -> int:
+        row = self._connection().execute(
+            "SELECT COUNT(*) FROM action_warrant_consumptions WHERE warrant_id=?",
+            (warrant_id,),
+        ).fetchone()
+        return int(row[0] or 0)
+
+    def reserve_warrant_for_action(
+        self,
+        *,
+        action_id: str,
+        warrant_id: str,
+        authority_revision: str,
+        approval_id: str | None,
+        artifact_hashes: list[str],
+    ) -> None:
+        conn = self._connection()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            action = conn.execute(
+                "SELECT warrant_id,authority_revision,approval_id FROM action_requests WHERE id=?",
+                (action_id,),
+            ).fetchone()
+            if not action:
+                raise KeyError(action_id)
+            if action["warrant_id"] != warrant_id:
+                raise RuntimeError("action/warrant binding mismatch")
+            if action["authority_revision"] != authority_revision:
+                raise RuntimeError("authority revision changed")
+            if approval_id and action["approval_id"] != approval_id:
+                raise RuntimeError("approval binding changed")
+            conn.execute(
+                """INSERT INTO action_warrant_consumptions
+                (action_id,warrant_id,consumed_at,authority_revision,approval_id,
+                 artifact_hashes_json,disposition)
+                VALUES(?,?,?,?,?,?,?)""",
+                (
+                    action_id, warrant_id, utcnow(), authority_revision, approval_id,
+                    json.dumps(artifact_hashes, ensure_ascii=False), "reserved",
+                ),
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
+    def set_warrant_consumption_disposition(self, action_id: str, disposition: str) -> None:
+        if disposition not in {"reserved", "completed", "failed", "uncertain"}:
+            raise ValueError(f"invalid warrant consumption disposition: {disposition}")
+        conn = self._connection()
+        conn.execute(
+            "UPDATE action_warrant_consumptions SET disposition=? WHERE action_id=?",
+            (disposition, action_id),
+        )
+        conn.commit()
+
+    def complete_temporal_warrant(self, warrant_id: str) -> None:
+        conn = self._connection()
+        conn.execute(
+            "UPDATE temporal_warrants SET status='completed',completed_at=?,updated_at=? "
+            "WHERE warrant_id=? AND status='active'",
+            (utcnow(), utcnow(), warrant_id),
+        )
+        conn.commit()
+

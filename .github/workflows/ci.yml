@@ -1,0 +1,75 @@
+name: StillPoint Core CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install source package
+        run: python -m pip install .
+
+      - name: Unit, integration, and end-to-end tests
+        run: python -m unittest discover -s tests -q
+
+      - name: Action authority bypass audit
+        run: python tools/audit_action_request_boundaries.py .
+
+      - name: Specialist/company boundary audit
+        run: python tools/audit_company_boundaries.py .
+
+      - name: Frozen evaluator integrity
+        run: python -c "from eval.frozen import verify_frozen_corpora; print(verify_frozen_corpora())"
+
+      - name: Source checkout doctor
+        env:
+          STILLPOINT_ROOT: ${{ github.workspace }}
+          STILLPOINT_PROVIDER: mock
+        run: python -m stillpoint.cli doctor
+
+      - name: Build wheel
+        run: |
+          python -m pip wheel . --no-deps -w dist
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+
+      - name: Runtime-only wheel smoke test
+        run: |
+          python -m venv .wheel-venv
+          .wheel-venv/bin/python -m pip install --upgrade pip
+          .wheel-venv/bin/python -m pip install dist/*.whl
+          tmpdir="$(mktemp -d)"
+          (
+            cd "$tmpdir"
+            STILLPOINT_ROOT="$tmpdir" STILLPOINT_PROVIDER=mock               "$GITHUB_WORKSPACE/.wheel-venv/bin/stillpoint" doctor
+          )
+
+      - name: Historical raw evaluator
+        run: |
+          set +e
+          python eval/run_eval.py
+          rc=$?
+          set -e
+          test "$rc" -eq 0 -o "$rc" -eq 1
+
+      - name: Calibrated provider-independent evaluator
+        run: python eval/run_calibrated.py
+
+      - name: Classified evaluator release gate
+        run: python eval/release_gate.py
+
+      - name: Deterministic source-tree release audit
+        run: python tools/release_audit.py .

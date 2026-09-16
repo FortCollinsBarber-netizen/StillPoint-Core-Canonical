@@ -48,13 +48,13 @@ jobs:
 
       - name: Runtime-only wheel smoke test
         run: |
-          python -m venv .wheel-venv
-          .wheel-venv/bin/python -m pip install --upgrade pip
-          .wheel-venv/bin/python -m pip install dist/*.whl
+          python -m venv /tmp/stillpoint-wheel-venv
+          /tmp/stillpoint-wheel-venv/bin/python -m pip install --upgrade pip
+          /tmp/stillpoint-wheel-venv/bin/python -m pip install dist/*.whl
           tmpdir="$(mktemp -d)"
           (
             cd "$tmpdir"
-            STILLPOINT_ROOT="$tmpdir" STILLPOINT_PROVIDER=mock               "$GITHUB_WORKSPACE/.wheel-venv/bin/stillpoint" doctor
+            STILLPOINT_ROOT="$tmpdir" STILLPOINT_PROVIDER=mock               "/tmp/stillpoint-wheel-venv/bin/stillpoint" doctor
           )
 
       - name: Historical raw evaluator

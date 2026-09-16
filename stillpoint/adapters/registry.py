@@ -52,7 +52,7 @@ class ActionAdapterRegistry:
 class DryRunActionAdapter:
     name="dry_run"
     action_types=(
-        "send_email","publish","social_post","spend","sign","delete","other_external"
+        "send_email","publish","social_post","export_artifact","spend","sign","delete","other_external"
     )
 
     def can_execute(self,request):

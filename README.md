@@ -12,7 +12,7 @@ Drafting is not sending. Preparation is not publication. Analysis is not spendin
 
 The core runtime includes deterministic and optional semantic authority assessment, structured planning, contributor handoffs, targeted review, durable SQLite state, artifact versions, managed attachments, resume/recovery, action requests/results, approval binding, idempotency, task budgets, provider provenance, frozen behavioral evaluation, and a CLI/operator surface.
 
-No production email, publishing, payment, signature, deletion, or destructive adapter is enabled in this release candidate. Approved external work without a live adapter stops at `ready_for_action`.
+No production email, publishing, payment, signature, deletion, destructive, or network adapter is enabled in this release candidate. Patch 007 adds one production-capable local adapter, `bounded_outbox`, which remains disabled by default. It exports exactly one authorized generated artifact only into the outbox root bound before CEO approval.
 
 ## Install
 
@@ -40,6 +40,24 @@ export STILLPOINT_MODEL=<configured-model>
 
 Provider credentials are environment configuration and must never be committed to the repository.
 
+
+For the bounded production outbox, configure an absolute allowlist root before submitting an export request:
+
+```bash
+export STILLPOINT_OUTBOX_ROOT=/absolute/path/to/approved/outbox
+python -m stillpoint.cli submit "Export this artifact to the production outbox."
+python -m stillpoint.cli approve TASK_ID
+```
+
+Real execution remains a separate switch:
+
+```bash
+export STILLPOINT_ENABLE_OUTBOX=1
+python -m stillpoint.cli execute-action ACTION_ID
+```
+
+The normalized outbox root is bound into the ActionRequest before approval. Changing `STILLPOINT_OUTBOX_ROOT` afterward cannot redirect that already-authorized action; execution fails closed if the configured root no longer matches the approved target and scope.
+
 ## CLI
 
 ```bash
@@ -53,6 +71,7 @@ python -m stillpoint.cli reject TASK_ID
 python -m stillpoint.cli resume TASK_ID --note "CEO correction"
 python -m stillpoint.cli actions TASK_ID
 python -m stillpoint.cli artifacts TASK_ID
+python -m stillpoint.cli execute-action ACTION_ID
 ```
 
 `doctor` checks the database/schema, agent registry, managed storage, provider configuration, and frozen evaluation-corpus hashes without exposing credentials.

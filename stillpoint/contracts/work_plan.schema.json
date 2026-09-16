@@ -52,7 +52,7 @@
     },
     "external_action_intent": {
       "type": "string",
-      "enum": ["none", "send_email", "publish", "social_post", "spend", "sign", "delete", "other_external"]
+      "enum": ["none", "send_email", "publish", "social_post", "export_artifact", "spend", "sign", "delete", "other_external"]
     },
     "approval_required": {"type": "boolean"},
     "approval_reason": {"type": "string", "maxLength": 240},

@@ -172,11 +172,11 @@ def run_doctor(*, root: Path, db, registry) -> dict[str, Any]:
     except Exception as exc:
         checks["unresolved_dispatches"]={"ok":False,"error":str(exc)}
 
-    checks["production_external_adapters"]={
-        "ok": True,
-        "enabled": [],
-        "note":"Core release doctor does not enable production external adapters",
-    }
+    try:
+        from .adapters.production import inspect_production_adapters
+        checks["production_external_adapters"]=inspect_production_adapters()
+    except Exception as exc:
+        checks["production_external_adapters"]={"ok":False,"enabled":[],"error":str(exc)}
 
     checks["overall_ok"]=all(
         value.get("ok",False)

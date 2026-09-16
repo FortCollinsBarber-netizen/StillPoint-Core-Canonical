@@ -1,13 +1,13 @@
 {
   "release": "StillPoint Core",
-  "version": "0.2.0rc1",
+  "version": "0.2.0rc2",
   "release_stage": "release-candidate",
   "schema_version": 9,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
-  "intended_release_tag": "v0.2.0rc1",
-  "patch": "006-canonical-rc-closure",
-  "runtime_capability_change": false,
+  "intended_release_tag": "v0.2.0rc2",
+  "patch": "007-bounded-production-outbox",
+  "runtime_capability_change": true,
   "provenance": {
     "source_repository": "RobertEmmanuelLaDay/StillPoint-Core",
     "verified_source_target": "e8ef47ca28842024ef6ecc42f0b6674d89aa2a93",
@@ -17,14 +17,28 @@
     "canonical_patch005_commit": "4a077f216902f4bad725b6b2e61a176a54f81404",
     "tags": {
       "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
-      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404"
-    }
+      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
+      "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7"
+    },
+    "patch006_rc1_commit": "772ed8cb6890b5897174165e80635257e34050c7"
   },
   "release_invariants": {
     "known_runtime_defects": [],
     "production_external_adapters_enabled": [],
     "authority_invariant": "capacity != permission != execution != completion",
     "release_without_erasure": true,
-    "reentry_requires_new_authority": true
+    "reentry_requires_new_authority": true,
+    "production_capable_disabled_by_default": [
+      "bounded_outbox"
+    ]
+  },
+  "production_boundary": {
+    "adapter": "bounded_outbox",
+    "action_type": "export_artifact",
+    "network_access": false,
+    "destructive_operations": false,
+    "default_enabled": false,
+    "enable_flag": "STILLPOINT_ENABLE_OUTBOX=1",
+    "required_allowlist_root": "STILLPOINT_OUTBOX_ROOT"
   }
 }

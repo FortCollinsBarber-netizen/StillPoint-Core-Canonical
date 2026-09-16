@@ -1,9 +1,9 @@
 {
-  "version": "0.2.0rc1",
+  "version": "0.2.0rc2",
   "name": "StillPoint",
   "package": "stillpoint",
   "base_commit": "4d2299e2948e19507e1ccffdcd9255bb4ab285a0",
-  "last_completed_milestone": "patch-005-release-hardening-lifecycle-complete",
+  "last_completed_milestone": "patch-007-bounded-production-outbox-complete",
   "tests": {
     "full_suite_non_eval": {
       "passed": 249,
@@ -92,6 +92,9 @@
   },
   "external_action_adapters": {
     "production_enabled": [],
+    "production_capable_disabled_by_default": [
+      "bounded_outbox"
+    ],
     "test_or_dry_run_only": [
       "null",
       "dry_run"
@@ -116,7 +119,9 @@
       "base_patch_004": "2a08561c814ac261137d9b1790e5289449d3c8e3",
       "note": "Patches 001-005 applied. Main not modified. No production external adapters enabled."
     },
-    "note": "Patch 006 closes canonical release metadata/custody only; no runtime capability is added."
+    "note": "Patch 007 adds one bounded production-capable artifact-export adapter. STILLPOINT_OUTBOX_ROOT is normalized and bound before CEO approval; real execution remains disabled unless STILLPOINT_ENABLE_OUTBOX=1.",
+    "patch006_rc1_commit": "772ed8cb6890b5897174165e80635257e34050c7",
+    "patch006_rc1_tag": "v0.2.0rc1"
   },
   "independent_audit_hardening": {
     "action_boundary_audit": "PASS",
@@ -127,11 +132,11 @@
     "release_reentry_no_resurrection": "PASS"
   },
   "release_candidate": {
-    "version": "0.2.0rc1",
-    "closure_patch": "006",
+    "version": "0.2.0rc2",
+    "closure_patch": "007",
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
-    "intended_release_tag": "v0.2.0rc1",
-    "runtime_capability_change": false
+    "intended_release_tag": "v0.2.0rc2",
+    "runtime_capability_change": true
   }
 }

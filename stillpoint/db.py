@@ -374,6 +374,18 @@ class CompanyDB:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    def get_artifact(self, artifact_id: str) -> dict[str, Any] | None:
+        row = self._connection().execute(
+            "SELECT * FROM artifacts WHERE id=?", (artifact_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
+        row = self._connection().execute(
+            "SELECT * FROM agent_runs WHERE id=?", (run_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
     def add_task_file(
         self,
         task_id: str,

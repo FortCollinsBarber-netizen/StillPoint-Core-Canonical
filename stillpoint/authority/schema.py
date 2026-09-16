@@ -1,12 +1,12 @@
 from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 
-FAMILIES=("none","communicate","publish","social","spend","sign","delete","other_external")
+FAMILIES=("none","communicate","publish","social","export","spend","sign","delete","other_external")
 MODES=("execute","analyze","recommend","draft","prepare","compare","find","return_to_ceo","prohibit","unknown")
 TARGETS=("ceo","external_person","public","financial","external_system","unknown")
-FAMILY_TO_INTENT={"none":"none","communicate":"send_email","publish":"publish","social":"social_post","spend":"spend","sign":"sign","delete":"delete","other_external":"other_external"}
+FAMILY_TO_INTENT={"none":"none","communicate":"send_email","publish":"publish","social":"social_post","export":"export_artifact","spend":"spend","sign":"sign","delete":"delete","other_external":"other_external"}
 INTENT_TO_FAMILY={v:k for k,v in FAMILY_TO_INTENT.items()}
-RESTRICTED_INTENTS=("send_email","publish","social_post","spend","sign","delete","other_external")
+RESTRICTED_INTENTS=("send_email","publish","social_post","export_artifact","spend","sign","delete","other_external")
 DISCUSSION_MODES={"analyze","recommend","draft","prepare","compare","find","return_to_ceo","prohibit"}
 AUTHORITY_SCHEMA={"type":"object","additionalProperties":False,"required":["action_family","mode","target","confidence","reason"],"properties":{"action_family":{"type":"string","enum":list(FAMILIES)},"mode":{"type":"string","enum":list(MODES)},"target":{"type":"string","enum":list(TARGETS)},"confidence":{"type":"number","minimum":0,"maximum":1},"reason":{"type":"string"}}}
 

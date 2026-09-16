@@ -12,6 +12,7 @@ ACTION_DOMAINS = {
     "publish": "publishing",
     "social": "publishing",
     "social_post": "publishing",
+    "export_artifact": "operational",
     "spend": "financial",
     "pay": "financial",
     "purchase": "financial",

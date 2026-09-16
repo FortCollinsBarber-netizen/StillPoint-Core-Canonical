@@ -50,7 +50,7 @@ def _structural_external(text):
 def _mode(text):
     # A discussion/draft verb followed by an explicit execution command in the same
     # clause is execution authority for that commanded action.
-    if re.search(r"^\s*(?:draft|compose|sketch|prepare|assemble|analyze|analyse|recommend|compare|find|identify)\b.*\b(?:and|then)\s+(?:send|email|transmit|deliver|forward|publish|release|buy|spend|pay|purchase|sign|initial|execute|delete|wipe|destroy|upload|post|tweet)\b", text, re.I):
+    if re.search(r"^\s*(?:draft|compose|sketch|prepare|assemble|analyze|analyse|recommend|compare|find|identify)\b.*\b(?:and|then)\s+(?:send|email|transmit|deliver|forward|export|publish|release|buy|spend|pay|purchase|sign|initial|execute|delete|wipe|destroy|upload|post|tweet)\b", text, re.I):
         return "execute"
     if re.search(r"\bdo not\b|\bdon't\b",text,re.I):return "prohibit"
     if _has(text,"send me","give me","back to me") and not _external_recipient(text):return "return_to_ceo"
@@ -73,6 +73,7 @@ def _family(text):
     if _has(text,"make") and _has(text,"live"):return "publish"
     if _has(text,"release") and _has(text,"kdp","amazon","paperback","book","publicly","listing"):return "publish"
     if _has(text,"send","email","transmit","forward","deliver","hand"):return "communicate"
+    if _has(text,"export","export artifact","production outbox","outbox"):return "export"
     return "none"
 
 def _external_recipient(text):
@@ -87,10 +88,11 @@ def _external_recipient(text):
 def _target(text,family):
     if _has(text,"send me","give me","to me","back to me"):return "ceo"
     if family=="publish" or _has(text,"publicly","kdp","amazon"):return "public"
+    if family=="export":return "external_system"
     if family=="spend" or "$" in text:return "financial"
     if family=="delete" or _has(text,"database","repository","production"):return "external_system"
     if _external_recipient(text):return "external_person"
     return "unknown"
 
 def _looks_known_imperative(text):
-    return bool(re.match(r"^(send|email|transmit|deliver|forward|hand|publish|release|buy|spend|pay|purchase|sign|initial|execute|delete|wipe|destroy|upload|place|list|make)\b",text.strip(),re.I))
+    return bool(re.match(r"^(send|email|transmit|deliver|forward|hand|export|publish|release|buy|spend|pay|purchase|sign|initial|execute|delete|wipe|destroy|upload|place|list|make)\b",text.strip(),re.I))

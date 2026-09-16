@@ -191,10 +191,20 @@ class CompanyRuntime:
             by_intent.setdefault(a.intent,a)
         for action in plan.restricted_actions:
             a=by_intent.get(action); target=(a.clause.strip() if a and a.clause else (a.target if a else "unknown"));scope=[a.target if a else "unknown",target]
-            raw="|".join([task_id,plan.authority_revision,action,target,*[f"{r.artifact_id}:{r.version}:{r.sha256}" for r in refs]])
+            action_refs=refs
+            if action=="export_artifact":
+                from .adapters.production import configured_outbox_root
+                outbox_root=str(configured_outbox_root())
+                scope.append("outbox_root="+outbox_root)
+                target="bounded_outbox:"+outbox_root
+                rows=self.db.list_artifacts(task_id)
+                if not rows: raise RuntimeError("export_artifact requires a generated artifact")
+                r=rows[-1]
+                action_refs=[ArtifactRef(name=r["name"],sha256=r["sha256"],kind=r["kind"],artifact_id=r["id"],version=r["version"])]
+            raw="|".join([task_id,plan.authority_revision,action,target,*[f"{r.artifact_id}:{r.version}:{r.sha256}" for r in action_refs]])
             idem=hashlib.sha256(raw.encode()).hexdigest();existing=self.db.find_action_request_by_idempotency(idem)
             if existing:out.append(existing["id"]);continue
-            req=ActionRequest(action_id=hashlib.sha256(("action|"+raw).encode()).hexdigest()[:20],task_id=task_id,action_type=action,target=target,scope=scope,artifact_refs=refs,approval_required=True,approval_id=None,expires_at=(now+timedelta(hours=24)).isoformat(),issued_at=now.isoformat(),idempotency_key=idem,success_criteria=[{"send_email":"delivery_receipt","publish":"publication_receipt","social_post":"post_receipt","spend":"payment_receipt","sign":"signature_receipt","delete":"deletion_receipt"}.get(action,"external_receipt")],authority_revision=plan.authority_revision)
+            req=ActionRequest(action_id=hashlib.sha256(("action|"+raw).encode()).hexdigest()[:20],task_id=task_id,action_type=action,target=target,scope=scope,artifact_refs=action_refs,approval_required=True,approval_id=None,expires_at=(now+timedelta(hours=24)).isoformat(),issued_at=now.isoformat(),idempotency_key=idem,success_criteria=[{"send_email":"delivery_receipt","publish":"publication_receipt","social_post":"post_receipt","export_artifact":"export_receipt","spend":"payment_receipt","sign":"signature_receipt","delete":"deletion_receipt"}.get(action,"external_receipt")],authority_revision=plan.authority_revision)
             self.db.add_action_request(req);out.append(req.action_id)
         return out
     def _finish(self,task_id,goal,plan,primary_output,review_text):

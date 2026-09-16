@@ -12,12 +12,13 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 
-EXPECTED_VERSION = "0.2.0rc1"
+EXPECTED_VERSION = "0.2.0rc2"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 EXPECTED_SCHEMA = 9
 EXPECTED_TAGS = {
     "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
     "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
+    "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7",
 }
 
 errors = []
@@ -68,7 +69,12 @@ require(
     "checkpoint canonical repository mismatch",
 )
 require(manifest.get("canonical_repository") == EXPECTED_REPOSITORY, "manifest canonical repository mismatch")
-require(manifest.get("runtime_capability_change") is False, "Patch 006 must remain capability-neutral")
+require(manifest.get("runtime_capability_change") is True, "Patch 007 capability change must be explicit")
+require(manifest.get("patch") == "007-bounded-production-outbox", "Patch 007 identity mismatch")
+require(manifest.get("intended_release_tag") == "v0.2.0rc2", "RC2 tag mismatch")
+require(checkpoint.get("external_action_adapters", {}).get("production_capable_disabled_by_default") == ["bounded_outbox"], "checkpoint adapter capability mismatch")
+require(manifest.get("release_invariants", {}).get("production_capable_disabled_by_default") == ["bounded_outbox"], "manifest adapter capability mismatch")
+require(manifest.get("production_boundary") == {"adapter":"bounded_outbox","action_type":"export_artifact","network_access":False,"destructive_operations":False,"default_enabled":False,"enable_flag":"STILLPOINT_ENABLE_OUTBOX=1","required_allowlist_root":"STILLPOINT_OUTBOX_ROOT"}, "production boundary metadata mismatch")
 
 github_repository = os.environ.get("GITHUB_REPOSITORY")
 if github_repository:

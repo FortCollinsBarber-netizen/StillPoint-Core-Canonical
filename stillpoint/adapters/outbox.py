@@ -34,7 +34,7 @@ def _safe_segment(value: str, *, label: str) -> str:
 
 def _atomic_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists() and path.is_symlink():
+    if path.is_symlink():
         raise OutboxBoundaryError("destination is a symlink")
     fd,tmp_name=tempfile.mkstemp(prefix=".stillpoint-", dir=str(path.parent))
     tmp=Path(tmp_name)
@@ -67,7 +67,7 @@ class BoundedOutboxAdapter:
         root=Path(outbox_root).expanduser()
         if not root.is_absolute():
             raise OutboxBoundaryError("outbox root must be an absolute path")
-        if root.exists() and root.is_symlink():
+        if root.is_symlink():
             raise OutboxBoundaryError("outbox root may not be a symlink")
         self.outbox_root=root.resolve(strict=False)
 
@@ -119,12 +119,12 @@ class BoundedOutboxAdapter:
         action_id=_safe_segment(request.action_id,label="action id")
         name=_safe_segment(request.artifact_refs[0].name,label="artifact name")
         root=self.outbox_root
-        if root.exists() and root.is_symlink():
+        if root.is_symlink():
             raise OutboxBoundaryError("outbox root may not be a symlink")
         root.mkdir(parents=True,exist_ok=True)
         root=root.resolve()
         action_dir=root/action_id
-        if action_dir.exists() and action_dir.is_symlink():
+        if action_dir.is_symlink():
             raise OutboxBoundaryError("action outbox may not be a symlink")
         action_dir.mkdir(parents=True,exist_ok=True)
         action_dir=action_dir.resolve()
@@ -174,9 +174,9 @@ class BoundedOutboxAdapter:
         payload["result_hash"]=_sha(canonical)
         receipt_bytes=(json.dumps(payload,sort_keys=True,indent=2,ensure_ascii=False)+"\n").encode("utf-8")
 
+        if receipt_path.is_symlink():
+            raise OutboxBoundaryError("receipt is a symlink")
         if receipt_path.exists():
-            if receipt_path.is_symlink():
-                raise OutboxBoundaryError("receipt is a symlink")
             try:
                 prior=json.loads(receipt_path.read_text("utf-8"))
             except Exception as exc:
@@ -201,6 +201,8 @@ class BoundedOutboxAdapter:
                 external_id=str(destination.relative_to(root)),
             )
 
+        if destination.is_symlink():
+            raise OutboxBoundaryError("destination is a symlink")
         if destination.exists():
             raise OutboxBoundaryError("pre-existing destination has no matching StillPoint receipt")
 

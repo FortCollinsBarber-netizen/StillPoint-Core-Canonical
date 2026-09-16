@@ -11,7 +11,7 @@ from .providers import make_provider
 from .registry import AgentRegistry
 from .runtime import CompanyRuntime
 from .doctor import run_doctor
-from .adapters.production import build_production_registry
+from .adapters.production import build_production_registry, reconcile_gmail_send
 
 
 def _root() -> Path:
@@ -81,6 +81,7 @@ def main(argv=None) -> int:
     actions=sub.add_parser("actions");actions.add_argument("task_id",nargs="?")
     artifacts=sub.add_parser("artifacts");artifacts.add_argument("task_id")
     execute_action=sub.add_parser("execute-action");execute_action.add_argument("action_id")
+    reconcile_gmail=sub.add_parser("reconcile-gmail-send");reconcile_gmail.add_argument("action_id")
     sub.add_parser("approvals")
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
@@ -108,6 +109,7 @@ def main(argv=None) -> int:
             _json(rows)
         elif args.cmd=="artifacts":_json(rt.db.list_artifacts(args.task_id))
         elif args.cmd=="execute-action":_json(rt.execute_action(args.action_id,build_production_registry(rt)))
+        elif args.cmd=="reconcile-gmail-send":_json(reconcile_gmail_send(rt,args.action_id))
         elif args.cmd=="approvals":_json([t for t in rt.db.list_tasks(100) if t["status"]=="waiting_approval"])
         elif args.cmd=="doctor":return cmd_doctor(rt,root)
         return 0

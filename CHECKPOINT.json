@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0a1",
+  "version": "0.2.0rc1",
   "name": "StillPoint",
   "package": "stillpoint",
   "base_commit": "4d2299e2948e19507e1ccffdcd9255bb4ab285a0",
@@ -98,9 +98,25 @@
     ]
   },
   "git": {
-    "feature_branch": "feature/temporal-authority-layer",
-    "base_patch_004": "2a08561c814ac261137d9b1790e5289449d3c8e3",
-    "note": "Patches 001-005 applied. Main not modified. No production external adapters enabled."
+    "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
+    "canonical_branch": "main",
+    "canonicalization_parent": "4a077f216902f4bad725b6b2e61a176a54f81404",
+    "source_repository": "RobertEmmanuelLaDay/StillPoint-Core",
+    "source_target_commit": "e8ef47ca28842024ef6ecc42f0b6674d89aa2a93",
+    "source_tree": "f448a0a54963d000ea7408bdb03bd7c94c96bdee",
+    "local_provenance_final_commit": "17ba40dcfc3b0b23a6c35575beed90aff17e9c12",
+    "canonical_import_commit": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
+    "patch005_canonical_commit": "4a077f216902f4bad725b6b2e61a176a54f81404",
+    "provenance_tags": {
+      "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
+      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404"
+    },
+    "historical_source_metadata": {
+      "feature_branch": "feature/temporal-authority-layer",
+      "base_patch_004": "2a08561c814ac261137d9b1790e5289449d3c8e3",
+      "note": "Patches 001-005 applied. Main not modified. No production external adapters enabled."
+    },
+    "note": "Patch 006 closes canonical release metadata/custody only; no runtime capability is added."
   },
   "independent_audit_hardening": {
     "action_boundary_audit": "PASS",
@@ -109,5 +125,13 @@
     "atomic_ceo_authorization": "PASS",
     "durable_dispatch_uncertain": "PASS",
     "release_reentry_no_resurrection": "PASS"
+  },
+  "release_candidate": {
+    "version": "0.2.0rc1",
+    "closure_patch": "006",
+    "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
+    "canonical_branch": "main",
+    "intended_release_tag": "v0.2.0rc1",
+    "runtime_capability_change": false
   }
 }

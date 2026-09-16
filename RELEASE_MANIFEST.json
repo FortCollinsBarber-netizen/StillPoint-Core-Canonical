@@ -1,0 +1,30 @@
+{
+  "release": "StillPoint Core",
+  "version": "0.2.0rc1",
+  "release_stage": "release-candidate",
+  "schema_version": 9,
+  "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
+  "canonical_branch": "main",
+  "intended_release_tag": "v0.2.0rc1",
+  "patch": "006-canonical-rc-closure",
+  "runtime_capability_change": false,
+  "provenance": {
+    "source_repository": "RobertEmmanuelLaDay/StillPoint-Core",
+    "verified_source_target": "e8ef47ca28842024ef6ecc42f0b6674d89aa2a93",
+    "verified_source_tree": "f448a0a54963d000ea7408bdb03bd7c94c96bdee",
+    "local_provenance_final_commit": "17ba40dcfc3b0b23a6c35575beed90aff17e9c12",
+    "canonical_import_commit": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
+    "canonical_patch005_commit": "4a077f216902f4bad725b6b2e61a176a54f81404",
+    "tags": {
+      "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
+      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404"
+    }
+  },
+  "release_invariants": {
+    "known_runtime_defects": [],
+    "production_external_adapters_enabled": [],
+    "authority_invariant": "capacity != permission != execution != completion",
+    "release_without_erasure": true,
+    "reentry_requires_new_authority": true
+  }
+}

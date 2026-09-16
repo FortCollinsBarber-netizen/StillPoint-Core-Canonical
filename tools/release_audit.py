@@ -14,6 +14,7 @@ ROOT=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 commands=[
     [sys.executable, str(ROOT/"tools"/"audit_action_request_boundaries.py"), str(ROOT)],
     [sys.executable, str(ROOT/"tools"/"audit_company_boundaries.py"), str(ROOT)],
+    [sys.executable, str(ROOT/"tools"/"audit_release_metadata.py"), str(ROOT)],
 ]
 
 for command in commands:

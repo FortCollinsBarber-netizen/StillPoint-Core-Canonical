@@ -1,11 +1,11 @@
 {
   "release": "StillPoint Core",
-  "version": "0.2.0rc2",
-  "release_stage": "release-candidate",
+  "version": "0.4.0a1",
+  "release_stage": "alpha",
   "schema_version": 19,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
-  "intended_release_tag": "v0.2.0rc2",
+  "intended_release_tag": "v0.4.0a1",
   "patch": "041-icloud-auth-boundary-correction",
   "runtime_capability_change": true,
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
@@ -21,7 +21,8 @@
       "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7"
     },
     "canonical_patch039_merge": "b8391f9cf4fec0ecdf7329b82b11994d014688b5",
-    "canonical_patch040_merge": "8c06cf9079b05083b46cf9c9982d580b2be8148f"
+    "canonical_patch040_merge": "8c06cf9079b05083b46cf9c9982d580b2be8148f",
+    "canonical_patch041_merge": "2b3173c6783a1f0ddbac035008b970af9ee5fc7e"
   },
   "release_invariants": {
     "known_runtime_defects": [],
@@ -36,7 +37,8 @@
       "gmail_send"
     ],
     "production_capable_services_not_auto_started": [
-      "signal_mail:icloud"
+      "signal_mail:icloud",
+      "stillpointd"
     ],
     "credentials_committed": false
   },
@@ -97,6 +99,12 @@
     "secret_store": "macOS Keychain",
     "runs_as_root": false,
     "production_activation": false,
-    "entrypoint": "stillpoint-signal-mail"
-  }
+    "entrypoint": "stillpointd",
+    "specialized_services": [
+      "stillpoint-signal-mail"
+    ]
+  },
+  "program": "0.4-autonomous-company-os",
+  "milestone": "v0.4-autonomous-kernel-1",
+  "baseline_patch": "041-icloud-auth-boundary-correction"
 }

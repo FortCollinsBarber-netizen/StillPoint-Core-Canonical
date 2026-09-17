@@ -5,17 +5,19 @@ import json, os, re, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
-EXPECTED_VERSION = "0.2.0rc2"
+EXPECTED_VERSION = "0.4.0a1"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 EXPECTED_SCHEMA = 19
 EXPECTED_PATCH = "041-icloud-auth-boundary-correction"
-EXPECTED_MILESTONE = "patch-041-icloud-auth-boundary-correction"
+EXPECTED_MILESTONE = "v0.4-autonomous-kernel-1"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
 EXPECTED_ACCOUNT = "fortcollinsbarber@icloud.com"
 EXPECTED_JURISDICTION = "personal_business"
+EXPECTED_PROGRAM = "0.4-autonomous-company-os"
+EXPECTED_V04_BASE = "2b3173c6783a1f0ddbac035008b970af9ee5fc7e"
 EXPECTED_CLASSES = ["scheduling","acknowledgement","routine_information"]
 EXPECTED_DISABLED = ["bounded_outbox","gmail_send"]
-EXPECTED_SERVICES = ["signal_mail:icloud"]
+EXPECTED_SERVICES = ["signal_mail:icloud","stillpointd"]
 EXPECTED_TAGS = {
     "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
     "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
@@ -62,10 +64,14 @@ require(manifest.get("schema_version")==EXPECTED_SCHEMA,f"manifest schema mismat
 require(checkpoint.get("migrations",[])[-1:] == ["019_provider_neutral_mailboxes.sql"], "checkpoint migration tail mismatch")
 require(len(checkpoint.get("migrations",[]))==EXPECTED_SCHEMA,"checkpoint migration count mismatch")
 require(checkpoint.get("last_completed_milestone")==EXPECTED_MILESTONE,"checkpoint milestone mismatch")
-require(manifest.get("patch")==EXPECTED_PATCH,"release patch identity mismatch")
+require(manifest.get("baseline_patch")==EXPECTED_PATCH,"0.4 baseline patch mismatch")
+require(manifest.get("program")==EXPECTED_PROGRAM,"0.4 manifest program mismatch")
+require(checkpoint.get("program")==EXPECTED_PROGRAM,"0.4 checkpoint program mismatch")
+require(manifest.get("milestone")==EXPECTED_MILESTONE,"0.4 manifest milestone mismatch")
+require(checkpoint.get("git",{}).get("v04_program_base_commit")==EXPECTED_V04_BASE,"0.4 program base mismatch")
+require(manifest.get("provenance",{}).get("canonical_patch041_merge")==EXPECTED_V04_BASE,"Patch 041 provenance mismatch")
 require(latest_documented_patch is not None,"no numbered patch documentation found")
-require(EXPECTED_PATCH.startswith(f"{latest_documented_patch:03d}-"),f"release identity trails latest documented patch: {latest_documented_patch:03d}")
-require(EXPECTED_MILESTONE.startswith(f"patch-{latest_documented_patch:03d}-"),f"checkpoint milestone trails latest documented patch: {latest_documented_patch:03d}")
+require(EXPECTED_PATCH.startswith(f"{latest_documented_patch:03d}-"),f"0.4 baseline trails latest earned numbered patch: {latest_documented_patch:03d}")
 require(checkpoint.get("known_runtime_defects")==[],"known runtime defects are not empty")
 require(manifest.get("release_invariants",{}).get("known_runtime_defects")==[],"manifest known runtime defects are not empty")
 require(checkpoint.get("external_action_adapters",{}).get("production_enabled")==[],"production external adapters are enabled in checkpoint")
@@ -88,7 +94,7 @@ require(host.get("service_scope")=="per-user LaunchAgent","production host scope
 require(host.get("secret_store")=="macOS Keychain","production host secret-store mismatch")
 require(host.get("runs_as_root") is False,"Signal host must not run as root")
 require(host.get("production_activation") is False,"release metadata must not claim production activation")
-require(host.get("entrypoint")=="stillpoint-signal-mail","provider-neutral Signal entrypoint mismatch")
+require(host.get("entrypoint")=="stillpointd","0.4 primary host entrypoint mismatch")
 
 cp_signal=checkpoint.get("signal_governance",{})
 mf_signal=manifest.get("signal",{})
@@ -111,7 +117,7 @@ require(icloud.get("requires_current_facts_snapshot") is True,"iCloud service mu
 require(checkpoint.get("release_candidate",{}).get("canonical_repository")==EXPECTED_REPOSITORY,"checkpoint canonical repository mismatch")
 require(manifest.get("canonical_repository")==EXPECTED_REPOSITORY,"manifest canonical repository mismatch")
 require(manifest.get("runtime_capability_change") is True,"runtime capability change must be explicit")
-require(manifest.get("intended_release_tag")=="v0.2.0rc2","RC2 intended tag mismatch")
+require(manifest.get("intended_release_tag")=="v0.4.0a1","0.4 alpha intended tag mismatch")
 
 github_repository=os.environ.get("GITHUB_REPOSITORY")
 if github_repository: require(github_repository==EXPECTED_REPOSITORY,f"CI repository mismatch: {github_repository}")
@@ -131,5 +137,6 @@ print("Release metadata audit passed.")
 print("version:",EXPECTED_VERSION)
 print("repository:",EXPECTED_REPOSITORY)
 print("schema:",EXPECTED_SCHEMA)
-print("patch:",EXPECTED_PATCH)
+print("program:",EXPECTED_PROGRAM)
+print("baseline patch:",EXPECTED_PATCH)
 print("signal:",EXPECTED_ACCOUNT,EXPECTED_JURISDICTION)

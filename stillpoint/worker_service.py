@@ -34,6 +34,7 @@ class WorkerServiceConfig:
     max_failures: int = 3
     auto_retry_failed: bool = False
     triggered_only: bool = True
+    excluded_trigger_sources: tuple[str, ...] = ()
 
     def __post_init__(self):
         if not self.role.strip(): raise ValueError('role required')
@@ -102,11 +103,18 @@ class PersistentWorkerService:
         return self.db._connection().execute('SELECT * FROM worker_task_retry_state WHERE task_id=?',(task_id,)).fetchone()
 
     def _eligible(self, task_id: str, status: str, now: datetime) -> bool:
+        # Retry evidence outranks stale task status. A task cannot become eligible
+        # merely because its tasks.status still says new/running after execution failed.
+        row=self._retry_row(task_id)
+        if row:
+            if int(row['exhausted']): return False
+            if row['last_outcome']=='failed':
+                if not self.config.auto_retry_failed: return False
+                if row['next_eligible_at'] and _parse(row['next_eligible_at']) > now:
+                    return False
         if status in {'new','running'}: return True
         if status!='failed' or not self.config.auto_retry_failed: return False
-        row=self._retry_row(task_id)
         if not row: return True
-        if int(row['exhausted']): return False
         return not row['next_eligible_at'] or _parse(row['next_eligible_at']) <= now
 
     def eligible_task_ids(self, *, now_iso: str, limit: int=20) -> list[str]:
@@ -115,9 +123,14 @@ class PersistentWorkerService:
         out=[]
         for row in rows:
             if not self._eligible(row['id'],row['status'],now): continue
-            firing=conn.execute("""SELECT d.owner_role FROM trigger_firings f JOIN trigger_definitions d ON d.trigger_id=f.trigger_id WHERE f.task_id=?""",(row['id'],)).fetchone()
+            # SELECT d.* keeps the worker compatible with narrow historical/test
+            # trigger schemas while allowing newer schemas to expose source/event_type.
+            firing=conn.execute("""SELECT d.* FROM trigger_firings f JOIN trigger_definitions d ON d.trigger_id=f.trigger_id WHERE f.task_id=?""",(row['id'],)).fetchone()
             if firing:
                 if firing['owner_role']!=self.config.role: continue
+                keys=set(firing.keys())
+                source=firing['source'] if 'source' in keys else None
+                if source and source in self.config.excluded_trigger_sources: continue
             elif self.config.triggered_only: continue
             out.append(row['id'])
             if len(out)>=limit: break
@@ -135,12 +148,29 @@ class PersistentWorkerService:
         elif outcome=='succeeded': failures=0
         exhausted=1 if outcome=='failed' and failures>=self.config.max_failures else 0
         retry_after=None
-        if outcome=='failed' and not exhausted: retry_after=_iso(now+timedelta(seconds=self.config.retry_backoff_seconds))
+        if outcome=='failed' and self.config.auto_retry_failed and not exhausted:
+            retry_after=_iso(now+timedelta(seconds=self.config.retry_backoff_seconds))
         self.db._connection().execute(
             """INSERT INTO worker_task_retry_state(task_id,failure_count,next_eligible_at,last_outcome,exhausted,updated_at)
                VALUES(?,?,?,?,?,?) ON CONFLICT(task_id) DO UPDATE SET failure_count=excluded.failure_count,next_eligible_at=excluded.next_eligible_at,last_outcome=excluded.last_outcome,exhausted=excluded.exhausted,updated_at=excluded.updated_at""",
             (task_id,failures,retry_after,outcome,exhausted,_iso(now)))
         self.db._connection().commit(); return retry_after
+
+    def _mark_task_failed(self, task_id: str, *, error: str, now_iso: str) -> None:
+        updater=getattr(self.db,'update_task',None)
+        if callable(updater):
+            updater(task_id,status='failed',error=error)
+            return
+        conn=self.db._connection()
+        cols={str(row[1]) for row in conn.execute('PRAGMA table_info(tasks)').fetchall()}
+        assignments=["status='failed'"]; args=[]
+        if 'error' in cols:
+            assignments.append('error=?'); args.append(error)
+        if 'updated_at' in cols:
+            assignments.append('updated_at=?'); args.append(now_iso)
+        args.append(task_id)
+        conn.execute(f"UPDATE tasks SET {','.join(assignments)} WHERE id=?",args)
+        conn.commit()
 
     def run_once(self, executor: Callable[[str,LeaseHeartbeatGuard],Any], *, now_iso: str|None=None) -> dict[str,Any]|None:
         start=_parse(now_iso) if now_iso else _now(); logical_now=_iso(start) if now_iso is not None else None; lease=self.claim_next(now_iso=_iso(start))
@@ -163,8 +193,14 @@ class PersistentWorkerService:
             self._event(guard.lease,attempt_id,'lease_lost',now_iso=_iso(event_now),error=error)
             raise
         except Exception as exc:
-            outcome='failed'; error=f'{type(exc).__name__}: {exc}'; event_now=start if logical_now is not None else _now(); retry_after=self._set_retry(lease.task_id,outcome=outcome,now=event_now,error=error)
-            self._event(guard.lease,attempt_id,'failed',now_iso=_iso(event_now),error=error,retry_after=retry_after)
+            outcome='failed'; error=f'{type(exc).__name__}: {exc}'; event_now=start if logical_now is not None else _now()
+            retry_after=self._set_retry(lease.task_id,outcome=outcome,now=event_now,error=error)
+            event_error=error
+            try:
+                self._mark_task_failed(lease.task_id,error=error,now_iso=_iso(event_now))
+            except Exception as mark_exc:
+                event_error += f"; task_status_update_failed={type(mark_exc).__name__}: {mark_exc}"
+            self._event(guard.lease,attempt_id,'failed',now_iso=_iso(event_now),error=event_error,retry_after=retry_after)
             raise
         finally:
             guard.stop()

@@ -7,7 +7,9 @@ class DBRepairTests(unittest.TestCase):
     def test_fresh_db_migrates_to_current(self):
         with tempfile.TemporaryDirectory() as d:
             db=CompanyDB(Path(d)/"x.sqlite")
-            self.assertEqual(db.schema_version, 9)
+            root=Path(__file__).resolve().parents[1]
+            expected=max(int(p.name[:3]) for p in (root/'migrations').glob('[0-9][0-9][0-9]_*.sql'))
+            self.assertEqual(db.schema_version, expected)
             db.close()
     def test_future_db_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
@@ -21,7 +23,8 @@ class DBRepairTests(unittest.TestCase):
             db=CompanyDB(Path(d)/"x.sqlite");t=db.create_task("x");r=db.add_run(t,"author","primary","x");a1=db.add_artifact(task_id=t,kind="prose",name="a",sha256="1",produced_by_run_id=r,phase="primary");a2=db.add_artifact(task_id=t,kind="prose",name="b",sha256="2",produced_by_run_id=r,phase="revision");rows=db.list_artifacts(t);self.assertEqual(rows[1]["version"],2);self.assertEqual(rows[1]["supersedes"],a1);db.close()
     def test_action_approval_binding(self):
         with tempfile.TemporaryDirectory() as d:
-            db=CompanyDB(Path(d)/"x.sqlite");t=db.create_task("send");req=ActionRequest("a",t,"send_email","jane",["mail"],[ArtifactRef("x","abc")],True,None,"2099-01-01T00:00:00+00:00","2026-01-01T00:00:00+00:00","idem",["smtp-id"],authority_revision="rev");db.add_action_request(req);ap=db.add_approval(t,"approved");db.bind_action_approval("a",ap);row=db.list_action_requests(t)[0];self.assertEqual(row["approval_id"],ap);self.assertNotEqual(row["status"],"ready_for_action")  # warrant required for ready;db.close()
+            db=CompanyDB(Path(d)/"x.sqlite");t=db.create_task("send");req=ActionRequest("a",t,"send_email","jane",["mail"],[ArtifactRef("x","abc")],True,None,"2099-01-01T00:00:00+00:00","2026-01-01T00:00:00+00:00","idem",["smtp-id"],authority_revision="rev");db.add_action_request(req);ap=db.add_approval(t,"approved");db.bind_action_approval("a",ap);row=db.list_action_requests(t)[0];self.assertEqual(row["approval_id"],ap);self.assertNotEqual(row["status"],"ready_for_action")
+            db.close()
 
 if __name__=='__main__':unittest.main()
 

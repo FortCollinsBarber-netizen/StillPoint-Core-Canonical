@@ -2,36 +2,23 @@
   "version": "0.2.0rc2",
   "name": "StillPoint",
   "package": "stillpoint",
-  "base_commit": "4d2299e2948e19507e1ccffdcd9255bb4ab285a0",
-  "last_completed_milestone": "patch-007-bounded-production-outbox-complete",
+  "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
+  "last_completed_milestone": "patch-037-apple-first-signal-release-identity-closure",
   "tests": {
     "full_suite_non_eval": {
-      "passed": 249,
-      "failed": 0,
-      "subtests_passed": 4
-    },
-    "temporal_authority": {
-      "passed": 37,
+      "passed": 460,
       "failed": 0
     },
-    "temporal_hardening": {
-      "passed": 11,
+    "focused_patch035_compatibility": {
+      "passed": 134,
       "failed": 0
     },
-    "mandatory_warrant": {
+    "patch036_authority_audit_adversarial": {
       "passed": 6,
       "failed": 0
     },
-    "dispatch_state_machine": {
-      "passed": 6,
-      "failed": 0
-    },
-    "lifecycle": {
-      "passed": 7,
-      "failed": 0
-    },
-    "release_hardening": {
-      "passed": 3,
+    "patch037_release_identity": {
+      "passed": 4,
       "failed": 0
     }
   },
@@ -52,13 +39,14 @@
       "score": 93.3
     },
     "approval_precision": 100.0,
-    "action_truthfulness": 100.0
+    "action_truthfulness": 100.0,
+    "note": "Historical calibrated values retained until the canonical gate reruns the frozen evaluators."
   },
   "corpus_sha256": {
     "stillpoint_adversarial_50.jsonl": "8859048ddccf79bf6787fcca15dcff135fcfb4b52ac0fe8b4f658b6793cbde05",
     "shadow_20.jsonl": "bed3f85b08a6829e392663bd73d17e46feba091e944c73c2bb2f124ef0c33ee2"
   },
-  "schema_version": 9,
+  "schema_version": 19,
   "migrations": [
     "001_baseline_v5.sql",
     "002_packet2_artifacts.sql",
@@ -68,60 +56,75 @@
     "006_temporal_authority_hardening.sql",
     "007_action_warrant_gate.sql",
     "008_durable_dispatch_reconciliation.sql",
-    "009_lifecycle_release_reentry.sql"
+    "009_lifecycle_release_reentry.sql",
+    "010_autonomous_worker_runtime.sql",
+    "011_claim_envelope_continuing_evidence.sql",
+    "012_standing_delegation.sql",
+    "013_delegated_execution_warrant.sql",
+    "014_schedules_and_event_triggers.sql",
+    "015_worker_service_runtime.sql",
+    "016_signal_gmail_inbox.sql",
+    "017_signal_email_preparation.sql",
+    "018_delegated_dispatch_revalidation.sql",
+    "019_provider_neutral_mailboxes.sql"
   ],
   "known_runtime_defects": [],
-  "known_evaluator_expectation_conflicts": {
-    "original_50_calibrated": [
-      "R_XFUNC_02",
-      "U_CONTRIB"
-    ],
-    "shadow_20_calibrated": [
-      "SH03",
-      "SH04",
-      "SH06",
-      "SH09",
-      "SH10",
-      "SH12",
-      "SH13",
-      "SH15",
-      "SH16",
-      "SH18",
-      "SH19"
-    ]
-  },
+  "known_nonblocking_test_warnings": [
+    "Some tests emit ResourceWarning for SQLite connections retained by test fixtures; canonical functional and authority gates remain green."
+  ],
   "external_action_adapters": {
     "production_enabled": [],
     "production_capable_disabled_by_default": [
-      "bounded_outbox"
+      "bounded_outbox",
+      "gmail_send"
     ],
     "test_or_dry_run_only": [
       "null",
       "dry_run"
     ]
   },
+  "production_services": {
+    "auto_started": [],
+    "production_capable_not_auto_started": [
+      "signal_mail:icloud"
+    ],
+    "signal_mail": {
+      "provider": "icloud",
+      "account": "fortcollinsbarber@icloud.com",
+      "jurisdiction": "personal_business",
+      "credentials_committed": false,
+      "activation": "explicit service process invocation with complete current configuration and secrets"
+    }
+  },
+  "signal_governance": {
+    "policy_digest_sha256": "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9",
+    "account": "fortcollinsbarber@icloud.com",
+    "jurisdiction": "personal_business",
+    "autonomous_classes": [
+      "scheduling",
+      "acknowledgement",
+      "routine_information"
+    ],
+    "mandatory_review_days": 30,
+    "approval_evidence": "held as external release evidence; not production activation"
+  },
   "git": {
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
+    "integration_branch": "integration/approved-apple-signal-rc",
+    "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
     "canonicalization_parent": "4a077f216902f4bad725b6b2e61a176a54f81404",
     "source_repository": "RobertEmmanuelLaDay/StillPoint-Core",
     "source_target_commit": "e8ef47ca28842024ef6ecc42f0b6674d89aa2a93",
     "source_tree": "f448a0a54963d000ea7408bdb03bd7c94c96bdee",
-    "local_provenance_final_commit": "17ba40dcfc3b0b23a6c35575beed90aff17e9c12",
     "canonical_import_commit": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
     "patch005_canonical_commit": "4a077f216902f4bad725b6b2e61a176a54f81404",
+    "patch006_rc1_commit": "772ed8cb6890b5897174165e80635257e34050c7",
     "provenance_tags": {
       "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
-      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404"
-    },
-    "historical_source_metadata": {
-      "feature_branch": "feature/temporal-authority-layer",
-      "base_patch_004": "2a08561c814ac261137d9b1790e5289449d3c8e3",
-      "note": "Patches 001-005 applied. Main not modified. No production external adapters enabled."
-    },
-    "note": "Patch 007 adds one bounded production-capable artifact-export adapter. STILLPOINT_OUTBOX_ROOT is normalized and bound before CEO approval; real execution remains disabled unless STILLPOINT_ENABLE_OUTBOX=1.",
-    "patch006_rc1_commit": "772ed8cb6890b5897174165e80635257e34050c7",
-    "patch006_rc1_tag": "v0.2.0rc1"
+      "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
+      "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7"
+    }
   },
   "independent_audit_hardening": {
     "action_boundary_audit": "PASS",
@@ -129,14 +132,16 @@
     "frozen_corpora": "PASS",
     "atomic_ceo_authorization": "PASS",
     "durable_dispatch_uncertain": "PASS",
-    "release_reentry_no_resurrection": "PASS"
+    "release_reentry_no_resurrection": "PASS",
+    "provider_neutral_mailbox_authority": "PASS"
   },
   "release_candidate": {
     "version": "0.2.0rc2",
-    "closure_patch": "007",
+    "closure_patch": "037",
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
     "intended_release_tag": "v0.2.0rc2",
-    "runtime_capability_change": true
+    "runtime_capability_change": true,
+    "production_activation": false
   }
 }

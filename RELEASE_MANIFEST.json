@@ -2,43 +2,90 @@
   "release": "StillPoint Core",
   "version": "0.2.0rc2",
   "release_stage": "release-candidate",
-  "schema_version": 9,
+  "schema_version": 19,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
   "intended_release_tag": "v0.2.0rc2",
-  "patch": "007-bounded-production-outbox",
+  "patch": "037-apple-first-signal-release-identity",
   "runtime_capability_change": true,
+  "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
   "provenance": {
     "source_repository": "RobertEmmanuelLaDay/StillPoint-Core",
     "verified_source_target": "e8ef47ca28842024ef6ecc42f0b6674d89aa2a93",
     "verified_source_tree": "f448a0a54963d000ea7408bdb03bd7c94c96bdee",
-    "local_provenance_final_commit": "17ba40dcfc3b0b23a6c35575beed90aff17e9c12",
     "canonical_import_commit": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
     "canonical_patch005_commit": "4a077f216902f4bad725b6b2e61a176a54f81404",
     "tags": {
       "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
       "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
       "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7"
-    },
-    "patch006_rc1_commit": "772ed8cb6890b5897174165e80635257e34050c7"
+    }
   },
   "release_invariants": {
     "known_runtime_defects": [],
     "production_external_adapters_enabled": [],
+    "production_services_auto_started": [],
     "authority_invariant": "capacity != permission != execution != completion",
+    "continuing_authority_invariant": "every finite exercise of authority must remain answerable to the conditions that authorize its continuation",
     "release_without_erasure": true,
     "reentry_requires_new_authority": true,
     "production_capable_disabled_by_default": [
-      "bounded_outbox"
-    ]
+      "bounded_outbox",
+      "gmail_send"
+    ],
+    "production_capable_services_not_auto_started": [
+      "signal_mail:icloud"
+    ],
+    "credentials_committed": false
   },
-  "production_boundary": {
-    "adapter": "bounded_outbox",
-    "action_type": "export_artifact",
-    "network_access": false,
-    "destructive_operations": false,
-    "default_enabled": false,
-    "enable_flag": "STILLPOINT_ENABLE_OUTBOX=1",
-    "required_allowlist_root": "STILLPOINT_OUTBOX_ROOT"
-  }
+  "signal": {
+    "provider": "icloud",
+    "account": "fortcollinsbarber@icloud.com",
+    "jurisdiction": "personal_business",
+    "governance_policy_digest_sha256": "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9",
+    "autonomous_classes": [
+      "scheduling",
+      "acknowledgement",
+      "routine_information"
+    ],
+    "mandatory_review_days": 30,
+    "approval_evidence_committed": false,
+    "production_activation": false
+  },
+  "production_boundaries": [
+    {
+      "name": "bounded_outbox",
+      "action_type": "export_artifact",
+      "network_access": false,
+      "destructive_operations": false,
+      "default_enabled": false,
+      "enable_flag": "STILLPOINT_ENABLE_OUTBOX=1",
+      "required_allowlist_root": "STILLPOINT_OUTBOX_ROOT"
+    },
+    {
+      "name": "gmail_send",
+      "action_type": "send_email",
+      "network_access": true,
+      "destructive_operations": false,
+      "default_enabled": false,
+      "enable_flag": "STILLPOINT_ENABLE_GMAIL_SEND=1",
+      "credential_env": "STILLPOINT_GMAIL_ACCESS_TOKEN",
+      "account_env": "STILLPOINT_GMAIL_ACCOUNT"
+    },
+    {
+      "name": "signal_mail:icloud",
+      "action_type": "send_email",
+      "network_access": true,
+      "destructive_operations": false,
+      "auto_start": false,
+      "activation_mode": "explicit Signal mailbox service process invocation",
+      "provider_env": "STILLPOINT_MAIL_PROVIDER=icloud",
+      "account_env": "STILLPOINT_MAIL_ACCOUNT",
+      "jurisdiction_env": "STILLPOINT_MAIL_JURISDICTION",
+      "credential_env": "STILLPOINT_ICLOUD_APP_PASSWORD",
+      "requires_current_delegation": true,
+      "requires_current_trigger": true,
+      "requires_current_facts_snapshot": true
+    }
+  ]
 }

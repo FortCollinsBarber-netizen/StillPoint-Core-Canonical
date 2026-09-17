@@ -18,10 +18,11 @@ CREATE TABLE action_dispatches(action_id TEXT PRIMARY KEY,state TEXT);
 CREATE TABLE action_requests(id TEXT PRIMARY KEY,authorization_mode TEXT,standing_delegation_id TEXT,standing_evaluation_id TEXT,warrant_id TEXT);
 ''');self.c.execute('insert into standing_delegations values(?,?,?)',('del','x;signal_governance_spec:'+d,'active'));self.c.execute('insert into trigger_definitions values(?,?,?)',('trig',json.dumps({'signal_governance_sha256':d}),'active'));self.c.execute("insert into temporal_claim_envelopes values('env','active')");self.c.commit()
  def _connection(self):return self.c
+ def close(self):self.c.close()
 class Tests(unittest.TestCase):
  def setUp(self):
   self.td=tempfile.TemporaryDirectory();root=Path(self.td.name);f=root/'facts.json';f.write_text('{}');self.cfg=SignalServiceConfig(root=root,provider_name='xai',model='m',gmail_account='signal@example.com',gmail_access_token='s',delegation_id='del',trigger_id='trig',facts_file=f,worker_id='w');self.spec=SignalGovernanceSpec.from_dict(raw());self.db=DB(self.spec);self.validator=lambda cfg:{'ready':True}
- def tearDown(self):self.td.cleanup()
+ def tearDown(self):self.db.close();self.td.cleanup()
  def gate(self):return SignalReleaseGate(db=self.db,config=self.cfg,governance_spec=self.spec,validator=self.validator).run()
  def test_all_exact_bindings_pass(self):self.assertEqual(self.gate().verdict,'PASS')
  def test_delegation_digest_mismatch_halts(self):self.db.c.execute("update standing_delegations set policy_basis='other'");self.db.c.commit();r=self.gate();self.assertEqual(r.verdict,'HALT');self.assertFalse([x for x in r.checks if x.name=='delegation_digest'][0].ok)

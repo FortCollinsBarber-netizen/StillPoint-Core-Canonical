@@ -3,7 +3,7 @@
   "name": "StillPoint",
   "package": "stillpoint",
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
-  "last_completed_milestone": "patch-037-apple-first-signal-release-identity-closure",
+  "last_completed_milestone": "patch-038-production-host-closure",
   "tests": {
     "full_suite_non_eval": {
       "passed": 460,
@@ -20,6 +20,12 @@
     "patch037_release_identity": {
       "passed": 4,
       "failed": 0
+    },
+    "patch038_production_host": {
+      "status": "PASS",
+      "note": "provider-neutral readiness, macOS host assets, and SQLite warning gate",
+      "historical_fixture_warning_policy": "nonblocking only when isolated production SQLite lifecycle audit passes",
+      "resource_lifecycle_gate": "PASS"
     }
   },
   "behavioral_evaluations": {
@@ -70,7 +76,7 @@
   ],
   "known_runtime_defects": [],
   "known_nonblocking_test_warnings": [
-    "Some tests emit ResourceWarning for SQLite connections retained by test fixtures; canonical functional and authority gates remain green."
+    "Historical unittest fixtures can emit SQLite ResourceWarning under Python -X dev; production-owned SQLite lifecycle is audited separately in an isolated strict subprocess."
   ],
   "external_action_adapters": {
     "production_enabled": [],
@@ -93,7 +99,14 @@
       "account": "fortcollinsbarber@icloud.com",
       "jurisdiction": "personal_business",
       "credentials_committed": false,
-      "activation": "explicit service process invocation with complete current configuration and secrets"
+      "activation": "explicit service process invocation with complete current configuration and secrets",
+      "host": {
+        "platform": "macos",
+        "service_manager": "launchd",
+        "scope": "per-user LaunchAgent",
+        "secret_store": "macOS Keychain",
+        "runs_as_root": false
+      }
     }
   },
   "signal_governance": {
@@ -137,7 +150,7 @@
   },
   "release_candidate": {
     "version": "0.2.0rc2",
-    "closure_patch": "037",
+    "closure_patch": "038",
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
     "intended_release_tag": "v0.2.0rc2",

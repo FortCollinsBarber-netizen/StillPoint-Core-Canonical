@@ -34,6 +34,7 @@ class SignalMailboxServiceConfig:
     credential:str=field(repr=False)
     delegation_id:str=''
     trigger_id:str=''
+    governance_sha256:str=''
     facts_file:Path=Path('.')
     worker_id:str=''
     poll_interval_seconds:int=10
@@ -49,12 +50,13 @@ class SignalMailboxServiceConfig:
         try:identity=MailboxIdentity(provider,account,jurisdiction)
         except Exception as exc:raise SignalServiceConfigurationError(str(exc)) from exc
         credential=(env.get('STILLPOINT_ICLOUD_APP_PASSWORD') if provider=='icloud' else env.get('STILLPOINT_GMAIL_ACCESS_TOKEN')) or ''
-        credential=credential.strip();delegation=(env.get('STILLPOINT_SIGNAL_DELEGATION_ID') or '').strip();trigger=(env.get('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID') or '').strip();facts_raw=(env.get('STILLPOINT_SIGNAL_FACTS_FILE') or '').strip()
+        credential=credential.strip();delegation=(env.get('STILLPOINT_SIGNAL_DELEGATION_ID') or '').strip();trigger=(env.get('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID') or '').strip();governance=(env.get('STILLPOINT_SIGNAL_GOVERNANCE_SHA256') or '').strip().lower();facts_raw=(env.get('STILLPOINT_SIGNAL_FACTS_FILE') or '').strip()
         mp=(env.get('STILLPOINT_PROVIDER') or 'xai').strip().lower();allow_mock=_bool(env.get('STILLPOINT_SIGNAL_ALLOW_MOCK'));model=(env.get('STILLPOINT_SIGNAL_MODEL') or env.get('STILLPOINT_MODEL') or env.get('XAI_MODEL') or '').strip()
         missing=[]
         if not credential:missing.append('iCloud app-specific password' if provider=='icloud' else 'Gmail access token')
         if not delegation:missing.append('STILLPOINT_SIGNAL_DELEGATION_ID')
         if not trigger:missing.append('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID')
+        if len(governance)!=64 or any(ch not in '0123456789abcdef' for ch in governance):missing.append('STILLPOINT_SIGNAL_GOVERNANCE_SHA256')
         if not facts_raw:missing.append('STILLPOINT_SIGNAL_FACTS_FILE')
         if mp=='xai' and not (env.get('XAI_API_KEY') or '').strip():missing.append('XAI_API_KEY')
         if mp=='mock' and not allow_mock:raise SignalServiceConfigurationError('production Signal refuses mock provider unless explicitly allowed')
@@ -65,10 +67,10 @@ class SignalMailboxServiceConfig:
         if hb>=ttl:raise SignalServiceConfigurationError('heartbeat must be shorter than lease ttl')
         worker=(env.get('STILLPOINT_SIGNAL_WORKER_ID') or '').strip() or f"signal-mail:{provider}:{jurisdiction}:{socket.gethostname()}:{os.getpid()}"
         if not model:model='grok-4.6' if mp=='xai' else 'default'
-        return cls(root=root,model_provider=mp,model=model,identity=identity,credential=credential,delegation_id=delegation,trigger_id=trigger,facts_file=facts.resolve(strict=False),worker_id=worker,poll_interval_seconds=_pos('STILLPOINT_SIGNAL_POLL_SECONDS',env.get('STILLPOINT_SIGNAL_POLL_SECONDS'),10),lease_ttl_seconds=ttl,heartbeat_interval_seconds=hb,timeout_seconds=_pos('STILLPOINT_MAIL_TIMEOUT_SECONDS',env.get('STILLPOINT_MAIL_TIMEOUT_SECONDS'),30),allow_mock_provider=allow_mock)
+        return cls(root=root,model_provider=mp,model=model,identity=identity,credential=credential,delegation_id=delegation,trigger_id=trigger,governance_sha256=governance,facts_file=facts.resolve(strict=False),worker_id=worker,poll_interval_seconds=_pos('STILLPOINT_SIGNAL_POLL_SECONDS',env.get('STILLPOINT_SIGNAL_POLL_SECONDS'),10),lease_ttl_seconds=ttl,heartbeat_interval_seconds=hb,timeout_seconds=_pos('STILLPOINT_MAIL_TIMEOUT_SECONDS',env.get('STILLPOINT_MAIL_TIMEOUT_SECONDS'),30),allow_mock_provider=allow_mock)
 
     def redacted(self):
-        return {'root':str(self.root),'model_provider':self.model_provider,'model':self.model,'mailbox':self.identity.to_dict(),'credential_configured':bool(self.credential),'delegation_id':self.delegation_id,'trigger_id':self.trigger_id,'facts_file':str(self.facts_file),'worker_id':self.worker_id,'poll_interval_seconds':self.poll_interval_seconds,'lease_ttl_seconds':self.lease_ttl_seconds,'heartbeat_interval_seconds':self.heartbeat_interval_seconds}
+        return {'root':str(self.root),'model_provider':self.model_provider,'model':self.model,'mailbox':self.identity.to_dict(),'credential_configured':bool(self.credential),'delegation_id':self.delegation_id,'trigger_id':self.trigger_id,'governance_sha256':self.governance_sha256,'facts_file':str(self.facts_file),'worker_id':self.worker_id,'poll_interval_seconds':self.poll_interval_seconds,'lease_ttl_seconds':self.lease_ttl_seconds,'heartbeat_interval_seconds':self.heartbeat_interval_seconds}
 
 
 def _condition_match(delegation,key,operator,expected):
@@ -130,6 +132,7 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
     from .adapters.gmail_send import GmailSendAdapter
     from .adapters.gmail_inbox import SignalGmailInboxPoller
 
+    validate_signal_mailbox_service(config,now_fn=now_fn)
     db=CompanyDB(config.root/'state'/'company.sqlite');coordinator=None;registered=False
     try:
         if db.schema_version<19:raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=19, found {db.schema_version}')
@@ -167,3 +170,98 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
             try:coordinator.stop_worker(config.worker_id)
             except Exception:pass
         db.close();raise
+class _ReadOnlyMailboxDB:
+    def __init__(self,path:Path):
+        import sqlite3
+        self.path=Path(path)
+        if not self.path.is_file():
+            raise SignalServiceConfigurationError(f'StillPoint database not found: {self.path}')
+        self.conn=sqlite3.connect(f'file:{self.path}?mode=ro',uri=True)
+        self.conn.row_factory=sqlite3.Row
+    def _connection(self):return self.conn
+    @property
+    def schema_version(self):
+        row=self.conn.execute('SELECT MAX(version) FROM schema_migrations').fetchone()
+        return int(row[0] or 0)
+    def close(self):self.conn.close()
+
+def validate_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Callable[[],datetime]=_now,db_factory=None):
+    """Side-effect-free production readiness. Does not contact mail or the model provider."""
+    facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn);snap=facts.snapshot();now_iso=_iso(now_fn())
+    db=(db_factory or _ReadOnlyMailboxDB)(config.root/'state'/'company.sqlite')
+    try:
+        if int(db.schema_version)<19:
+            raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=19, found {db.schema_version}')
+        c=db._connection()
+        trigger=c.execute('select * from trigger_definitions where trigger_id=?',(config.trigger_id,)).fetchone()
+        if not trigger or trigger['status']!='active' or trigger['owner_role']!='signal' or trigger['trigger_kind']!='event' or trigger['source']!=config.identity.provider or trigger['event_type']!='message_received':
+            raise SignalServiceConfigurationError('trigger does not match exact mailbox provider')
+        now=_parse_time(now_iso)
+        if now<_parse_time(trigger['valid_from']) or now>=_parse_time(trigger['review_by']):
+            raise SignalServiceConfigurationError('trigger is outside its review interval')
+        try:meta=__import__('json').loads(trigger['metadata_json'] or '{}')
+        except Exception:meta={}
+        if meta.get('signal_mail_governance_sha256')!=config.governance_sha256:
+            raise SignalServiceConfigurationError('trigger governance digest does not match configured approved digest')
+        from .authority.standing_store import StandingDelegationStore
+        delegation=StandingDelegationStore(db).get(config.delegation_id)
+        if not delegation:
+            raise SignalServiceConfigurationError('standing delegation not found')
+        validate_mailbox_delegation(delegation,config.identity,now_iso=now_iso)
+        marker=f'signal_mail_governance_spec:{config.governance_sha256}'
+        if marker not in str(delegation.policy_basis):
+            raise SignalServiceConfigurationError('standing delegation governance digest does not match configured approved digest')
+        for envelope_id in delegation.claim_envelope_ids:
+            row=c.execute('select status from temporal_claim_envelopes where envelope_id=?',(envelope_id,)).fetchone()
+            if not row or row['status']!='active':
+                raise SignalServiceConfigurationError(f'supporting claim envelope not current: {envelope_id}')
+        return {
+            'ready':True,
+            'schema_version':db.schema_version,
+            'mailbox':config.identity.to_dict(),
+            'delegation_id':config.delegation_id,
+            'trigger_id':config.trigger_id,
+            'governance_sha256':config.governance_sha256,
+            'continuation_facts':{'observed_at':snap.observed_at,'valid_until':snap.valid_until,'source':snap.source},
+        }
+    finally:
+        db.close()
+
+def readiness(config:SignalMailboxServiceConfig,*,now_fn:Callable[[],datetime]=_now,validator=validate_signal_mailbox_service):
+    out={'ready':False,'config':config.redacted()}
+    try:
+        result=validator(config,now_fn=now_fn);out.update(result);out['ready']=bool(result.get('ready'));return out
+    except Exception as exc:
+        out['error']=f'{type(exc).__name__}: {exc}';return out
+
+def main(argv=None)->int:
+    import argparse,json
+    parser=argparse.ArgumentParser(prog='stillpoint-signal-mail')
+    sub=parser.add_subparsers(dest='cmd',required=True)
+    sub.add_parser('check')
+    sub.add_parser('once')
+    serve=sub.add_parser('serve');serve.add_argument('--interval-seconds',type=float,default=None)
+    args=parser.parse_args(argv)
+    try:config=SignalMailboxServiceConfig.from_env()
+    except Exception as exc:
+        print(json.dumps({'ready':False,'error':f'{type(exc).__name__}: {exc}'},indent=2));return 2
+    if args.cmd=='check':
+        result=readiness(config);print(json.dumps(result,indent=2,default=str));return 0 if result.get('ready') else 1
+    assembly=None
+    try:
+        assembly=build_signal_mailbox_service(config)
+        if args.cmd=='once':
+            tick=assembly.employee.tick();print(json.dumps({'intake':tick.intake,'work':tick.work},indent=2,default=str));return 0
+        interval=args.interval_seconds or config.poll_interval_seconds
+        if interval<=0:raise SignalServiceConfigurationError('serve interval must be positive')
+        assembly.employee.serve(interval_seconds=interval);return 0
+    except KeyboardInterrupt:
+        return 0
+    except Exception as exc:
+        print(json.dumps({'ready':False,'error':f'{type(exc).__name__}: {exc}'},indent=2));return 1
+    finally:
+        if assembly is not None:assembly.close()
+
+if __name__=='__main__':
+    raise SystemExit(main())
+

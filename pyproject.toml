@@ -13,6 +13,7 @@ dependencies = []
 
 [project.scripts]
 stillpoint = "stillpoint.cli:main"
+stillpoint-signal-mail = "stillpoint.signal_mail_service:main"
 
 [tool.setuptools.packages.find]
 include = ["stillpoint*"]

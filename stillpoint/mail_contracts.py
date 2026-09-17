@@ -74,6 +74,7 @@ class InboundMailMessage:
 
 class MailInboxTransport(Protocol):
     identity: MailboxIdentity
+    def baseline_cursor(self) -> str: ...
     def fetch_since(self, cursor: str | None = None, *, limit: int = 50) -> tuple[list[InboundMailMessage], str]: ...
 
 

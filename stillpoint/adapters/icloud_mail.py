@@ -32,6 +32,7 @@ IMAP_PORT=993
 SMTP_HOST="smtp.mail.me.com"
 SMTP_PORT=587
 _EMAIL_RE=re.compile(r"^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$")
+_ICLOUD_TRUSTED_AUTH_SERVICES=frozenset({"dmarc.icloud.com","dkim-verifier.icloud.com","spf.icloud.com"})
 
 
 class ICloudMailBoundaryError(RuntimeError):
@@ -50,6 +51,44 @@ def _message_id(action_id: str) -> str:
 def _header(message: Message, name: str) -> str:
     value=message.get(name)
     return str(value or "").strip()
+
+def _headers(message: Message, name: str) -> tuple[str,...]:
+    values=message.get_all(name,[]) or []
+    return tuple(str(value or "").strip() for value in values if str(value or "").strip())
+
+def _authserv_id(value: str) -> str:
+    return str(value or "").split(";",1)[0].strip().lower()
+
+def _receiver_trace_values(message: Message, name: str) -> tuple[str,...]:
+    wanted=name.lower();values=[]
+    for field,value in message.raw_items():
+        if field.lower()=="received":break
+        if field.lower()==wanted and str(value or "").strip():values.append(str(value).strip())
+    return tuple(values)
+
+def _icloud_authentication_evidence(message: Message) -> tuple[str,dict[str,Any]]:
+    auth=_headers(message,"Authentication-Results")
+    receiver_auth=_receiver_trace_values(message,"Authentication-Results")
+    trusted=tuple(value for value in receiver_auth if _authserv_id(value) in _ICLOUD_TRUSTED_AUTH_SERVICES)
+    arc=_headers(message,"ARC-Authentication-Results")
+    received_spf=_headers(message,"Received-SPF")
+    trace=[];receiver_side=True
+    for field,value in message.raw_items():
+        lower=field.lower()
+        if lower=="received":receiver_side=False
+        if lower in {"authentication-results","arc-authentication-results","received-spf"}:
+            trace.append({"header":field,"value":str(value or "").strip(),"receiver_side":receiver_side})
+    evidence={
+        "trusted_authentication_results":list(trusted),
+        "receiver_authentication_results":list(receiver_auth),
+        "all_authentication_results":list(auth),
+        "arc_authentication_results":list(arc),
+        "received_spf":list(received_spf),
+        "authentication_trace":trace,
+        "trusted_authserv_ids":sorted(_ICLOUD_TRUSTED_AUTH_SERVICES),
+        "trust_boundary":"receiver trace headers before first Received plus exact iCloud authserv-id",
+    }
+    return "; ".join(trusted),evidence
 
 def _address(value: str) -> str:
     return parseaddr(value or "")[1].lower()
@@ -111,6 +150,21 @@ class ICloudInboxTransport:
         if str(typ).upper()!="OK": raise ICloudMailBoundaryError("cannot select iCloud INBOX read-only")
         return client
 
+    def baseline_cursor(self) -> str:
+        client=self._connect()
+        try:
+            typ,data=client.uid("search",None,"ALL")
+            if str(typ).upper()!="OK": raise ICloudMailBoundaryError("iCloud baseline UID search failed")
+            raw=(data[0] or b"") if data else b""
+            uids=[]
+            for value in raw.split():
+                try:uids.append(int(value.decode("ascii") if isinstance(value,bytes) else str(value)))
+                except Exception:raise ICloudMailBoundaryError("iCloud baseline contained invalid UID")
+            return str(max(uids) if uids else 0)
+        finally:
+            try:client.logout()
+            except Exception:pass
+
     @staticmethod
     def _search_uids(client, cursor: str|None, limit: int) -> list[str]:
         start=max(1,int(cursor or 0)+1)
@@ -121,7 +175,8 @@ class ICloudInboxTransport:
         return uids[:max(0,int(limit))]
 
     def fetch_since(self, cursor: str|None=None, *, limit: int=50) -> tuple[list[InboundMailMessage],str]:
-        client=self._connect();messages=[];last=str(cursor or "0")
+        if cursor is None: raise ICloudMailBoundaryError("explicit cursor required; establish baseline first")
+        client=self._connect();messages=[];last=str(cursor)
         try:
             for uid in self._search_uids(client,cursor,limit):
                 typ,data=client.uid("fetch",uid,"(BODY.PEEK[])" )
@@ -133,7 +188,7 @@ class ICloudInboxTransport:
                 msg=email.message_from_bytes(raw,policy=default)
                 body,truncated,has_attach,attachments=_plain_body(msg,max_bytes=self.max_body_bytes)
                 mid=_header(msg,"Message-ID") or f"icloud-uid-{uid}@{self.account}"
-                auth="; ".join(x for x in (_header(msg,"Authentication-Results"),_header(msg,"Received-SPF")) if x)
+                auth,auth_evidence=_icloud_authentication_evidence(msg)
                 messages.append(InboundMailMessage(
                     provider="icloud",account=self.account,message_id=mid,provider_message_id=uid,uid=uid,
                     from_address=_address(_header(msg,"From")),from_header=_header(msg,"From"),reply_to=_header(msg,"Reply-To"),
@@ -142,7 +197,7 @@ class ICloudInboxTransport:
                     has_attachments=has_attach,attachments=attachments,authentication_results=auth,
                     auto_submitted=_header(msg,"Auto-Submitted"),precedence=_header(msg,"Precedence"),
                     list_unsubscribe=_header(msg,"List-Unsubscribe"),raw_sha256=_sha(raw),observed_at=_now(),
-                    metadata={"imap_host":IMAP_HOST,"imap_uid":uid,"read_only":True},
+                    metadata={"imap_host":IMAP_HOST,"imap_uid":uid,"read_only":True,"authentication_evidence":auth_evidence},
                 ))
                 last=uid
             return messages,last

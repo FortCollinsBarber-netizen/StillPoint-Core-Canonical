@@ -98,11 +98,15 @@ class Patch028Tests(unittest.TestCase):
             def fire_event(self,event_id,now_iso):return ['task1']
         class Transport:
             identity=MailboxIdentity('icloud','owner@icloud.com','personal')
+            def baseline_cursor(self):return '40'
             def fetch_since(self,cursor,limit=50):
+                self.last_cursor=cursor
                 m=InboundMailMessage(provider='icloud',account='owner@icloud.com',message_id='<m1>',provider_message_id='41',from_address='a@example.com',text_plain='Hi',authentication_results='dmarc=pass',observed_at='2026-09-17T12:00:00+00:00')
                 return [m],'41'
-        t=Triggers();p=SignalMailPoller(db=DB(),trigger_coordinator=t,transport=Transport(),trigger_id='ti')
-        out=p.poll(now_iso='2026-09-17T12:00:01+00:00')
-        self.assertEqual(out['cursor'],'41');self.assertEqual(out['tasks_created'],1);self.assertEqual(t.events[0]['source'],'icloud');self.assertEqual(t.events[0]['payload']['jurisdiction'],'personal')
+        t=Triggers();transport=Transport();p=SignalMailPoller(db=DB(),trigger_coordinator=t,transport=transport,trigger_id='ti')
+        first=p.poll(now_iso='2026-09-17T12:00:01+00:00')
+        self.assertEqual(first['status'],'baseline');self.assertEqual(first['cursor'],'40');self.assertEqual(first['tasks_created'],0);self.assertEqual(t.events,[])
+        out=p.poll(now_iso='2026-09-17T12:00:02+00:00')
+        self.assertEqual(transport.last_cursor,'40');self.assertEqual(out['cursor'],'41');self.assertEqual(out['tasks_created'],1);self.assertEqual(t.events[0]['source'],'icloud');self.assertEqual(t.events[0]['payload']['jurisdiction'],'personal')
 
 if __name__=='__main__':unittest.main()

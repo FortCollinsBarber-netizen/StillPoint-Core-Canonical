@@ -3,10 +3,10 @@
   "name": "StillPoint",
   "package": "stillpoint",
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
-  "last_completed_milestone": "patch-040-canonical-provenance-closure",
+  "last_completed_milestone": "patch-041-icloud-auth-boundary-correction",
   "tests": {
     "full_suite_non_eval": {
-      "passed": 480,
+      "passed": 486,
       "failed": 0
     },
     "focused_patch035_compatibility": {
@@ -34,6 +34,10 @@
     "patch040_canonical_provenance": {
       "status": "PASS",
       "note": "release identity, installer guard, and future numbered-patch drift audit"
+    },
+    "patch041_icloud_auth_boundary": {
+      "status": "PASS",
+      "note": "real iCloud Authentication-Results ordering corrected; exact Apple authserv IDs remain provider-local trusted evidence and conflicting results fail closed"
     }
   },
   "behavioral_evaluations": {
@@ -146,7 +150,8 @@
       "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
       "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7"
     },
-    "patch039_merge_commit": "b8391f9cf4fec0ecdf7329b82b11994d014688b5"
+    "patch039_merge_commit": "b8391f9cf4fec0ecdf7329b82b11994d014688b5",
+    "patch040_merge_commit": "8c06cf9079b05083b46cf9c9982d580b2be8148f"
   },
   "independent_audit_hardening": {
     "action_boundary_audit": "PASS",
@@ -159,7 +164,7 @@
   },
   "release_candidate": {
     "version": "0.2.0rc2",
-    "closure_patch": "040",
+    "closure_patch": "041",
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
     "intended_release_tag": "v0.2.0rc2",

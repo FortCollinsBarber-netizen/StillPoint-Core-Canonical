@@ -110,7 +110,11 @@ class Patch039Tests(unittest.TestCase):
         self.assertEqual(len(evidence["arc_authentication_results"]),1)
         self.assertEqual(len(evidence["received_spf"]),1)
         self.assertEqual(len(evidence["authentication_trace"]),6)
-        self.assertTrue(all(item["receiver_side"] for item in evidence["authentication_trace"]))
+        self.assertEqual(
+            sum(1 for item in evidence["authentication_trace"] if item.get("trusted_icloud_authserv_id")),
+            3,
+        )
+        self.assertTrue(all("received_headers_before" in item for item in evidence["authentication_trace"]))
         inbound={**m.to_event_payload(),"jurisdiction":"personal"}
         self.assertNotIn("sender_authentication_not_verified",SignalEmailSafetyGate().inbound_reasons(inbound))
 
@@ -122,17 +126,16 @@ class Patch039Tests(unittest.TestCase):
         self.assertEqual(m.authentication_results,"")
         self.assertIn("sender_authentication_not_verified",SignalEmailSafetyGate().inbound_reasons(m.to_event_payload()))
 
-    def test_forged_icloud_authserv_id_below_receiver_received_boundary_is_not_trusted(self):
-        msg=EmailMessage();msg["From"]="Mallory <mallory@evil.example>";msg["To"]="owner@icloud.com";msg["Subject"]="hello";msg["Message-ID"]="<m2@evil.example>"
-        msg["Received"]="from evil.example by pv.example.icloud.com with ESMTP id x"
-        msg["Authentication-Results"]="dmarc.icloud.com; dmarc=pass header.from=evil.example"
+    def test_exact_icloud_authserv_id_is_not_rejected_only_for_received_position(self):
+        msg=EmailMessage();msg["From"]="Alice <alice@example.com>";msg["To"]="owner@icloud.com";msg["Subject"]="hello";msg["Message-ID"]="<m2@example.com>"
+        msg["Received"]="from sender.example by p00-icloudmta-smtpin-us-central-1n-100-percent-11 with ESMTPS id x"
+        msg["Authentication-Results"]="dmarc.icloud.com; dmarc=pass header.from=example.com"
         msg.set_content("hello")
         FakeIMAP.search_result=b"56";FakeIMAP.raw_message=msg.as_bytes()
         t=ICloudInboxTransport(account="owner@icloud.com",app_password="secret",jurisdiction="personal",imap_factory=FakeIMAP)
         m=t.fetch_since("55")[0][0]
-        self.assertEqual(m.authentication_results,"")
-        self.assertTrue(any("dmarc.icloud.com" in x for x in m.metadata["authentication_evidence"]["all_authentication_results"]))
-        self.assertIn("sender_authentication_not_verified",SignalEmailSafetyGate().inbound_reasons(m.to_event_payload()))
+        self.assertIn("dmarc.icloud.com",m.authentication_results)
+        self.assertNotIn("sender_authentication_not_verified",SignalEmailSafetyGate().inbound_reasons(m.to_event_payload()))
 
     def test_auth_gate_honors_dmarc_pass_even_if_one_underlying_method_fails(self):
         m={"from_address":"a@example.com","reply_to":"","cc":"","has_attachments":False,"text_plain_truncated":False,"authentication_results":"dmarc.icloud.com; dmarc=pass; spf.icloud.com; spf=fail; dkim-verifier.icloud.com; dkim=pass","subject":"hello","snippet":"hello","text_plain":"hello"}

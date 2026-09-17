@@ -42,7 +42,7 @@ root=Path(sys.argv[1])
 print(json.loads((root/"RELEASE_MANIFEST.json").read_text())["patch"])
 PY
 )"
-test "$PATCH_ID" = "040-canonical-provenance-closure" || die "canonical main is not Patch 040; found $PATCH_ID"
+test "$PATCH_ID" = "041-icloud-auth-boundary-correction" || die "canonical main is not Patch 041; found $PATCH_ID"
 
 COMMIT="$(git -C "$CORE" rev-parse HEAD)"
 echo "Canonical commit: $COMMIT"

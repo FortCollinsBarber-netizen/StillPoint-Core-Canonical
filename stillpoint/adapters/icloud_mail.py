@@ -59,34 +59,57 @@ def _headers(message: Message, name: str) -> tuple[str,...]:
 def _authserv_id(value: str) -> str:
     return str(value or "").split(";",1)[0].strip().lower()
 
-def _receiver_trace_values(message: Message, name: str) -> tuple[str,...]:
-    wanted=name.lower();values=[]
-    for field,value in message.raw_items():
-        if field.lower()=="received":break
-        if field.lower()==wanted and str(value or "").strip():values.append(str(value).strip())
-    return tuple(values)
+def _icloud_auth_result_is_trusted(value: str) -> bool:
+    """Provider-local trust decision for Apple Authentication-Results.
+
+    StillPoint retrieves the message directly from the authenticated iCloud IMAP
+    mailbox. RFC 8601 leaves the ADMD trust boundary to local policy; header
+    position is only a heuristic and cannot be treated as a universal rule.
+    We therefore admit only Apple's exact authentication service identifiers,
+    and only when each service reports its expected authentication method.
+    Conflicting method results remain fail-closed in SignalEmailSafetyGate.
+    """
+    service=_authserv_id(value)
+    expected={
+        "dmarc.icloud.com":"dmarc",
+        "dkim-verifier.icloud.com":"dkim",
+        "spf.icloud.com":"spf",
+    }.get(service)
+    if not expected:
+        return False
+    return re.search(rf"\b{re.escape(expected)}\s*=\s*[a-z0-9_-]+\b", value or "", re.I) is not None
+
 
 def _icloud_authentication_evidence(message: Message) -> tuple[str,dict[str,Any]]:
     auth=_headers(message,"Authentication-Results")
-    receiver_auth=_receiver_trace_values(message,"Authentication-Results")
-    trusted=tuple(value for value in receiver_auth if _authserv_id(value) in _ICLOUD_TRUSTED_AUTH_SERVICES)
+    trusted=tuple(value for value in auth if _icloud_auth_result_is_trusted(value))
     arc=_headers(message,"ARC-Authentication-Results")
     received_spf=_headers(message,"Received-SPF")
-    trace=[];receiver_side=True
-    for field,value in message.raw_items():
+    trace=[];received_before=0
+    for index,(field,value) in enumerate(message.raw_items()):
         lower=field.lower()
-        if lower=="received":receiver_side=False
+        if lower=="received":
+            received_before+=1
         if lower in {"authentication-results","arc-authentication-results","received-spf"}:
-            trace.append({"header":field,"value":str(value or "").strip(),"receiver_side":receiver_side})
+            text=str(value or "").strip()
+            trace.append({
+                "header_index":index,
+                "header":field,
+                "value":text,
+                "received_headers_before":received_before,
+                "position_heuristic_before_first_received":received_before==0,
+                "trusted_icloud_authserv_id":lower=="authentication-results" and _icloud_auth_result_is_trusted(text),
+            })
     evidence={
         "trusted_authentication_results":list(trusted),
-        "receiver_authentication_results":list(receiver_auth),
+        # Compatibility key retained; receiver trust is provider-local, not positional.
+        "receiver_authentication_results":list(trusted),
         "all_authentication_results":list(auth),
         "arc_authentication_results":list(arc),
         "received_spf":list(received_spf),
         "authentication_trace":trace,
         "trusted_authserv_ids":sorted(_ICLOUD_TRUSTED_AUTH_SERVICES),
-        "trust_boundary":"receiver trace headers before first Received plus exact iCloud authserv-id",
+        "trust_boundary":"authenticated direct iCloud IMAP retrieval plus exact Apple authserv-id and expected method; RFC 8601 header position is audit evidence, not a universal authority rule; conflicting results fail closed downstream",
     }
     return "; ".join(trusted),evidence
 

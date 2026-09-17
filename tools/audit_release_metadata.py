@@ -1,105 +1,113 @@
 #!/usr/bin/env python3
-# Fail-closed audit for StillPoint canonical release identity and custody metadata.
-
+"""Fail-closed audit for current StillPoint release identity and custody metadata."""
 from __future__ import annotations
-
-import json
-import os
-import re
-import subprocess
-import sys
+import json, os, re, subprocess, sys
 from pathlib import Path
 
-ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
-
+ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 EXPECTED_VERSION = "0.2.0rc2"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
-EXPECTED_SCHEMA = 9
+EXPECTED_SCHEMA = 19
+EXPECTED_PATCH = "037-apple-first-signal-release-identity"
+EXPECTED_MILESTONE = "patch-037-apple-first-signal-release-identity-closure"
+EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
+EXPECTED_ACCOUNT = "fortcollinsbarber@icloud.com"
+EXPECTED_JURISDICTION = "personal_business"
+EXPECTED_CLASSES = ["scheduling","acknowledgement","routine_information"]
+EXPECTED_DISABLED = ["bounded_outbox","gmail_send"]
+EXPECTED_SERVICES = ["signal_mail:icloud"]
 EXPECTED_TAGS = {
     "patch005-source-tree": "0c0885d7dfe88fa4f70ae265b180af4bca6945c6",
     "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
     "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7",
 }
-
-errors = []
-
-def require(condition, message):
-    if not condition:
-        errors.append(message)
+errors=[]
+def require(condition,message):
+    if not condition: errors.append(message)
 
 def read_project_version(path):
-    in_project = False
+    in_project=False
     for raw in path.read_text().splitlines():
-        line = raw.strip()
+        line=raw.strip()
         if line.startswith("[") and line.endswith("]"):
-            in_project = line == "[project]"
-            continue
+            in_project=line=="[project]";continue
         if in_project and line.startswith("version"):
-            match = re.match(r'version\s*=\s*"([^"]+)"\s*$', line)
-            if match:
-                return match.group(1)
+            m=re.match(r'version\s*=\s*"([^"]+)"\s*$',line)
+            if m:return m.group(1)
     return None
 
-project_version = read_project_version(ROOT / "pyproject.toml")
+project_version=read_project_version(ROOT/"pyproject.toml")
+init_text=(ROOT/"stillpoint"/"__init__.py").read_text()
+m=re.search(r'__version__\s*=\s*"([^"]+)"',init_text)
+runtime_version=m.group(1) if m else None
+checkpoint=json.loads((ROOT/"CHECKPOINT.json").read_text())
+manifest=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
 
-init_text = (ROOT / "stillpoint" / "__init__.py").read_text()
-match = re.search(r'__version__\s*=\s*"([^"]+)"', init_text)
-runtime_version = match.group(1) if match else None
+require(project_version==EXPECTED_VERSION,f"pyproject version mismatch: {project_version!r}")
+require(runtime_version==EXPECTED_VERSION,f"runtime version mismatch: {runtime_version!r}")
+require(checkpoint.get("version")==EXPECTED_VERSION,f"checkpoint version mismatch: {checkpoint.get('version')!r}")
+require(manifest.get("version")==EXPECTED_VERSION,f"manifest version mismatch: {manifest.get('version')!r}")
+require(checkpoint.get("schema_version")==EXPECTED_SCHEMA,f"checkpoint schema mismatch: {checkpoint.get('schema_version')!r}")
+require(manifest.get("schema_version")==EXPECTED_SCHEMA,f"manifest schema mismatch: {manifest.get('schema_version')!r}")
+require(checkpoint.get("migrations",[])[-1:] == ["019_provider_neutral_mailboxes.sql"], "checkpoint migration tail mismatch")
+require(len(checkpoint.get("migrations",[]))==EXPECTED_SCHEMA,"checkpoint migration count mismatch")
+require(checkpoint.get("last_completed_milestone")==EXPECTED_MILESTONE,"checkpoint milestone mismatch")
+require(manifest.get("patch")==EXPECTED_PATCH,"release patch identity mismatch")
+require(checkpoint.get("known_runtime_defects")==[],"known runtime defects are not empty")
+require(manifest.get("release_invariants",{}).get("known_runtime_defects")==[],"manifest known runtime defects are not empty")
+require(checkpoint.get("external_action_adapters",{}).get("production_enabled")==[],"production external adapters are enabled in checkpoint")
+require(manifest.get("release_invariants",{}).get("production_external_adapters_enabled")==[],"production external adapters are enabled in release manifest")
+require(checkpoint.get("production_services",{}).get("auto_started")==[],"production services are auto-started in checkpoint")
+require(manifest.get("release_invariants",{}).get("production_services_auto_started")==[],"production services are auto-started in manifest")
+require(checkpoint.get("external_action_adapters",{}).get("production_capable_disabled_by_default")==EXPECTED_DISABLED,"checkpoint disabled adapter capability mismatch")
+require(manifest.get("release_invariants",{}).get("production_capable_disabled_by_default")==EXPECTED_DISABLED,"manifest disabled adapter capability mismatch")
+require(checkpoint.get("production_services",{}).get("production_capable_not_auto_started")==EXPECTED_SERVICES,"checkpoint service capability mismatch")
+require(manifest.get("release_invariants",{}).get("production_capable_services_not_auto_started")==EXPECTED_SERVICES,"manifest service capability mismatch")
+require(manifest.get("release_invariants",{}).get("credentials_committed") is False,"manifest must state credentials_committed=false")
+require(checkpoint.get("release_candidate",{}).get("production_activation") is False,"checkpoint must not claim production activation")
+require(manifest.get("signal",{}).get("production_activation") is False,"manifest must not claim Signal production activation")
+require(manifest.get("signal",{}).get("approval_evidence_committed") is False,"approval receipt must remain external evidence")
 
-checkpoint = json.loads((ROOT / "CHECKPOINT.json").read_text())
-manifest = json.loads((ROOT / "RELEASE_MANIFEST.json").read_text())
+cp_signal=checkpoint.get("signal_governance",{})
+mf_signal=manifest.get("signal",{})
+require(cp_signal.get("policy_digest_sha256")==EXPECTED_GOVERNANCE,"checkpoint governance digest mismatch")
+require(mf_signal.get("governance_policy_digest_sha256")==EXPECTED_GOVERNANCE,"manifest governance digest mismatch")
+require(cp_signal.get("account")==EXPECTED_ACCOUNT and mf_signal.get("account")==EXPECTED_ACCOUNT,"Signal account mismatch")
+require(cp_signal.get("jurisdiction")==EXPECTED_JURISDICTION and mf_signal.get("jurisdiction")==EXPECTED_JURISDICTION,"Signal jurisdiction mismatch")
+require(cp_signal.get("autonomous_classes")==EXPECTED_CLASSES and mf_signal.get("autonomous_classes")==EXPECTED_CLASSES,"Signal autonomous classes mismatch")
+require(cp_signal.get("mandatory_review_days")==30 and mf_signal.get("mandatory_review_days")==30,"Signal review interval mismatch")
 
-require(project_version == EXPECTED_VERSION, "pyproject version mismatch: %r" % (project_version,))
-require(runtime_version == EXPECTED_VERSION, "runtime version mismatch: %r" % (runtime_version,))
-require(checkpoint.get("version") == EXPECTED_VERSION, "checkpoint version mismatch: %r" % checkpoint.get("version"))
-require(manifest.get("version") == EXPECTED_VERSION, "manifest version mismatch: %r" % manifest.get("version"))
-require(checkpoint.get("schema_version") == EXPECTED_SCHEMA, "checkpoint schema mismatch: %r" % checkpoint.get("schema_version"))
-require(manifest.get("schema_version") == EXPECTED_SCHEMA, "manifest schema mismatch: %r" % manifest.get("schema_version"))
-require(checkpoint.get("known_runtime_defects") == [], "known runtime defects are not empty")
-require(
-    checkpoint.get("external_action_adapters", {}).get("production_enabled") == [],
-    "production external adapters are enabled in checkpoint",
-)
-require(
-    manifest.get("release_invariants", {}).get("production_external_adapters_enabled") == [],
-    "production external adapters are enabled in release manifest",
-)
-require(
-    checkpoint.get("release_candidate", {}).get("canonical_repository") == EXPECTED_REPOSITORY,
-    "checkpoint canonical repository mismatch",
-)
-require(manifest.get("canonical_repository") == EXPECTED_REPOSITORY, "manifest canonical repository mismatch")
-require(manifest.get("runtime_capability_change") is True, "Patch 007 capability change must be explicit")
-require(manifest.get("patch") == "007-bounded-production-outbox", "Patch 007 identity mismatch")
-require(manifest.get("intended_release_tag") == "v0.2.0rc2", "RC2 tag mismatch")
-require(checkpoint.get("external_action_adapters", {}).get("production_capable_disabled_by_default") == ["bounded_outbox"], "checkpoint adapter capability mismatch")
-require(manifest.get("release_invariants", {}).get("production_capable_disabled_by_default") == ["bounded_outbox"], "manifest adapter capability mismatch")
-require(manifest.get("production_boundary") == {"adapter":"bounded_outbox","action_type":"export_artifact","network_access":False,"destructive_operations":False,"default_enabled":False,"enable_flag":"STILLPOINT_ENABLE_OUTBOX=1","required_allowlist_root":"STILLPOINT_OUTBOX_ROOT"}, "production boundary metadata mismatch")
+boundaries={x.get("name"):x for x in manifest.get("production_boundaries",[])}
+require(set(boundaries)=={"bounded_outbox","gmail_send","signal_mail:icloud"},"production boundary set mismatch")
+icloud=boundaries.get("signal_mail:icloud",{})
+require(icloud.get("auto_start") is False,"iCloud Signal service must not auto-start")
+require(icloud.get("credential_env")=="STILLPOINT_ICLOUD_APP_PASSWORD","iCloud credential boundary mismatch")
+require(icloud.get("requires_current_delegation") is True,"iCloud service must require current delegation")
+require(icloud.get("requires_current_trigger") is True,"iCloud service must require current trigger")
+require(icloud.get("requires_current_facts_snapshot") is True,"iCloud service must require current facts snapshot")
 
-github_repository = os.environ.get("GITHUB_REPOSITORY")
-if github_repository:
-    require(github_repository == EXPECTED_REPOSITORY, "CI repository mismatch: %s" % github_repository)
+require(checkpoint.get("release_candidate",{}).get("canonical_repository")==EXPECTED_REPOSITORY,"checkpoint canonical repository mismatch")
+require(manifest.get("canonical_repository")==EXPECTED_REPOSITORY,"manifest canonical repository mismatch")
+require(manifest.get("runtime_capability_change") is True,"runtime capability change must be explicit")
+require(manifest.get("intended_release_tag")=="v0.2.0rc2","RC2 intended tag mismatch")
 
-for tag, expected_commit in EXPECTED_TAGS.items():
+github_repository=os.environ.get("GITHUB_REPOSITORY")
+if github_repository: require(github_repository==EXPECTED_REPOSITORY,f"CI repository mismatch: {github_repository}")
+
+for tag,expected in EXPECTED_TAGS.items():
     try:
-        actual = subprocess.check_output(
-            ["git", "-C", str(ROOT), "rev-list", "-n", "1", tag],
-            universal_newlines=True,
-            stderr=subprocess.STDOUT,
-        ).strip()
+        actual=subprocess.check_output(["git","-C",str(ROOT),"rev-list","-n","1",tag],text=True,stderr=subprocess.STDOUT).strip()
     except subprocess.CalledProcessError as exc:
-        errors.append("cannot resolve provenance tag %s: %s" % (tag, exc.output.strip()))
-        continue
-    require(actual == expected_commit, "%s mismatch: expected %s, got %s" % (tag, expected_commit, actual))
+        errors.append(f"cannot resolve provenance tag {tag}: {exc.output.strip()}");continue
+    require(actual==expected,f"{tag} mismatch: expected {expected}, got {actual}")
 
 if errors:
-    for error in errors:
-        print("FAIL", error)
+    for error in errors: print("FAIL",error)
     raise SystemExit(1)
 
 print("Release metadata audit passed.")
-print("version:", EXPECTED_VERSION)
-print("repository:", EXPECTED_REPOSITORY)
-print("schema:", EXPECTED_SCHEMA)
-for tag, commit in EXPECTED_TAGS.items():
-    print("%s: %s" % (tag, commit))
+print("version:",EXPECTED_VERSION)
+print("repository:",EXPECTED_REPOSITORY)
+print("schema:",EXPECTED_SCHEMA)
+print("patch:",EXPECTED_PATCH)
+print("signal:",EXPECTED_ACCOUNT,EXPECTED_JURISDICTION)

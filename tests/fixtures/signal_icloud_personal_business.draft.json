@@ -1,0 +1,75 @@
+{
+  "schema": "stillpoint.signal-mail-governance-draft.v1",
+  "issuer": "CEO:Robert Emmanuel LaDay",
+  "spec_id": "signal-icloud-personal-business-20260917-v1",
+  "mailbox": {
+    "provider": "icloud",
+    "account": "fortcollinsbarber@icloud.com",
+    "jurisdiction": "personal_business"
+  },
+  "delegation_id": "signal-delegation-icloud-personal-business-v1",
+  "trigger_id": "signal-trigger-icloud-personal-business-v1",
+  "policy_basis": "explicit_ceo_policy:signal-icloud-personal-business-20260917-v1",
+  "purpose": "Handle routine personal and Fort Collins Barber email in the single Apple/iCloud mailbox without acquiring authority outside bounded routine communications.",
+  "allowed_classifications": [
+    "scheduling",
+    "acknowledgement",
+    "routine_information"
+  ],
+  "continuation_conditions": [
+    {
+      "key": "signal_governance.policy_current",
+      "operator": "eq",
+      "expected": true,
+      "note": "CEO governance standing must remain affirmatively current"
+    },
+    {
+      "key": "signal_mail.enabled",
+      "operator": "eq",
+      "expected": true,
+      "note": "the configured Apple mailbox must remain enabled for Signal"
+    }
+  ],
+  "exclusions": [
+    "money or financial commitments",
+    "contracts or legal commitments",
+    "credentials, passwords, passcodes, API keys, or security-sensitive content",
+    "medical or highly sensitive personal content",
+    "messages with attachments",
+    "group or CC mail",
+    "failed or unverifiable sender authentication",
+    "Reply-To address differing from the authenticated sender",
+    "truncated, incomplete, or materially ambiguous messages",
+    "outbound language that creates a consequential commitment"
+  ],
+  "release_conditions": [
+    "CEO revocation or suspension",
+    "mandatory 30-day governance review boundary reached",
+    "mailbox provider, account, or jurisdiction changes",
+    "governance policy is no longer current",
+    "any supporting Claim Envelope becomes non-current",
+    "a release-gate condition fails"
+  ],
+  "valid_from": "2026-09-17T13:33:48-06:00",
+  "review_by": "2026-10-17T13:33:48-06:00",
+  "trigger_valid_from": "2026-09-17T13:33:48-06:00",
+  "trigger_review_by": "2026-10-17T13:33:48-06:00",
+  "facts_snapshot": {
+    "observed_at": "2026-09-17T13:33:48-06:00",
+    "valid_until": "2026-10-17T13:33:48-06:00",
+    "source": "CEO governance decision",
+    "facts": {
+      "signal_mail": {
+        "provider": "icloud",
+        "account": "fortcollinsbarber@icloud.com",
+        "jurisdiction": "personal_business",
+        "enabled": true
+      },
+      "signal_governance": {
+        "spec_id": "signal-icloud-personal-business-20260917-v1",
+        "policy_current": true
+      }
+    },
+    "envelopes": {}
+  }
+}

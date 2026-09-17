@@ -124,7 +124,7 @@ def request_for(db):
         expires_at=(now+timedelta(hours=1)).isoformat(),
         issued_at=now.isoformat(),
         idempotency_key="idem-1",
-        success_criteria=["delivery_receipt"],
+        success_criteria=["provider_acceptance_receipt"],
         authority_revision="rev-1",
         warrant_id="warrant-1",
     )
@@ -158,8 +158,8 @@ class Patch008GmailSendTests(unittest.TestCase):
         result=adapter.execute(req)
         self.assertEqual(result.status,"succeeded")
         self.assertEqual(result.external_id,"msg-1")
-        self.assertEqual(result.evidence[0].type,"delivery_receipt")
-        self.assertEqual(result.evidence[0].satisfies,"delivery_receipt")
+        self.assertEqual(result.evidence[0].type,"provider_acceptance_receipt")
+        self.assertEqual(result.evidence[0].satisfies,"provider_acceptance_receipt")
         self.assertEqual(len(fake.calls),1)
         http,_=fake.calls[0]
         self.assertEqual(http.get_method(),"POST")

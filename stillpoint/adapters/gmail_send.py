@@ -246,10 +246,10 @@ class GmailSendAdapter:
             action_id=request.action_id,
             status="succeeded",
             evidence=[ActionEvidence(
-                type="delivery_receipt",
+                type="provider_acceptance_receipt",
                 sha256=_sha(canonical.encode("utf-8")),
                 note=canonical,
-                satisfies="delivery_receipt",
+                satisfies="provider_acceptance_receipt",
             )],
             external_id=provider_message_id,
             adapter=self.name,

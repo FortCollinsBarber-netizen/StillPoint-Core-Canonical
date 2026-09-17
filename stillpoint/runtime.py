@@ -204,7 +204,7 @@ class CompanyRuntime:
             raw="|".join([task_id,plan.authority_revision,action,target,*[f"{r.artifact_id}:{r.version}:{r.sha256}" for r in action_refs]])
             idem=hashlib.sha256(raw.encode()).hexdigest();existing=self.db.find_action_request_by_idempotency(idem)
             if existing:out.append(existing["id"]);continue
-            req=ActionRequest(action_id=hashlib.sha256(("action|"+raw).encode()).hexdigest()[:20],task_id=task_id,action_type=action,target=target,scope=scope,artifact_refs=action_refs,approval_required=True,approval_id=None,expires_at=(now+timedelta(hours=24)).isoformat(),issued_at=now.isoformat(),idempotency_key=idem,success_criteria=[{"send_email":"delivery_receipt","publish":"publication_receipt","social_post":"post_receipt","export_artifact":"export_receipt","spend":"payment_receipt","sign":"signature_receipt","delete":"deletion_receipt"}.get(action,"external_receipt")],authority_revision=plan.authority_revision)
+            req=ActionRequest(action_id=hashlib.sha256(("action|"+raw).encode()).hexdigest()[:20],task_id=task_id,action_type=action,target=target,scope=scope,artifact_refs=action_refs,approval_required=True,approval_id=None,expires_at=(now+timedelta(hours=24)).isoformat(),issued_at=now.isoformat(),idempotency_key=idem,success_criteria=[{"send_email":"provider_acceptance_receipt","publish":"publication_receipt","social_post":"post_receipt","export_artifact":"export_receipt","spend":"payment_receipt","sign":"signature_receipt","delete":"deletion_receipt"}.get(action,"external_receipt")],authority_revision=plan.authority_revision)
             self.db.add_action_request(req);out.append(req.action_id)
         return out
     def _finish(self,task_id,goal,plan,primary_output,review_text):

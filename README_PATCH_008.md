@@ -47,6 +47,6 @@ The reconciliation probe is read-only. It searches Sent mail for the determinist
 
 ## Evidence semantics
 
-A successful Gmail `messages.send` response produces StillPoint `delivery_receipt` evidence because that is the existing `send_email` completion criterion. The receipt itself explicitly records that this proves **Gmail provider acceptance**, not recipient reading or final downstream delivery.
+A successful Gmail `messages.send` response produces StillPoint `provider_acceptance_receipt` evidence because Gmail acceptance is the `send_email` completion criterion for this boundary. The receipt itself explicitly records that this proves **Gmail provider acceptance**, not recipient reading or final downstream delivery.
 
 Patch 008 also closes the Patch 007 dangling-symlink gap by rejecting symlink path objects even when their targets do not exist.

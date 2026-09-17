@@ -8,8 +8,8 @@ ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 EXPECTED_VERSION = "0.2.0rc2"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 EXPECTED_SCHEMA = 19
-EXPECTED_PATCH = "037-apple-first-signal-release-identity"
-EXPECTED_MILESTONE = "patch-037-apple-first-signal-release-identity-closure"
+EXPECTED_PATCH = "038-production-host-closure"
+EXPECTED_MILESTONE = "patch-038-production-host-closure"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
 EXPECTED_ACCOUNT = "fortcollinsbarber@icloud.com"
 EXPECTED_JURISDICTION = "personal_business"
@@ -67,6 +67,15 @@ require(manifest.get("release_invariants",{}).get("credentials_committed") is Fa
 require(checkpoint.get("release_candidate",{}).get("production_activation") is False,"checkpoint must not claim production activation")
 require(manifest.get("signal",{}).get("production_activation") is False,"manifest must not claim Signal production activation")
 require(manifest.get("signal",{}).get("approval_evidence_committed") is False,"approval receipt must remain external evidence")
+
+host=manifest.get("host_runtime",{})
+require(host.get("platform")=="macos","production host platform mismatch")
+require(host.get("service_manager")=="launchd","production host service manager mismatch")
+require(host.get("service_scope")=="per-user LaunchAgent","production host scope mismatch")
+require(host.get("secret_store")=="macOS Keychain","production host secret-store mismatch")
+require(host.get("runs_as_root") is False,"Signal host must not run as root")
+require(host.get("production_activation") is False,"release metadata must not claim production activation")
+require(host.get("entrypoint")=="stillpoint-signal-mail","provider-neutral Signal entrypoint mismatch")
 
 cp_signal=checkpoint.get("signal_governance",{})
 mf_signal=manifest.get("signal",{})

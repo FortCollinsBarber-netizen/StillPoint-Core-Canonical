@@ -1,0 +1,37 @@
+#!/bin/bash
+set -euo pipefail
+
+APP_SUPPORT="$HOME/Library/Application Support/StillPoint"
+VENV="$APP_SUPPORT/venv"
+RUNTIME="$APP_SUPPORT/Runtime"
+
+ICLOUD_SERVICE="com.stillpoint.signal.icloud-app-password"
+XAI_SERVICE="com.stillpoint.signal.xai-api-key"
+ACCOUNT="$(id -un)"
+
+ICLOUD_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$ICLOUD_SERVICE" -w)"
+XAI_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$XAI_SERVICE" -w)"
+
+export STILLPOINT_ROOT="$RUNTIME"
+export STILLPOINT_MAIL_PROVIDER="icloud"
+export STILLPOINT_MAIL_ACCOUNT="fortcollinsbarber@icloud.com"
+export STILLPOINT_MAIL_JURISDICTION="personal_business"
+export STILLPOINT_SIGNAL_DELEGATION_ID="signal-delegation-icloud-personal-business-v1"
+export STILLPOINT_SIGNAL_MAIL_TRIGGER_ID="signal-trigger-icloud-personal-business-v1"
+export STILLPOINT_SIGNAL_GOVERNANCE_SHA256="abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
+export STILLPOINT_SIGNAL_FACTS_FILE="$RUNTIME/state/signal_icloud_personal_business.facts.json"
+export STILLPOINT_PROVIDER="xai"
+export STILLPOINT_SIGNAL_MODEL="${STILLPOINT_SIGNAL_MODEL:-grok-4.6}"
+export STILLPOINT_ICLOUD_APP_PASSWORD="$ICLOUD_SECRET"
+export XAI_API_KEY="$XAI_SECRET"
+export PYTHONUNBUFFERED=1
+
+unset ICLOUD_SECRET XAI_SECRET
+
+CMD="${1:-serve}"
+case "$CMD" in
+  check|once|serve) ;;
+  *) echo "usage: $0 [check|once|serve]" >&2; exit 64 ;;
+esac
+
+exec "$VENV/bin/stillpoint-signal-mail" "$CMD"

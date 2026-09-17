@@ -10,7 +10,7 @@ class Patch029Tests(unittest.TestCase):
     def _facts(self):
         p=Path(tempfile.mkdtemp())/'facts.json';p.write_text('{}');return p
     def _env(self,provider='icloud'):
-        facts=self._facts();e={'STILLPOINT_ROOT':str(facts.parent),'STILLPOINT_MAIL_PROVIDER':provider,'STILLPOINT_MAIL_ACCOUNT':'owner@icloud.com' if provider=='icloud' else 'student@example.com','STILLPOINT_MAIL_JURISDICTION':'personal' if provider=='icloud' else 'school','STILLPOINT_SIGNAL_DELEGATION_ID':'d1','STILLPOINT_SIGNAL_MAIL_TRIGGER_ID':'t1','STILLPOINT_SIGNAL_FACTS_FILE':str(facts),'STILLPOINT_PROVIDER':'mock','STILLPOINT_SIGNAL_ALLOW_MOCK':'1'}
+        facts=self._facts();e={'STILLPOINT_ROOT':str(facts.parent),'STILLPOINT_MAIL_PROVIDER':provider,'STILLPOINT_MAIL_ACCOUNT':'owner@icloud.com' if provider=='icloud' else 'student@example.com','STILLPOINT_MAIL_JURISDICTION':'personal' if provider=='icloud' else 'school','STILLPOINT_SIGNAL_DELEGATION_ID':'d1','STILLPOINT_SIGNAL_MAIL_TRIGGER_ID':'t1','STILLPOINT_SIGNAL_GOVERNANCE_SHA256':'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa','STILLPOINT_SIGNAL_FACTS_FILE':str(facts),'STILLPOINT_PROVIDER':'mock','STILLPOINT_SIGNAL_ALLOW_MOCK':'1'}
         if provider=='icloud':e['STILLPOINT_ICLOUD_APP_PASSWORD']='app-secret'
         else:e['STILLPOINT_GMAIL_ACCESS_TOKEN']='oauth-token'
         return e

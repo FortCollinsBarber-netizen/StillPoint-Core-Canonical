@@ -6,7 +6,7 @@
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
   "intended_release_tag": "v0.2.0rc2",
-  "patch": "037-apple-first-signal-release-identity",
+  "patch": "038-production-host-closure",
   "runtime_capability_change": true,
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
   "provenance": {
@@ -87,5 +87,14 @@
       "requires_current_trigger": true,
       "requires_current_facts_snapshot": true
     }
-  ]
+  ],
+  "host_runtime": {
+    "platform": "macos",
+    "service_manager": "launchd",
+    "service_scope": "per-user LaunchAgent",
+    "secret_store": "macOS Keychain",
+    "runs_as_root": false,
+    "production_activation": false,
+    "entrypoint": "stillpoint-signal-mail"
+  }
 }

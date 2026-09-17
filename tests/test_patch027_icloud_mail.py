@@ -35,7 +35,7 @@ class FakeIMAP:
     last=None
     def __init__(self,host,port,ssl_context=None,timeout=None):
         self.host=host;self.port=port;self.timeout=timeout;self.calls=[];FakeIMAP.last=self
-        m=EmailMessage();m['From']='Alice <alice@example.com>';m['To']='owner@icloud.com';m['Subject']='Meeting';m['Message-ID']='<m1@example.com>';m['Authentication-Results']='mx; dmarc=pass; spf=pass; dkim=pass';m.set_content('Could we meet Tuesday?')
+        m=EmailMessage();m['From']='Alice <alice@example.com>';m['To']='owner@icloud.com';m['Subject']='Meeting';m['Message-ID']='<m1@example.com>';m['Authentication-Results']='dmarc.icloud.com; dmarc=pass header.from=example.com';m['Authentication-Results']='dkim-verifier.icloud.com; dkim=pass header.d=example.com';m['Authentication-Results']='spf.icloud.com; spf=pass smtp.mailfrom=example.com';m.set_content('Could we meet Tuesday?')
         self.raw=m.as_bytes()
     def login(self,user,password):self.calls.append(('login',user,password));return ('OK',[b'ok'])
     def select(self,box,readonly=False):self.calls.append(('select',box,readonly));return ('OK',[b'1'])

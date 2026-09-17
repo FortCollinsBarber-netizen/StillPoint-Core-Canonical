@@ -42,6 +42,17 @@ class SignalMailPoller:
         now_iso=now_iso or _iso(_now());state=self.ensure_registered(now_iso=now_iso);before=state.get('cursor');started=now_iso;c=self.db._connection()
         if state.get('status')!='active':return {'status':state['status'],'mailbox_id':self.mailbox_id,'messages_seen':0,'tasks_created':0}
         try:
+            if before is None:
+                baseline_fn=getattr(self.transport,'baseline_cursor',None)
+                if not callable(baseline_fn):
+                    raise RuntimeError('mail transport lacks safe baseline_cursor')
+                after=str(baseline_fn()).strip()
+                if not after:
+                    raise RuntimeError('mail transport returned empty baseline cursor')
+                c.execute('update signal_mailboxes set cursor=?,last_polled_at=?,last_error=null,updated_at=? where mailbox_id=?',(after,now_iso,now_iso,self.mailbox_id))
+                rid='mailpoll-'+uuid.uuid4().hex[:20]
+                c.execute("insert into signal_mail_poll_receipts(receipt_id,mailbox_id,provider,cursor_before,cursor_after,messages_seen,tasks_created,status,error,started_at,finished_at) values(?,?,?,?,?,?,?,?,?,?,?)",(rid,self.mailbox_id,self.identity.provider,None,after,0,0,'baseline',None,started,now_iso));c.commit()
+                return {'status':'baseline','mailbox_id':self.mailbox_id,'messages_seen':0,'tasks_created':0,'task_ids':[],'cursor':after}
             messages,after=self.transport.fetch_since(before,limit=limit);tasks=[]
             for m in messages:
                 payload=m.to_event_payload();payload['jurisdiction']=self.identity.jurisdiction

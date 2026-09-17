@@ -46,9 +46,12 @@ class SignalEmailSafetyGate:
     def _address(value:str)->str:return parseaddr(value or '')[1].lower()
     @staticmethod
     def _auth_verified(value:str)->bool:
-        v=(value or '').lower()
-        if any(x in v for x in ('dmarc=fail','spf=fail','dkim=fail','dmarc=temperror','spf=temperror','dkim=temperror')):return False
-        return 'dmarc=pass' in v or ('spf=pass' in v and 'dkim=pass' in v)
+        results:dict[str,set[str]]={}
+        for method,result in re.findall(r'\b(dmarc|spf|dkim)\s*=\s*([a-z0-9_-]+)\b',value or '',re.I):
+            results.setdefault(method.lower(),set()).add(result.lower())
+        dmarc=results.get('dmarc',set())
+        if dmarc:return dmarc=={'pass'}
+        return results.get('spf',set())=={'pass'} and results.get('dkim',set())=={'pass'}
     def inbound_reasons(self,m:dict[str,Any])->list[str]:
         reasons=[];sender=(m.get('from_address') or '').lower();reply=self._address(m.get('reply_to') or '')
         if reply and reply!=sender:reasons.append('reply_to_differs_from_sender')

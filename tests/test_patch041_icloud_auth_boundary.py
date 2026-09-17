@@ -88,14 +88,15 @@ class Patch041Tests(unittest.TestCase):
         self.assertEqual(got.authentication_results,'')
         self.assertIn('sender_authentication_not_verified',SignalEmailSafetyGate().inbound_reasons(got.to_event_payload()))
 
-    def test_release_identity_tracks_patch041_and_patch040_provenance(self):
+    def test_patch041_remains_earned_provenance_after_v04_transition(self):
         cp=json.loads((ROOT/'CHECKPOINT.json').read_text())
         mf=json.loads((ROOT/'RELEASE_MANIFEST.json').read_text())
-        self.assertEqual(cp['last_completed_milestone'],'patch-041-icloud-auth-boundary-correction')
-        self.assertEqual(cp['release_candidate']['closure_patch'],'041')
-        self.assertEqual(mf['patch'],'041-icloud-auth-boundary-correction')
-        expected='8c06cf9079b05083b46cf9c9982d580b2be8148f'
-        self.assertEqual(cp['git']['patch040_merge_commit'],expected)
-        self.assertEqual(mf['provenance']['canonical_patch040_merge'],expected)
+        patch040='8c06cf9079b05083b46cf9c9982d580b2be8148f'
+        patch041='2b3173c6783a1f0ddbac035008b970af9ee5fc7e'
+        self.assertEqual(cp['git']['patch040_merge_commit'],patch040)
+        self.assertEqual(mf['provenance']['canonical_patch040_merge'],patch040)
+        self.assertEqual(cp['git']['v04_program_base_commit'],patch041)
+        self.assertEqual(mf['provenance']['canonical_patch041_merge'],patch041)
+        self.assertEqual(mf['baseline_patch'],'041-icloud-auth-boundary-correction')
 
 if __name__=='__main__':unittest.main()

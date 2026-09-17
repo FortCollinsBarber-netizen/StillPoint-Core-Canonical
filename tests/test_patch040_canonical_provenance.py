@@ -31,8 +31,26 @@ class Patch040Tests(unittest.TestCase):
         latest=max(docs)
         mf=json.loads((ROOT/'RELEASE_MANIFEST.json').read_text())
         cp=json.loads((ROOT/'CHECKPOINT.json').read_text())
+
+        # The newest numbered patch remains the immutable earned baseline.
         self.assertTrue(mf['patch'].startswith(f'{latest:03d}-'))
-        self.assertTrue(cp['last_completed_milestone'].startswith(f'patch-{latest:03d}-'))
+
+        if mf.get('program') == '0.4-autonomous-company-os':
+            # Once the numbered patch train transitions into the 0.4 program,
+            # current milestone identity is allowed to advance. The safety
+            # invariant becomes provenance continuity: 0.4 must remain pinned
+            # to the exact latest numbered baseline rather than pretending the
+            # current milestone is still Patch 041.
+            self.assertEqual(mf['baseline_patch'],mf['patch'])
+            self.assertEqual(cp['program'],mf['program'])
+            self.assertTrue(cp['last_completed_milestone'].startswith('v0.4-'))
+            self.assertEqual(
+                cp['git']['v04_program_base_commit'],
+                mf['provenance']['canonical_patch041_merge'],
+            )
+            self.assertIn('0.4 baseline trails latest earned numbered patch',text)
+        else:
+            self.assertTrue(cp['last_completed_milestone'].startswith(f'patch-{latest:03d}-'))
 
 if __name__=='__main__':
     unittest.main()

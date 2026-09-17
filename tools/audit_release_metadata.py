@@ -8,8 +8,8 @@ ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 EXPECTED_VERSION = "0.2.0rc2"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 EXPECTED_SCHEMA = 19
-EXPECTED_PATCH = "038-production-host-closure"
-EXPECTED_MILESTONE = "patch-038-production-host-closure"
+EXPECTED_PATCH = "040-canonical-provenance-closure"
+EXPECTED_MILESTONE = "patch-040-canonical-provenance-closure"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
 EXPECTED_ACCOUNT = "fortcollinsbarber@icloud.com"
 EXPECTED_JURISDICTION = "personal_business"
@@ -43,6 +43,16 @@ runtime_version=m.group(1) if m else None
 checkpoint=json.loads((ROOT/"CHECKPOINT.json").read_text())
 manifest=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
 
+# A numbered patch document is a claim that canonical capability changed. The
+# release identity must advance in the same change; otherwise historical metadata
+# would silently govern newer code.
+patch_docs=[]
+for path in ROOT.glob("README_PATCH_*.md"):
+    match=re.fullmatch(r"README_PATCH_(\d{3})\.md", path.name)
+    if match:
+        patch_docs.append(int(match.group(1)))
+latest_documented_patch=max(patch_docs) if patch_docs else None
+
 require(project_version==EXPECTED_VERSION,f"pyproject version mismatch: {project_version!r}")
 require(runtime_version==EXPECTED_VERSION,f"runtime version mismatch: {runtime_version!r}")
 require(checkpoint.get("version")==EXPECTED_VERSION,f"checkpoint version mismatch: {checkpoint.get('version')!r}")
@@ -53,6 +63,9 @@ require(checkpoint.get("migrations",[])[-1:] == ["019_provider_neutral_mailboxes
 require(len(checkpoint.get("migrations",[]))==EXPECTED_SCHEMA,"checkpoint migration count mismatch")
 require(checkpoint.get("last_completed_milestone")==EXPECTED_MILESTONE,"checkpoint milestone mismatch")
 require(manifest.get("patch")==EXPECTED_PATCH,"release patch identity mismatch")
+require(latest_documented_patch is not None,"no numbered patch documentation found")
+require(EXPECTED_PATCH.startswith(f"{latest_documented_patch:03d}-"),f"release identity trails latest documented patch: {latest_documented_patch:03d}")
+require(EXPECTED_MILESTONE.startswith(f"patch-{latest_documented_patch:03d}-"),f"checkpoint milestone trails latest documented patch: {latest_documented_patch:03d}")
 require(checkpoint.get("known_runtime_defects")==[],"known runtime defects are not empty")
 require(manifest.get("release_invariants",{}).get("known_runtime_defects")==[],"manifest known runtime defects are not empty")
 require(checkpoint.get("external_action_adapters",{}).get("production_enabled")==[],"production external adapters are enabled in checkpoint")

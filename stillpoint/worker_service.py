@@ -128,15 +128,23 @@ class PersistentWorkerService:
             assignment=None
             if self.config.use_office_assignments:
                 has_table=conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_office_assignments'").fetchone()
-                if has_table: assignment=conn.execute("SELECT * FROM task_office_assignments WHERE task_id=? AND state='active'",(row['id'],)).fetchone()
+                if has_table:
+                    assignment=conn.execute(
+                        "SELECT * FROM task_office_assignments WHERE task_id=? AND state='active'",
+                        (row['id'],),
+                    ).fetchone()
+                # In office-runtime mode, durable assignment is the ownership gate.
+                # Do not let Orchestra (triggered_only=False) race the supervisor and
+                # claim a newly queued task before assign_new_unowned_to_orchestra()
+                # has created the accountable owner record.
+                if assignment is None or assignment['owner_role']!=self.config.role:
+                    continue
             if firing:
                 if firing['owner_role']!=self.config.role: continue
-                if assignment is not None and assignment['owner_role']!=self.config.role: continue
                 keys=set(firing.keys()); source=firing['source'] if 'source' in keys else None
                 if source and source in self.config.excluded_trigger_sources: continue
-            elif assignment is not None:
-                if assignment['owner_role']!=self.config.role: continue
-            elif self.config.triggered_only: continue
+            elif not self.config.use_office_assignments and self.config.triggered_only:
+                continue
             out.append(row['id'])
             if len(out)>=limit: break
         return out

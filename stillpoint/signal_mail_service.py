@@ -215,8 +215,7 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
     db=CompanyDB(config.root/'state'/'company.sqlite');coordinator=None;registered=False
     try:
         if db.schema_version<23:raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=23, found {db.schema_version}')
-        custody_check=lambda:_require_materialized_facts(db,config)
-        facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn,validator=custody_check);facts.snapshot();now_iso=_iso(now_fn());c=db._connection()
+        now_iso=_iso(now_fn());c=db._connection()
         trigger=c.execute('select * from trigger_definitions where trigger_id=?',(config.trigger_id,)).fetchone()
         if not trigger or trigger['status']!='active' or trigger['owner_role']!='signal' or trigger['trigger_kind']!='event' or trigger['source']!=config.identity.provider or trigger['event_type']!='message_received':raise SignalServiceConfigurationError('trigger does not match exact mailbox provider')
         if _parse_time(now_iso)<_parse_time(trigger['valid_from']) or _parse_time(now_iso)>=_parse_time(trigger['review_by']):raise SignalServiceConfigurationError('trigger is outside its review interval')
@@ -226,6 +225,9 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
         for envelope_id in delegation.claim_envelope_ids:
             row=c.execute('select status from temporal_claim_envelopes where envelope_id=?',(envelope_id,)).fetchone()
             if not row or row['status']!='active':raise SignalServiceConfigurationError(f'supporting claim envelope not current: {envelope_id}')
+        custody_check=lambda:_require_materialized_facts(db,config)
+        facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn,validator=custody_check)
+        facts.snapshot()
         provider=make_provider(config.model_provider,api_key=config.model_api_key or None);config_path=config.root/'config'/'agents.json'
         if not config_path.is_file():config_path=Path(__file__).resolve().parent/'defaults'/'agents.json'
         runtime=CompanyRuntime(root=config.root,db=db,registry=AgentRegistry(config_path),provider=provider,default_model=config.model,smart_routing=False,allowed_import_roots=[config.root])
@@ -273,13 +275,6 @@ def validate_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:C
     try:
         if int(db.schema_version)<23:
             raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=23, found {db.schema_version}')
-        _require_materialized_facts(db,config)
-        facts=SnapshotFactsProvider(
-            config.facts_file,
-            now_fn=now_fn,
-            validator=lambda:_require_materialized_facts(db,config),
-        )
-        snap=facts.snapshot()
         c=db._connection()
         trigger=c.execute('select * from trigger_definitions where trigger_id=?',(config.trigger_id,)).fetchone()
         if not trigger or trigger['status']!='active' or trigger['owner_role']!='signal' or trigger['trigger_kind']!='event' or trigger['source']!=config.identity.provider or trigger['event_type']!='message_received':
@@ -303,6 +298,13 @@ def validate_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:C
             row=c.execute('select status from temporal_claim_envelopes where envelope_id=?',(envelope_id,)).fetchone()
             if not row or row['status']!='active':
                 raise SignalServiceConfigurationError(f'supporting claim envelope not current: {envelope_id}')
+        _require_materialized_facts(db,config)
+        facts=SnapshotFactsProvider(
+            config.facts_file,
+            now_fn=now_fn,
+            validator=lambda:_require_materialized_facts(db,config),
+        )
+        snap=facts.snapshot()
         return {
             'ready':True,
             'schema_version':db.schema_version,

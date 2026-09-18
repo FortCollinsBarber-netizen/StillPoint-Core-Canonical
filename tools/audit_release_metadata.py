@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 EXPECTED_VERSION = "0.4.0a3"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
-EXPECTED_SCHEMA = 22
+EXPECTED_SCHEMA = 23
 EXPECTED_PATCH = "041-icloud-auth-boundary-correction"
 EXPECTED_MILESTONE = "v0.4-capability-fabric-3"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"

@@ -11,10 +11,19 @@ struct CivicClockView: View {
 
             ScrollView {
                 VStack(spacing: 7) {
+                    Text("CIVIC")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundStyle(.secondary)
+
                     Text(now, style: .time)
                         .font(.system(size: 34, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .accessibilityLabel("Civil time")
+
+                    Text(now, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
 
                     Text(snapshot.namedDay)
                         .font(.caption2.weight(.bold))
@@ -85,7 +94,8 @@ struct CivicClockView: View {
         return CivicCalendarEngine.snapshot(
             now: now,
             latitude: coordinate.latitude,
-            longitude: coordinate.longitude
+            longitude: coordinate.longitude,
+            publishedCalendar: PublishedCalendarLoader.load()
         )
     }
 }

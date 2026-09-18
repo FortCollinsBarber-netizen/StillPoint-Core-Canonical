@@ -63,8 +63,8 @@ class V04CapabilityFabricTests(unittest.TestCase):
         path.write_text(json.dumps(raw,sort_keys=True,indent=2))
         return path
 
-    def test_schema21_catalog_and_grants_exist(self):
-        self.assertEqual(self.db.schema_version,21)
+    def test_current_schema_catalog_and_grants_exist(self):
+        self.assertEqual(self.db.schema_version,22)
         snap=self.broker.snapshot(include_events=False)
         self.assertEqual({x["capability_id"] for x in snap["catalog"]},{"web_research","x_research","code_execution","structured_output"})
         self.assertTrue(snap["manifest_audit"]["ok"])
@@ -259,7 +259,7 @@ class V04CapabilityFabricTests(unittest.TestCase):
         cp=json.loads((ROOT/"CHECKPOINT.json").read_text())
         mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
         self.assertEqual(cp["version"],"0.4.0a3")
-        self.assertEqual(cp["schema_version"],21)
+        self.assertEqual(cp["schema_version"],22)
         self.assertEqual(cp["last_completed_milestone"],"v0.4-capability-fabric-3")
         self.assertEqual(cp["git"]["v04_stage2_merge_commit"],STAGE2)
         self.assertEqual(mf["provenance"]["canonical_v04_stage2_merge"],STAGE2)

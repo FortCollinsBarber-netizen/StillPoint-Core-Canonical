@@ -27,6 +27,27 @@ class V04PersistentOfficeRuntimeTests(unittest.TestCase):
   t=self.db.create_task("Write then publish","book");self.offices.assign_task(t,"author",assigned_by="test",reason="draft");self.offices.handoff_task(t,from_role="author",to_role="press",reason="draft complete");self.assertEqual(self.offices.get_assignment(t)["owner_role"],"press");ev=self.offices.list_handoffs(t)
   with self.assertRaises(sqlite3.DatabaseError):self.db._connection().execute("UPDATE task_office_handoff_events SET reason='x' WHERE event_id=?",(ev[0]["event_id"],))
   self.db._connection().rollback()
+ def test_assignment_rolls_back_when_handoff_event_insert_fails(self):
+  t=self.db.create_task("Atomic assignment","audit");c=self.db._connection();c.execute("""CREATE TRIGGER fail_handoff_event BEFORE INSERT ON task_office_handoff_events BEGIN SELECT RAISE(ABORT,'injected handoff event failure'); END""");c.commit()
+  try:
+   with self.assertRaises(sqlite3.DatabaseError):self.offices.assign_task(t,"author",assigned_by="test",reason="atomicity")
+   self.assertIsNone(self.offices.get_assignment(t))
+  finally:
+   c.execute("DROP TRIGGER fail_handoff_event");c.commit()
+ def test_handoff_rolls_back_when_lineage_insert_fails(self):
+  t=self.db.create_task("Atomic handoff","audit");self.offices.assign_task(t,"author",assigned_by="test",reason="draft");c=self.db._connection();c.execute("""CREATE TRIGGER fail_handoff_event_2 BEFORE INSERT ON task_office_handoff_events BEGIN SELECT RAISE(ABORT,'injected handoff event failure'); END""");c.commit()
+  try:
+   with self.assertRaises(sqlite3.DatabaseError):self.offices.handoff_task(t,from_role="author",to_role="press",reason="publish")
+   a=self.offices.get_assignment(t);self.assertEqual(a["owner_role"],"author");self.assertEqual(a["handoff_count"],0);self.assertEqual(len(self.offices.list_handoffs(t)),1)
+  finally:
+   c.execute("DROP TRIGGER fail_handoff_event_2");c.commit()
+ def test_worker_state_rolls_back_when_runtime_event_insert_fails(self):
+  c=self.db._connection();before={r["role"]:r for r in self.offices.get_office_states()}["author"];c.execute("""CREATE TRIGGER fail_office_event BEFORE INSERT ON office_runtime_events BEGIN SELECT RAISE(ABORT,'injected office event failure'); END""");c.commit()
+  try:
+   with self.assertRaises(sqlite3.DatabaseError):self.offices.worker_started("author","worker-a",now_iso="2026-09-18T18:30:00+00:00")
+   after={r["role"]:r for r in self.offices.get_office_states()}["author"];self.assertEqual(after["health_state"],before["health_state"]);self.assertEqual(after["current_worker_id"],before["current_worker_id"]);self.assertEqual(after["generation"],before["generation"])
+  finally:
+   c.execute("DROP TRIGGER fail_office_event");c.commit()
  def test_trigger_work_inherits_owner(self):
   tr=TaskTriggerCoordinator(self.db);tr.create_event_trigger(owner_role="research",source="unit",event_type="new",goal_template="Research {event_id}",project="r",valid_from="2026-09-17T00:00:00+00:00",review_by="2026-09-19T00:00:00+00:00",trigger_id="s2");e=tr.ingest_event(source="unit",event_type="new",dedupe_key="one",occurred_at="2026-09-17T12:00:00+00:00",received_at="2026-09-17T12:00:00+00:00",payload={});t=tr.fire_event(e.event_id,now_iso="2026-09-17T12:00:01+00:00")[0];self.offices.ensure_trigger_assignments(now_iso="2026-09-17T12:00:02+00:00");self.assertEqual(self.offices.get_assignment(t)["owner_role"],"research")
  def test_new_untriggered_enters_orchestra(self):

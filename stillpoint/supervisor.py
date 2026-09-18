@@ -14,7 +14,7 @@ import socket
 import threading
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -54,6 +54,7 @@ class SupervisorConfig:
     max_failures: int = 3
     start_office_workers: bool = True
     office_restart_backoff_seconds: float = 10.0
+    provider_api_key: str | None = field(default=None, repr=False)
 
     def __post_init__(self):
         root=Path(self.root).expanduser().resolve()
@@ -69,7 +70,7 @@ class SupervisorConfig:
 
 
 def _runtime(config: SupervisorConfig) -> CompanyRuntime:
-    provider=make_provider(config.provider_name)
+    provider=make_provider(config.provider_name, api_key=config.provider_api_key)
     config_path=config.root/"config"/"agents.json"
     if not config_path.is_file():
         config_path=Path(__file__).resolve().parent/"defaults"/"agents.json"
@@ -161,10 +162,28 @@ class OfficeWorker(threading.Thread):
             )
         except Exception as exc:
             self.last_error=f"{type(exc).__name__}: {exc}"
+            if rt is not None and self.worker_id:
+                try:
+                    OfficeRuntimeCoordinator(rt.db).observe_health(
+                        self.role,
+                        worker_id=self.worker_id,
+                        heartbeat_at=_iso(),
+                        healthy=False,
+                        error=self.last_error,
+                    )
+                except Exception as evidence_exc:
+                    self.last_error+=f"; health_evidence_error={type(evidence_exc).__name__}: {evidence_exc}"
         finally:
             if rt is not None and self.worker_id:
-                try: OfficeRuntimeCoordinator(rt.db).worker_stopped(self.role,self.worker_id)
-                except Exception: pass
+                try:
+                    OfficeRuntimeCoordinator(rt.db).worker_stopped(
+                        self.role,self.worker_id,error=self.last_error
+                    )
+                except Exception as evidence_exc:
+                    if self.last_error:
+                        self.last_error+=f"; stop_evidence_error={type(evidence_exc).__name__}: {evidence_exc}"
+                    else:
+                        self.last_error=f"stop_evidence_error={type(evidence_exc).__name__}: {evidence_exc}"
             if coord is not None and self.worker_id:
                 try:
                     coord.stop_worker(self.worker_id)
@@ -192,8 +211,8 @@ class CompanySupervisor:
             self.config.root/"state"/"company.sqlite",
             check_same_thread=False,
         )
-        if self.db.schema_version < 21:
-            raise RuntimeError(f"StillPoint 0.4 Stage 3 requires schema >=21, found {self.db.schema_version}")
+        if self.db.schema_version < 23:
+            raise RuntimeError(f"StillPoint 0.4 Stage 3 audit closure requires schema >=23, found {self.db.schema_version}")
         self.triggers=TaskTriggerCoordinator(self.db)
         self.offices=OfficeRuntimeCoordinator(self.db)
         self.offices.initialize_offices()

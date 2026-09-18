@@ -3,9 +3,9 @@ set -euo pipefail
 
 REPO="FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 APP="$HOME/Library/Application Support/StillPoint"
-CORE="$APP/Core"
+RELEASES="$APP/releases"
+CURRENT="$APP/current-company"
 RUNTIME="$APP/Runtime"
-VENV="$APP/venv"
 BIN="$APP/bin"
 LOGDIR="$HOME/Library/Logs/StillPoint"
 PLIST="$HOME/Library/LaunchAgents/com.stillpoint.company.plist"
@@ -18,27 +18,10 @@ die(){ echo "ERROR: $*" >&2; exit 1; }
 for cmd in git gh security; do command -v "$cmd" >/dev/null || die "$cmd is required"; done
 test -x "$PYTHON_BIN" || die "Python 3.13 not found at $PYTHON_BIN"
 
-mkdir -p "$APP" "$RUNTIME/state" "$BIN" "$LOGDIR" "$HOME/Library/LaunchAgents"
+mkdir -p "$APP" "$RELEASES" "$RUNTIME/state" "$BIN" "$LOGDIR" "$HOME/Library/LaunchAgents"
 
-echo "==> Install/update canonical 0.4 source"
-if [ ! -d "$CORE/.git" ]; then
-  git clone "https://github.com/$REPO.git" "$CORE"
-else
-  git -C "$CORE" fetch origin main --prune
-fi
-git -C "$CORE" checkout main
-git -C "$CORE" reset --hard origin/main
-
-VERSION="$("$PYTHON_BIN" - "$CORE" <<'PY'
-import re,sys
-from pathlib import Path
-text=(Path(sys.argv[1])/"pyproject.toml").read_text()
-print(re.search(r'^version\s*=\s*"([^"]+)"',text,re.M).group(1))
-PY
-)"
-test "$VERSION" = "0.4.0a3" || die "canonical main is not StillPoint 0.4 Stage 3 alpha; found $VERSION"
-
-COMMIT="$(git -C "$CORE" rev-parse HEAD)"
+COMMIT="$(gh api "repos/$REPO/commits/main" --jq '.sha')"
+test -n "$COMMIT" || die "could not resolve canonical main commit"
 echo "Canonical commit: $COMMIT"
 
 echo "==> Verify canonical push CI"
@@ -48,11 +31,37 @@ CI_STATUS="$(printf '%s' "$RUN_JSON" | "$PYTHON_BIN" -c 'import json,sys; print(
 CI_CONCLUSION="$(printf '%s' "$RUN_JSON" | "$PYTHON_BIN" -c 'import json,sys; print(json.load(sys.stdin)["conclusion"])')"
 test "$CI_STATUS" = "completed" && test "$CI_CONCLUSION" = "success" || die "canonical CI is not green"
 
-echo "==> Build isolated runtime"
-rm -rf "$VENV"
-"$PYTHON_BIN" -m venv "$VENV"
-"$VENV/bin/python" -m pip install --upgrade pip
-"$VENV/bin/python" -m pip install "$CORE"
+RELEASE="$RELEASES/$COMMIT"
+CORE="$RELEASE/core"
+VENV="$RELEASE/venv"
+
+if [ -f "$RELEASE/.ready" ]; then
+  test -d "$CORE/.git" || die "release marker exists without source checkout: $RELEASE"
+  test "$(git -C "$CORE" rev-parse HEAD)" = "$COMMIT" || die "release commit mismatch"
+  test -x "$VENV/bin/stillpointd" || die "release marker exists without company runtime"
+  echo "==> Reuse verified immutable release $COMMIT"
+else
+  test ! -e "$RELEASE" || die "incomplete release exists; refusing to mutate it: $RELEASE"
+  echo "==> Build new commit-addressed release"
+  mkdir -p "$RELEASE"
+  git clone "https://github.com/$REPO.git" "$CORE"
+  git -C "$CORE" checkout --detach "$COMMIT"
+  test "$(git -C "$CORE" rev-parse HEAD)" = "$COMMIT" || die "release checkout mismatch"
+  "$PYTHON_BIN" -m venv "$VENV"
+  "$VENV/bin/python" -m pip install --upgrade pip
+  "$VENV/bin/python" -m pip install "$CORE"
+  touch "$RELEASE/.ready"
+  chmod -R a-w "$RELEASE"
+fi
+
+VERSION="$("$PYTHON_BIN" - "$CORE" <<'PY'
+import re,sys
+from pathlib import Path
+text=(Path(sys.argv[1])/"pyproject.toml").read_text()
+print(re.search(r'^version\s*=\s*"([^"]+)"',text,re.M).group(1))
+PY
+)"
+echo "Release version: $VERSION"
 
 install -m 700 "$CORE/deploy/macos/run_company.sh" "$BIN/run_company.sh"
 install -m 700 "$CORE/deploy/macos/status_company_host.sh" "$BIN/status_company_host.sh"
@@ -87,13 +96,26 @@ PLIST
 chmod 600 "$PLIST"
 /usr/bin/plutil -lint "$PLIST" >/dev/null
 
-echo "==> Runtime structural preflight"
-"$BIN/run_company.sh" check
+echo "==> Candidate release structural preflight"
+STILLPOINT_RELEASE_ROOT="$RELEASE" "$BIN/run_company.sh" check
 
 echo "==> Live xAI credential/model capability preflight"
 /usr/bin/security find-generic-password -a "$ACCOUNT" -s "$XAI_SERVICE" -w \
   | "$VENV/bin/python" "$CORE/deploy/macos/probe_xai_access.py" --model "grok-4.6" \
   || die "xAI credential/model capability preflight failed"
+
+echo "==> Atomically select release for Company"
+"$PYTHON_BIN" - "$RELEASE" "$CURRENT" <<'PY'
+import os,sys
+target,current=sys.argv[1],sys.argv[2]
+tmp=f"{current}.tmp.{os.getpid()}"
+try:
+    os.unlink(tmp)
+except FileNotFoundError:
+    pass
+os.symlink(target,tmp)
+os.replace(tmp,current)
+PY
 
 echo "==> Activate StillPoint company supervisor"
 DOMAIN="gui/$(id -u)"
@@ -102,8 +124,10 @@ DOMAIN="gui/$(id -u)"
 /bin/launchctl kickstart -k "$DOMAIN/com.stillpoint.company"
 
 echo
-echo "STILLPOINT 0.4 COMPANY SUPERVISOR ACTIVATED"
+echo "STILLPOINT COMPANY SUPERVISOR ACTIVATED"
 echo "Commit: $COMMIT"
+echo "Version: $VERSION"
+echo "Release: $RELEASE"
 echo "LaunchAgent: com.stillpoint.company"
 echo "Status: $BIN/status_company_host.sh"
 echo "Stop:   $BIN/stop_company_host.sh"

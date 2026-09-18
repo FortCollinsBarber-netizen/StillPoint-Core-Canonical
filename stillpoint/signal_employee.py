@@ -30,10 +30,11 @@ class SignalEmailEmployee:
                  delegation_id:str, continuation_facts_provider:Callable[...,dict[str,Any]],
                  envelope_facts_provider:Callable[...,dict[str,dict[str,Any]]]|None=None,
                  execution_facts_provider:Callable[...,dict[str,Any]]|None=None,
+                 health_recorder:Callable[...,None]|None=None,
                  now_fn:Callable[[],datetime]=_now):
         if not delegation_id.strip():raise ValueError('Signal standing delegation id required')
         self.poller=poller;self.worker=worker_service;self.preparer=preparer;self.authorizer=authorizer;self.runtime=runtime;self.adapters=adapter_registry
-        self.delegation_id=delegation_id;self.continuation_facts_provider=continuation_facts_provider;self.envelope_facts_provider=envelope_facts_provider;self.execution_facts_provider=execution_facts_provider;self.now_fn=now_fn
+        self.delegation_id=delegation_id;self.continuation_facts_provider=continuation_facts_provider;self.envelope_facts_provider=envelope_facts_provider;self.execution_facts_provider=execution_facts_provider;self.health_recorder=health_recorder;self.now_fn=now_fn
 
     def _execute_task(self,task_id,guard):
         prepared=self.preparer.execute(task_id,guard=guard,now_iso=_iso(self.now_fn()))
@@ -62,10 +63,53 @@ class SignalEmailEmployee:
 
     def serve(self, *, interval_seconds:float=10.0, stop_event:threading.Event|None=None):
         stop_event=stop_event or threading.Event()
+        health_state="unknown"
+
+        def record(status:str, *, error:str="", detail:dict[str,Any]|None=None):
+            if self.health_recorder is None:
+                raise RuntimeError("Signal health recorder is required for daemon service")
+            self.health_recorder(
+                status=status,
+                error=error,
+                detail=detail or {},
+                occurred_at=_iso(self.now_fn()),
+            )
+
         while not stop_event.is_set():
-            try:self.tick()
-            except Exception:
-                # Worker service has already durably recorded task-level failures. A single
-                # task/provider/adapter failure must not terminate the employee daemon.
-                pass
+            try:
+                tick=self.tick()
+            except Exception as exc:
+                # A daemon may continue only if its degradation itself becomes durable
+                # evidence. If evidence cannot be written, fail loudly and let the
+                # service manager restart instead of presenting a false healthy process.
+                if health_state!="degraded":
+                    record(
+                        "degraded",
+                        error=f"{type(exc).__name__}: {exc}",
+                        detail={"source":"tick_exception"},
+                    )
+                    health_state="degraded"
+                stop_event.wait(interval_seconds)
+                continue
+
+            intake_status=str((tick.intake or {}).get("status") or "")
+            degraded=intake_status in {"degraded","resync_required"}
+            if degraded:
+                if health_state!="degraded":
+                    record(
+                        "degraded",
+                        error=str((tick.intake or {}).get("error") or intake_status),
+                        detail={"source":"intake","intake_status":intake_status},
+                    )
+                health_state="degraded"
+            elif health_state=="degraded":
+                record("recovered",detail={"source":"tick_success"})
+                health_state="healthy"
+            elif health_state=="unknown":
+                record("healthy",detail={"source":"tick_success"})
+                health_state="healthy"
+
             stop_event.wait(interval_seconds)
+
+        if self.health_recorder is not None:
+            record("stopped",detail={"source":"serve_exit"})

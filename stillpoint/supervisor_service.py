@@ -7,6 +7,7 @@ import signal
 from pathlib import Path
 
 from .supervisor import CompanySupervisor, SupervisorConfig, OFFICE_ROLES
+from .secret_custody import read_secret
 
 
 def _root() -> Path:
@@ -18,10 +19,20 @@ def _config(*, start_offices: bool=True) -> SupervisorConfig:
     model=os.getenv("STILLPOINT_MODEL","").strip()
     if not model:
         model="grok-4.6" if provider=="xai" else "default"
+    provider_api_key=None
+    if provider=="xai" and (
+        os.getenv("STILLPOINT_XAI_API_KEY_FD") or os.getenv("XAI_API_KEY")
+    ):
+        provider_api_key=read_secret(
+            os.environ,
+            value_name="XAI_API_KEY",
+            fd_name="STILLPOINT_XAI_API_KEY_FD",
+        )
     return SupervisorConfig(
         root=_root(),
         provider_name=provider,
         default_model=model,
+        provider_api_key=provider_api_key,
         supervisor_interval_seconds=float(os.getenv("STILLPOINT_SUPERVISOR_INTERVAL","2")),
         worker_poll_seconds=float(os.getenv("STILLPOINT_OFFICE_POLL_SECONDS","1")),
         lease_ttl_seconds=int(os.getenv("STILLPOINT_OFFICE_LEASE_TTL_SECONDS","90")),

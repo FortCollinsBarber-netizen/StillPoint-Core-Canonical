@@ -34,30 +34,68 @@ class CompanyRuntime:
         self.planner=Planner(registry,self.policy,self.provider,default_model,smart=smart_routing)
         self.managed_files=root/"state"/"managed_files"
         self.allowed_import_roots=[Path(r).resolve() for r in (allowed_import_roots or [root])]
-    def _budget_before_call(self,task_id,*,tool_count=0):
+    def _budget_before_call(self,task_id,*,tool_offers=0):
         budget=self.db.get_task_budget(task_id)
         if not budget:return
         usage=self.db.get_task_usage(task_id)
         task=self.db.get_task(task_id) or {}
         def hit(limit,current,prospective=0): return limit is not None and current+prospective>limit
         if hit(budget.get("max_model_calls"),usage.get("model_calls",0),1):raise BudgetExceeded("model-call budget exhausted")
-        if hit(budget.get("max_tool_calls"),usage.get("tool_calls",0),tool_count):raise BudgetExceeded("tool-call budget exhausted")
+        tool_limit=budget.get("max_tool_calls")
+        if tool_limit is not None and tool_offers:
+            if usage.get("tool_invocation_unknown_calls",0)>0:
+                raise BudgetExceeded("tool-invocation budget cannot continue: prior invocation count is unknown")
+            if usage.get("tool_invocations",0)>=tool_limit:
+                raise BudgetExceeded("tool-invocation budget exhausted")
         if budget.get("max_total_tokens") is not None and usage.get("total_tokens",0)>=budget["max_total_tokens"]:raise BudgetExceeded("token budget exhausted")
-        if budget.get("max_cost_usd") is not None and usage.get("cost_usd",0.0)>=budget["max_cost_usd"]:raise BudgetExceeded("cost budget exhausted")
+        if budget.get("max_cost_usd") is not None:
+            if usage.get("cost_unknown_calls",0)>0:
+                raise BudgetExceeded("cost budget cannot continue: prior provider cost is unknown")
+            if usage.get("cost_usd",0.0)>=budget["max_cost_usd"]:raise BudgetExceeded("cost budget exhausted")
         if budget.get("max_elapsed_seconds") is not None and task.get("created_at"):
             try:
                 created=datetime.fromisoformat(task["created_at"].replace("Z","+00:00")); elapsed=(_now_dt()-created).total_seconds()
             except Exception: elapsed=0
             if elapsed>=budget["max_elapsed_seconds"]:raise BudgetExceeded("elapsed-time budget exhausted")
-    def _budget_after_call(self,task_id,*,usage,tool_count=0):
+    def _budget_after_call(self,task_id,*,result,usage,tool_offers=0,tool_invocations=0,tool_invocations_known=True,provider_failed=False):
         total=usage.get("total_tokens") if isinstance(usage,dict) else 0
         if total is None and isinstance(usage,dict):total=(usage.get("input_tokens") or 0)+(usage.get("output_tokens") or 0)
-        cost=0.0
+        cost=0.0;cost_known=False
         if isinstance(usage,dict):
-            for key in ("cost_usd","cost"):
-                if isinstance(usage.get(key),(int,float)):
-                    cost=float(usage[key]);break
-        self.db.add_task_usage(task_id,model_calls=1,tool_calls=tool_count,total_tokens=int(total or 0),cost_usd=cost)
+            ticks=usage.get("cost_in_usd_ticks")
+            if isinstance(ticks,(int,float)) and ticks>=0:
+                cost=float(ticks)/10_000_000_000.0;cost_known=True
+            else:
+                for key in ("cost_usd","cost","total_cost"):
+                    if isinstance(usage.get(key),(int,float)):
+                        cost=float(usage[key]);cost_known=True;break
+        recorded=self.db.add_task_usage(
+            task_id,
+            model_calls=1,
+            tool_offers=int(tool_offers or 0),
+            tool_invocations=int(tool_invocations or 0),
+            tool_invocation_unknown_calls=0 if tool_invocations_known else 1,
+            total_tokens=int(total or 0),
+            cost_usd=cost,
+            cost_unknown_calls=0 if cost_known else 1,
+        )
+        budget=self.db.get_task_budget(task_id)
+        if provider_failed or not budget:return
+        tool_limit=budget.get("max_tool_calls")
+        if tool_limit is not None:
+            if not tool_invocations_known and tool_offers:
+                raise BudgetExceeded("tool-invocation budget halted: provider did not expose invocation evidence")
+            if recorded.get("tool_invocations",0)>tool_limit:
+                raise BudgetExceeded("tool-invocation budget exceeded by provider response; exact pre-execution tool-call ceiling unavailable")
+        cost_limit=budget.get("max_cost_usd")
+        if cost_limit is not None:
+            if not cost_known:
+                raise BudgetExceeded("cost budget halted: provider did not expose billed cost")
+            if recorded.get("cost_usd",0.0)>cost_limit:
+                raise BudgetExceeded("cost budget exceeded")
+        token_limit=budget.get("max_total_tokens")
+        if token_limit is not None and recorded.get("total_tokens",0)>token_limit:
+            raise BudgetExceeded("token budget exceeded")
     def _memory_text(self,project):
         scopes=["company"]+([f"project:{project}"] if project else [])
         return "\n".join(f"[{r['scope']}] {r['key']}: {r['value']}" for r in self.db.get_memory(scopes))

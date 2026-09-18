@@ -15,8 +15,8 @@ test -x "$VENV/bin/stillpoint-signal-mail" || {
   exit 70
 }
 
-ICLOUD_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$ICLOUD_SERVICE" -w)"
-XAI_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$XAI_SERVICE" -w)"
+exec 3< <(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$ICLOUD_SERVICE" -w)
+exec 4< <(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$XAI_SERVICE" -w)
 
 export STILLPOINT_ROOT="$RUNTIME"
 export STILLPOINT_MAIL_PROVIDER="icloud"
@@ -28,12 +28,12 @@ export STILLPOINT_SIGNAL_GOVERNANCE_SHA256="abbada7549a95510d9552441a4f7bb1c9297
 export STILLPOINT_SIGNAL_FACTS_FILE="$RUNTIME/state/signal_icloud_personal_business.facts.json"
 export STILLPOINT_PROVIDER="xai"
 export STILLPOINT_SIGNAL_MODEL="${STILLPOINT_SIGNAL_MODEL:-grok-4.6}"
-export STILLPOINT_ICLOUD_APP_PASSWORD="$ICLOUD_SECRET"
-export XAI_API_KEY="$XAI_SECRET"
+export STILLPOINT_ICLOUD_APP_PASSWORD_FD=3
+export STILLPOINT_XAI_API_KEY_FD=4
+unset STILLPOINT_ICLOUD_APP_PASSWORD XAI_API_KEY
 export PYTHONUNBUFFERED=1
 export PYTHONDONTWRITEBYTECODE=1
 
-unset ICLOUD_SECRET XAI_SECRET
 
 CMD="${1:-serve}"
 case "$CMD" in

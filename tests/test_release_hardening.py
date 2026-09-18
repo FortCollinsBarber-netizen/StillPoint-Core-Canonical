@@ -69,6 +69,17 @@ class ReleaseHardeningTests(unittest.TestCase):
             self.assertNotIn('="$APP/Core"',script)
             self.assertNotIn('="$APP_SUPPORT/Core"',script)
 
+    def test_launch_wrappers_do_not_export_secret_values(self):
+        company=(ROOT/"deploy/macos/run_company.sh").read_text()
+        signal=(ROOT/"deploy/macos/run_signal_mail.sh").read_text()
+        self.assertIn("STILLPOINT_XAI_API_KEY_FD=3",company)
+        self.assertNotIn('export XAI_API_KEY="',company)
+        self.assertIn("STILLPOINT_ICLOUD_APP_PASSWORD_FD=3",signal)
+        self.assertIn("STILLPOINT_XAI_API_KEY_FD=4",signal)
+        self.assertNotIn('export STILLPOINT_ICLOUD_APP_PASSWORD="',signal)
+        self.assertNotIn('export XAI_API_KEY="',signal)
+        self.assertIn("unset STILLPOINT_ICLOUD_APP_PASSWORD XAI_API_KEY",signal)
+
     def test_signal_installer_is_not_bound_to_stale_patch_041_identity(self):
         script=(ROOT/"deploy/macos/install_signal_host.sh").read_text()
         self.assertNotIn("041-icloud-auth-boundary-correction",script)

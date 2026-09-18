@@ -6,7 +6,7 @@ standing delegation, trigger, cursor, worker lease, and credentials remain separ
 """
 from __future__ import annotations
 
-import os,socket
+import hashlib,os,socket
 from dataclasses import dataclass,field
 from datetime import datetime,timezone
 from pathlib import Path
@@ -97,6 +97,44 @@ def validate_mailbox_delegation(delegation,identity:MailboxIdentity,*,now_iso:st
     if not class_ok:raise SignalServiceConfigurationError('delegation must contain finite classification set')
     return delegation
 
+def _require_materialized_facts(db, config:SignalMailboxServiceConfig) -> dict[str,Any]:
+    """Require exact DB↔filesystem custody before Signal may use governance facts."""
+    c=db._connection()
+    try:
+        row=c.execute(
+            """SELECT * FROM signal_governance_materializations
+               WHERE governance_sha256=? AND facts_path=?""",
+            (config.governance_sha256,str(config.facts_file)),
+        ).fetchone()
+    except Exception as exc:
+        raise SignalServiceConfigurationError(
+            "Signal operational custody schema unavailable"
+        ) from exc
+    if not row:
+        raise SignalServiceConfigurationError(
+            "Signal governance facts have no materialization custody record"
+        )
+    row=dict(row)
+    if row.get("status")!="materialized":
+        raise SignalServiceConfigurationError(
+            f"Signal governance facts are not materialized: {row.get('status')}"
+        )
+    if row.get("delegation_id")!=config.delegation_id or row.get("trigger_id")!=config.trigger_id:
+        raise SignalServiceConfigurationError(
+            "Signal governance materialization does not match configured authority"
+        )
+    try:
+        actual=hashlib.sha256(config.facts_file.read_bytes()).hexdigest()
+    except Exception as exc:
+        raise SignalServiceConfigurationError(
+            "Signal governance facts file cannot be read for custody verification"
+        ) from exc
+    if actual!=row.get("facts_sha256"):
+        raise SignalServiceConfigurationError(
+            "Signal governance facts digest does not match materialized custody"
+        )
+    return row
+
 @dataclass
 class SignalMailboxServiceAssembly:
     config:SignalMailboxServiceConfig
@@ -135,8 +173,9 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
     validate_signal_mailbox_service(config,now_fn=now_fn)
     db=CompanyDB(config.root/'state'/'company.sqlite');coordinator=None;registered=False
     try:
-        if db.schema_version<19:raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=19, found {db.schema_version}')
-        facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn);facts.snapshot();now_iso=_iso(now_fn());c=db._connection()
+        if db.schema_version<23:raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=23, found {db.schema_version}')
+        custody_check=lambda:_require_materialized_facts(db,config)
+        facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn,validator=custody_check);facts.snapshot();now_iso=_iso(now_fn());c=db._connection()
         trigger=c.execute('select * from trigger_definitions where trigger_id=?',(config.trigger_id,)).fetchone()
         if not trigger or trigger['status']!='active' or trigger['owner_role']!='signal' or trigger['trigger_kind']!='event' or trigger['source']!=config.identity.provider or trigger['event_type']!='message_received':raise SignalServiceConfigurationError('trigger does not match exact mailbox provider')
         if _parse_time(now_iso)<_parse_time(trigger['valid_from']) or _parse_time(now_iso)>=_parse_time(trigger['review_by']):raise SignalServiceConfigurationError('trigger is outside its review interval')
@@ -187,11 +226,18 @@ class _ReadOnlyMailboxDB:
 
 def validate_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Callable[[],datetime]=_now,db_factory=None):
     """Side-effect-free production readiness. Does not contact mail or the model provider."""
-    facts=SnapshotFactsProvider(config.facts_file,now_fn=now_fn);snap=facts.snapshot();now_iso=_iso(now_fn())
+    now_iso=_iso(now_fn())
     db=(db_factory or _ReadOnlyMailboxDB)(config.root/'state'/'company.sqlite')
     try:
-        if int(db.schema_version)<19:
-            raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=19, found {db.schema_version}')
+        if int(db.schema_version)<23:
+            raise SignalServiceConfigurationError(f'provider-neutral Signal requires schema >=23, found {db.schema_version}')
+        _require_materialized_facts(db,config)
+        facts=SnapshotFactsProvider(
+            config.facts_file,
+            now_fn=now_fn,
+            validator=lambda:_require_materialized_facts(db,config),
+        )
+        snap=facts.snapshot()
         c=db._connection()
         trigger=c.execute('select * from trigger_definitions where trigger_id=?',(config.trigger_id,)).fetchone()
         if not trigger or trigger['status']!='active' or trigger['owner_role']!='signal' or trigger['trigger_kind']!='event' or trigger['source']!=config.identity.provider or trigger['event_type']!='message_received':

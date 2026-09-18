@@ -2,7 +2,7 @@
   "release": "StillPoint Core",
   "version": "0.4.0a3",
   "release_stage": "alpha",
-  "schema_version": 22,
+  "schema_version": 23,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
   "intended_release_tag": "v0.4.0a3",

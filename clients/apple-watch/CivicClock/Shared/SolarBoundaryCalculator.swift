@@ -71,7 +71,26 @@ enum SolarBoundaryCalculator {
             day: day
         )) else { return nil }
 
-        return utcMidnight.addingTimeInterval(universalHours * 3600.0)
+        // The classic NOAA-style algorithm returns a normalized UTC clock hour.
+        // Near the date line (and routinely in western longitudes), that hour can
+        // belong to the UTC day before or after the requested *local* civil date.
+        // Restore the date jurisdiction explicitly: the returned instant must
+        // render inside the requested local civil date.
+        var candidate = utcMidnight.addingTimeInterval(universalHours * 3600.0)
+
+        for _ in 0..<2 {
+            if calendar.isDate(candidate, inSameDayAs: localMidnight) {
+                return candidate
+            }
+
+            if candidate < localMidnight {
+                candidate = candidate.addingTimeInterval(86_400)
+            } else {
+                candidate = candidate.addingTimeInterval(-86_400)
+            }
+        }
+
+        return calendar.isDate(candidate, inSameDayAs: localMidnight) ? candidate : nil
     }
 
     static func previousAndNextSunset(

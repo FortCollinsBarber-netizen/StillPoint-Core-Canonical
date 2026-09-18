@@ -51,9 +51,9 @@ struct CivicClockComplicationView: View {
         switch family {
         case .accessoryCircular:
             VStack(spacing: 0) {
-                Text(entry.snapshot.isSabbath ? "SAB" : shortDay)
+                Text(circularState)
                     .font(.caption2.weight(.bold))
-                if let next = entry.snapshot.nextBoundary {
+                if let next = effectiveNextBoundary {
                     Text(next, style: .time)
                         .font(.system(size: 9, weight: .medium))
                         .monospacedDigit()
@@ -69,10 +69,8 @@ struct CivicClockComplicationView: View {
                 HStack {
                     Text(entry.snapshot.namedDay)
                         .font(.caption2.weight(.bold))
-                    if entry.snapshot.isSabbath {
-                        Text("• SABBATH")
-                            .font(.caption2.weight(.bold))
-                    }
+                    Text("• \(stateLabel)")
+                        .font(.caption2.weight(.bold))
                 }
 
                 Text(entry.snapshot.commonCalendarLabel)
@@ -90,24 +88,46 @@ struct CivicClockComplicationView: View {
             Text(inlineText)
 
         default:
-            Text(entry.snapshot.namedDay)
+            Text(stateLabel)
         }
     }
 
-    private var shortDay: String {
-        String(entry.snapshot.namedDay.prefix(3))
+    private var effectiveNextBoundary: Date? {
+        entry.snapshot.nextProtectedBoundary ?? entry.snapshot.nextBoundary
+    }
+
+    private var circularState: String {
+        if entry.snapshot.isStillPoint { return "SP" }
+        if entry.snapshot.isLordsDay { return "LD" }
+        if entry.snapshot.isSabbath { return "SAB" }
+        return String(entry.snapshot.namedDay.prefix(3))
+    }
+
+    private var stateLabel: String {
+        if entry.snapshot.isSabbath && entry.snapshot.isStillPoint {
+            return "SABBATH · STILLPOINT"
+        }
+        if entry.snapshot.isLordsDay && entry.snapshot.isStillPoint {
+            return "LORD'S DAY · STILLPOINT"
+        }
+        if entry.snapshot.isLordsDay {
+            return "LORD'S DAY"
+        }
+        return entry.snapshot.namedDay
     }
 
     private var inlineText: String {
-        if let next = entry.snapshot.nextBoundary {
-            return "\(shortDay) · sundown \(next.formatted(date: .omitted, time: .shortened))"
+        if let next = effectiveNextBoundary {
+            let label = entry.snapshot.nextProtectedBoundaryLabel ?? "sundown"
+            return "\(stateLabel) · \(label.lowercased()) \(next.formatted(date: .omitted, time: .shortened))"
         }
-        return "\(shortDay) · sun boundary unavailable"
+        return "\(stateLabel) · horizon boundary unavailable"
     }
 
     private var rectangularBoundary: String {
-        if let next = entry.snapshot.nextBoundary {
-            return "Sundown \(next.formatted(date: .omitted, time: .shortened))"
+        if let next = effectiveNextBoundary {
+            let label = entry.snapshot.nextProtectedBoundaryLabel ?? "Sundown"
+            return "\(label) · \(next.formatted(date: .omitted, time: .shortened))"
         }
         return entry.snapshot.boundaryStatus
     }
@@ -121,7 +141,7 @@ struct CivicClockWidget: Widget {
             CivicClockComplicationView(entry: entry)
         }
         .configurationDisplayName("Civic Clock")
-        .description("Common-calendar day, Sabbath, and the next local sundown.")
+        .description("Common Calendar, Sabbath, Lord's Day, StillPoint, and local horizon boundaries.")
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,

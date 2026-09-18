@@ -161,3 +161,55 @@ This layer does **not** resolve:
 - exact first Jubilee Year 1 opening if different from the first Common Calendar opening.
 
 Those remain explicit ratification decisions. The code must fail closed until they exist.
+
+
+## 11. Pilot epoch and real Observation-Zero coordinate
+
+The user has now authorized an engineering calibration that starts from the real present without pretending the present is Day 1.
+
+For the **pilot**:
+
+```
+COMMON YEAR LABEL          = 2026
+DAY 001 OPENS              = apparent sunset on civil 2026-01-01 at Ground Zero
+DAY 001 WEEKDAY            = Friday
+OBSERVATION ZERO           = 2026-09-18 13:28:57 MDT
+ACTIVE PRECEDING BOUNDARY  = apparent sunset on civil 2026-09-17
+COMMON POSITION            = Year 2026 · Day 260 · Month 9 Day 18
+                              Quarter 3 · Quarter Day 78
+                              Week 38 · Day-in-week 1 · Friday
+```
+
+This makes Observation Zero a real coordinate inside an already-running pilot year.
+
+The same pilot also establishes:
+
+```
+JUBILEE PILOT CYCLE = 1
+JUBILEE PILOT YEAR  = 1
+COMMON YEAR         = 2026
+```
+
+This is a modern pilot epoch, not a claim about an ancient Jubilee chronology.
+
+## 12. Why the Spring Gate moved inside the year
+
+The fixed-date requirement exposed a necessary correction to the annual engineering.
+
+If Christmas is to remain Common December 25 and annual dates are to keep permanent weekday identity, the Common year should not be forced to open at the March equinox. Instead the Common year keeps its own fixed civic grid and the Sun audits a **Spring Gate inside it**.
+
+The current candidate uses:
+
+```
+Common March 20 = ordinal day 80 = Spring Gate
+```
+
+Reconciliation selects between the two lawful next-year openings by asking which candidate places **next year's Common March 20 sunset** closer to the next astronomical March equinox.
+
+That keeps all four truths:
+
+- fixed dates stay fixed;
+- weekdays stay fixed;
+- the 364-day year stays complete;
+- the Sun can still correct seasonal drift.
+

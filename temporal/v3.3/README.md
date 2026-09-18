@@ -2,7 +2,12 @@
 
 Status: **CANDIDATE — not canonical until Robert Emmanuel LaDay ratifies it.**
 
-This successor does not rewrite or erase the locked v3.2 Reference Rule. v3.2 remains part of the version history. v3.3 corrects one later-identified ontology problem: a completed 364-day ordinary year must not be renamed a 371-day year merely because seven transition days are required before the next opening.
+This successor does not rewrite or erase the locked v3.2 Reference Rule. v3.2 remains part of the version history. v3.3 corrects two later-identified ontology problems:
+
+1. a completed 364-day ordinary year must not be renamed a 371-day year merely because seven transition days are required before the next opening; and
+2. the March equinox need not be the **year-opening instant**. A fixed civic calendar can begin at its own enacted Year/Month/Day 1 while a separately named **Spring Gate inside the year** carries the solar comparison.
+
+That second distinction allows the Common Calendar to preserve familiar fixed dates such as December 25 while still answering the actual Sun.
 
 ## Ground Zero
 
@@ -10,14 +15,7 @@ Robert Emmanuel LaDay has designated one private Loveland, Colorado address as *
 
 The exact street address is intentionally **not committed to this public repository**. Public source uses the symbolic reference `GROUND_ZERO`. Deployment supplies the exact geodetic latitude/longitude and a high-entropy custody nonce through an uncommitted configuration file or equivalent private runtime configuration. The public publication contains only a nonce-protected custody commitment unless coordinates are explicitly enacted for publication.
 
-Ground Zero now has these candidate pilot roles:
-
-- local reference for the common clock and standardized apparent-sunset boundary;
-- reference point P for generation of the pilot Common Calendar;
-- origin used by Apple Watch / phone pilot validation;
-- first place against which published-calendar outputs are checked.
-
-This does **not** automatically make a private residence the permanent national reference point of any future polity. That broader jurisdiction would require an explicit later constitutional act.
+Ground Zero is the local pilot origin for common-clock, horizon, and calendar validation. It does **not** automatically become the permanent national reference point.
 
 ## Governing distinction
 
@@ -34,64 +32,102 @@ R_n ∈ {0, 7}
 K_(n+1) = K_n + 364 + R_n
 ```
 
-Because both 364 and 7 are multiples of seven, the weekday sequence remains intact.
+Because both 364 and 7 are multiples of seven, weekday identity remains intact.
 
-The Sun does **not** lengthen the finished year. The solar governor determines whether the next year may open immediately or after R1–R7.
+The Sun does **not** lengthen the finished year. It governs whether re-entry into the next year is immediate or waits one complete week.
+
+## Fixed-date civic grid + solar Spring Gate
+
+The mature annual grid may use the existing StillPoint 30/30/31 × 4 structure:
+
+```
+30 + 30 + 31
+30 + 30 + 31
+30 + 30 + 31
+30 + 30 + 31
+= 364
+```
+
+A fixed annual date keeps the same weekday forever once Day 001's weekday is enacted.
+
+Seasonal correction is not performed by forcing Year Day 001 to sit at the March equinox. Instead, v3.3 names a fixed **Spring Gate** inside each candidate year. The current candidate uses Common Month 3 Day 20:
+
+```
+SPRING_GATE_ORDINAL = 80
+```
+
+For each transition, compute the two lawful next-year openings:
+
+```
+K_immediate = K_n + 364
+K_delayed   = K_n + 371
+```
+
+Then project each candidate forward to the fixed Spring Gate inside that next year:
+
+```
+G_immediate = K_immediate + 79
+G_delayed   = K_delayed + 79
+```
+
+Compare the apparent-sunset timestamp of those two Spring Gates against the next astronomical March equinox. Choose the candidate with the smaller absolute timing error; exact tie selects immediate re-entry.
+
+This keeps the **date grid fixed** and lets the **Sun correct the seasonal placement of that grid**.
 
 ## Candidate civic reference framework
 
-- **Pilot jurisdiction:** Ground Zero / Loveland pilot.
 - **Annual solar event A:** astronomical March equinox supplied by a recognized ephemeris.
-- **Reference point P:** `GROUND_ZERO`, exact coordinates supplied privately at generation time.
-- **Dusk protocol D:** standardized apparent sunset, Sun center approximately -0.8333 degrees.
-- **Snap operator O:** `NearestLegalReentry`. Compare only the two lawful next openings: the reference sunset after 364 counted boundaries and the reference sunset seven boundaries later. Select the one closer to the next March equinox. Exact tie chooses immediate re-entry.
-- **Weekday epoch:** not silently inferred. It must be explicit in the enacted first opening.
-- **Civic year label:** may use the Gregorian/CE year containing the March equinox that governs that opening, without claiming a new creation-era chronology.
-- **Jubilee epoch:** intentionally separate and **not enacted here**. Annual calendar adoption does not silently choose a 49/50-year Jubilee chronology.
+- **Reference point P:** `GROUND_ZERO` for the pilot; any national point requires separate enactment.
+- **Dusk protocol D:** standardized apparent sunset, Sun center approximately -0.8333°.
+- **Seasonal target G:** Common Month 3 Day 20 / ordinal 80.
+- **Snap operator O:** `NearestLegalSpringGate`.
+- **Weekday epoch:** explicit; never inferred silently.
+- **Jubilee epoch:** separate jurisdiction.
 
 ## Publication contract
 
-A published calendar is an evidence object, not permanent truth. Each publication must record:
+A published calendar is an evidence object, not permanent truth. Each publication records:
 
-- format/version identifier;
+- version;
 - first enacted opening;
-- Ground Zero reference identity;
-- nonce-protected coordinate custody digest, plus coordinates only when explicitly enacted for publication;
+- reference identity;
+- nonce-protected coordinate custody digest;
 - dusk protocol;
-- ephemeris source and input-data digest;
+- seasonal target;
+- ephemeris source and digest;
 - snap operator;
-- generation timestamp;
 - generated year rows;
-- SHA-256 digest of the canonical JSON bytes.
+- canonical publication SHA-256.
 
-Each year row contains a 364-day ordinary year plus `reconciliationDaysAfterCompletion` equal only to 0 or 7.
+Each year row contains exactly 364 ordinary annual days plus `reconciliationDaysAfterCompletion` equal only to 0 or 7.
 
-The Apple Watch loader may consume a published table. It must fail closed outside the table's published range rather than extrapolate permanent authority from an expired schedule.
-
-## Separation of jurisdictions
-
-Ground Zero fixes the pilot comparison geometry. It does not own local human time everywhere.
-
-A traveling watch may still show the lived day using the wearer's local apparent sunset. A published national or civic schedule, if later enacted, is generated once from its enacted reference point. These are different jobs.
+The Apple Watch loader must fail closed outside the published table instead of extrapolating permanent authority.
 
 ## Weekly protected-time geometry
 
-The weekly horizon-break rule is separately ratified in `WEEKLY_PROTECTED_TIME.md`: Sabbath = Friday sunset → Saturday sunset; Lord's Day = Saturday sunset → Sunday sunset; StillPoint = Friday sunset → Sunday sunrise. The same standardized apparent-horizon geometry governs rise and set. This weekly rule does not ratify any annual-calendar input.
+The weekly horizon-break rule is separately ratified in `WEEKLY_PROTECTED_TIME.md`:
+
+- Sabbath = Friday apparent sunset → Saturday apparent sunset;
+- Lord's Day = Saturday apparent sunset → Sunday apparent sunset;
+- StillPoint = Friday apparent sunset → Sunday apparent sunrise.
+
+This weekly rule does not ratify annual inputs.
 
 ## Ratification gate
 
-The three unresolved constitutional inputs are isolated in `RATIFICATION_RECORD.md`. No generated calendar becomes canonical until those decisions are separately enacted and the promotion gates in that record pass.
+The unresolved constitutional inputs remain isolated in `RATIFICATION_RECORD.md`. A pilot calibration may be implemented without falsely claiming national enactment.
 
 ## Files
 
-- `RATIFICATION_RECORD.md` — unratified decision surface for first opening, reference point P, and equinox evidence source.
-- `reference.example.json` — public shape only; real coordinates and the custody nonce belong in private runtime/generation configuration.
-- `equinoxes.example.json` — ephemeris input shape.
-- `published_calendar.schema.json` — publication contract.
-- `../../tools/generate_common_calendar_v33.py` — deterministic generator from explicit reference + ephemeris inputs.
+- `RATIFICATION_RECORD.md`
+- `WEEKLY_PROTECTED_TIME.md`
+- `reference.example.json`
+- `equinoxes.example.json`
+- `published_calendar.schema.json`
+- `../../tools/generate_common_calendar_v33.py`
 
 No exact Ground Zero street address or coordinate is committed by this candidate.
 
 ## Privacy lock
 
-A bare SHA-256 hash of latitude/longitude is **not** treated as privacy protection because a bounded geographic search can enumerate likely coordinate pairs. The generator therefore salts the coordinate commitment with private high-entropy custody material that is never written into the publication. The publication digest is also recomputed during validation so post-generation mutation is detectable.
+A bare SHA-256 hash of latitude/longitude is **not** treated as privacy protection. The coordinate commitment is salted with private high-entropy custody material that is never written into the publication.

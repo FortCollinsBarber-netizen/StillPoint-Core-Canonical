@@ -11,12 +11,18 @@ final class CivicCalendarTests: XCTestCase {
     private let latitude = 40.3978
     private let longitude = -105.0749
 
-    func testSunsetStaysOnRequestedLocalCivilDate() throws {
+    func testSunriseAndSunsetStayOnRequestedLocalCivilDate() throws {
         let calendar = denverCalendar
         let requested = calendar.date(from: DateComponents(
-            year: 2026, month: 9, day: 18, hour: 12
+            year: 2026, month: 9, day: 20, hour: 12
         ))!
 
+        let sunrise = try XCTUnwrap(SolarBoundaryCalculator.sunrise(
+            on: requested,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
         let sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
             on: requested,
             latitude: latitude,
@@ -24,33 +30,25 @@ final class CivicCalendarTests: XCTestCase {
             calendar: calendar
         ))
 
-        let components = calendar.dateComponents(
-            [.year, .month, .day, .hour],
-            from: sunset
-        )
-
-        XCTAssertEqual(components.year, 2026)
-        XCTAssertEqual(components.month, 9)
-        XCTAssertEqual(components.day, 18)
-        XCTAssertGreaterThanOrEqual(components.hour ?? -1, 18)
-        XCTAssertLessThanOrEqual(components.hour ?? 99, 20)
+        XCTAssertTrue(calendar.isDate(sunrise, inSameDayAs: requested))
+        XCTAssertTrue(calendar.isDate(sunset, inSameDayAs: requested))
+        XCTAssertLessThan(sunrise, sunset)
     }
 
-    func testNamedSaturdayBeginsAtFridaySunset() throws {
+    func testFridaySunsetOpensSabbathAndStillPoint() throws {
         let calendar = denverCalendar
-        let fridayNoon = calendar.date(from: DateComponents(
+        let friday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 18, hour: 12
         ))!
-        let fridaySunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
-            on: fridayNoon,
+        let boundary = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: friday,
             latitude: latitude,
             longitude: longitude,
             calendar: calendar
         ))
-        let afterSunset = fridaySunset.addingTimeInterval(60)
 
         let snapshot = CivicCalendarEngine.snapshot(
-            now: afterSunset,
+            now: boundary,
             latitude: latitude,
             longitude: longitude,
             calendar: calendar
@@ -58,6 +56,96 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertEqual(snapshot.namedDay, "SATURDAY")
         XCTAssertTrue(snapshot.isSabbath)
+        XCTAssertTrue(snapshot.isStillPoint)
+        XCTAssertFalse(snapshot.isLordsDay)
+    }
+
+    func testSaturdaySunsetClosesSabbathAndOpensLordsDayWhileStillPointContinues() throws {
+        let calendar = denverCalendar
+        let saturday = calendar.date(from: DateComponents(
+            year: 2026, month: 9, day: 19, hour: 12
+        ))!
+        let boundary = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: saturday,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
+
+        let snapshot = CivicCalendarEngine.snapshot(
+            now: boundary,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(snapshot.namedDay, "SUNDAY")
+        XCTAssertFalse(snapshot.isSabbath)
+        XCTAssertTrue(snapshot.isLordsDay)
+        XCTAssertTrue(snapshot.isStillPoint)
+        XCTAssertEqual(
+            snapshot.nextProtectedBoundaryLabel,
+            "STILLPOINT RELEASE · SUNDAY SUNRISE"
+        )
+    }
+
+    func testSundaySunriseReleasesStillPointButLordsDayContinues() throws {
+        let calendar = denverCalendar
+        let sunday = calendar.date(from: DateComponents(
+            year: 2026, month: 9, day: 20, hour: 12
+        ))!
+        let sunrise = try XCTUnwrap(SolarBoundaryCalculator.sunrise(
+            on: sunday,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
+
+        let before = CivicCalendarEngine.snapshot(
+            now: sunrise.addingTimeInterval(-1),
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+        let at = CivicCalendarEngine.snapshot(
+            now: sunrise,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(before.isStillPoint)
+        XCTAssertTrue(before.isLordsDay)
+        XCTAssertFalse(at.isStillPoint)
+        XCTAssertTrue(at.isLordsDay)
+        XCTAssertEqual(
+            at.nextProtectedBoundaryLabel,
+            "LORD'S DAY ENDS · SUNDAY SUNSET"
+        )
+    }
+
+    func testSundaySunsetEndsLordsDay() throws {
+        let calendar = denverCalendar
+        let sunday = calendar.date(from: DateComponents(
+            year: 2026, month: 9, day: 20, hour: 12
+        ))!
+        let sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: sunday,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
+
+        let at = CivicCalendarEngine.snapshot(
+            now: sunset,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+
+        XCTAssertFalse(at.isSabbath)
+        XCTAssertFalse(at.isLordsDay)
+        XCTAssertFalse(at.isStillPoint)
     }
 
     func testCalendarDoesNotInventAnnualDateWithoutPublishedTable() {
@@ -135,7 +223,7 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
     }
 
-    func testPublishedRowsMustAgreeOn364Or371BoundarySpan() {
+    func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() {
         let calendar = denverCalendar
         let inconsistent = PublishedCivicCalendar(
             version: "test",

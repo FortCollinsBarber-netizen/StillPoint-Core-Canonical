@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Generate a StillPoint Temporal v3.3 Common Calendar publication.
 
-The generator is deliberately evidence-fed:
-- it does not invent Ground Zero coordinates;
-- it does not invent March equinox instants;
-- it never emits a correction other than 0 or 7 days;
-- it treats the ordinary year as complete after 364 local sunset boundaries.
+v3.3 keeps three questions separate:
+- annual form: always 364 ordinary dusk-days;
+- weekday sequence: continuous, with only whole-week interannual correction;
+- seasonal truth: the fixed Common March 20 Spring Gate is compared with the
+  next astronomical March equinox.
 
-Input coordinates and ephemeris evidence are supplied explicitly.
+The year opening is therefore not forced to be the equinox itself. This lets
+fixed civic month/day labels and solar honesty coexist.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from typing import Any
 
 UTC = dt.timezone.utc
 SUNSET_ZENITH_DEG = 90.8333
+SPRING_GATE_ORDINAL = 80  # Common Month 3 Day 20 in 30/30/31 x 4.
 
 
 def _norm_deg(value: float) -> float:
@@ -41,14 +43,6 @@ def _rad2deg(value: float) -> float:
 
 
 def sunset_utc(civil_date: dt.date, latitude: float, longitude: float) -> dt.datetime:
-    """NOAA-style standardized apparent-sunset approximation.
-
-    This computes the legal comparison boundary from an idealized apparent
-    sunset geometry. It is deterministic and suitable for generation/testing.
-    An enacted production release should still identify the authoritative
-    ephemeris/source used for the annual March-equinox evidence.
-    """
-
     ordinal = civil_date.timetuple().tm_yday
     lng_hour = longitude / 15.0
     t = ordinal + ((18.0 - lng_hour) / 24.0)
@@ -81,12 +75,6 @@ def sunset_utc(civil_date: dt.date, latitude: float, longitude: float) -> dt.dat
 
     hour_angle = _rad2deg(math.acos(cos_hour)) / 15.0
     local_mean_time = hour_angle + right_ascension - (0.06571 * t) - 6.622
-
-    # T may carry an arbitrary +/-24-hour branch even though sunset belongs
-    # to the requested *local* civil date. First normalize the local mean solar
-    # clock to that civil date, then convert longitude to UTC without
-    # re-normalizing. The final timedelta is allowed to cross the UTC date
-    # boundary (Colorado evening sunset, for example, is early UTC next day).
     local_mean_hours = _norm_hours(local_mean_time)
     utc_hours = local_mean_hours - lng_hour
 
@@ -103,10 +91,7 @@ def parse_utc(value: str) -> dt.datetime:
 
 def canonical_bytes(value: Any) -> bytes:
     return json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
 
 
@@ -119,13 +104,6 @@ def coordinate_custody_digest(
     longitude: float,
     custody_nonce: str,
 ) -> str:
-    """Commit privately to the reference coordinates without publishing them.
-
-    A bare hash of a precise coordinate is not privacy preserving: a bounded
-    geographic search can brute-force likely latitude/longitude pairs. The
-    custody nonce is high-entropy private material from the uncommitted
-    reference configuration. It is never included in the public publication.
-    """
     if len(custody_nonce) < 32:
         raise ValueError("coordinate custody nonce must contain at least 32 characters")
     material = (
@@ -135,7 +113,10 @@ def coordinate_custody_digest(
 
 
 def publication_digest(document: dict[str, Any]) -> str:
-    unsigned = {key: value for key, value in document.items() if key != "publicationDigest"}
+    unsigned = {
+        key: value for key, value in document.items()
+        if key != "publicationDigest"
+    }
     return sha256_bytes(canonical_bytes(unsigned))
 
 
@@ -144,12 +125,41 @@ def load_json(path: Path) -> Any:
 
 
 def equinox_map(document: dict[str, Any]) -> dict[int, dt.datetime]:
-    rows = document.get("marchEquinoxes", [])
     result: dict[int, dt.datetime] = {}
-    for row in rows:
-        year = int(row["year"])
-        result[year] = parse_utc(row["instantUTC"])
+    for row in document.get("marchEquinoxes", []):
+        result[int(row["year"])] = parse_utc(row["instantUTC"])
     return result
+
+
+def spring_gate_date(opening: dt.date) -> dt.date:
+    return opening + dt.timedelta(days=SPRING_GATE_ORDINAL - 1)
+
+
+def choose_reconciliation(
+    *,
+    current_opening: dt.date,
+    next_march_equinox: dt.datetime,
+    latitude: float,
+    longitude: float,
+) -> tuple[int, dt.date]:
+    immediate_opening = current_opening + dt.timedelta(days=364)
+    delayed_opening = immediate_opening + dt.timedelta(days=7)
+
+    immediate_gate = spring_gate_date(immediate_opening)
+    delayed_gate = spring_gate_date(delayed_opening)
+
+    immediate_error = abs(
+        (sunset_utc(immediate_gate, latitude, longitude) - next_march_equinox)
+        .total_seconds()
+    )
+    delayed_error = abs(
+        (sunset_utc(delayed_gate, latitude, longitude) - next_march_equinox)
+        .total_seconds()
+    )
+
+    if immediate_error <= delayed_error:
+        return 0, immediate_gate
+    return 7, delayed_gate
 
 
 def generate(
@@ -173,48 +183,38 @@ def generate(
 
     for offset in range(count):
         label = first_year_label + offset
-
-        if offset == count - 1:
-            # The final row still needs a declared reconciliation value. We
-            # require next-year ephemeris evidence so no terminal row guesses.
-            next_equinox_year = label + 1
-        else:
-            next_equinox_year = label + 1
-
+        next_equinox_year = label + 1
         if next_equinox_year not in ephemerides:
             raise ValueError(
                 f"Missing March equinox evidence for {next_equinox_year}"
             )
 
         equinox = ephemerides[next_equinox_year]
-        immediate_date = opening + dt.timedelta(days=364)
-        delayed_date = immediate_date + dt.timedelta(days=7)
-
-        immediate_sunset = sunset_utc(immediate_date, latitude, longitude)
-        delayed_sunset = sunset_utc(delayed_date, latitude, longitude)
-
-        immediate_error = abs((immediate_sunset - equinox).total_seconds())
-        delayed_error = abs((delayed_sunset - equinox).total_seconds())
-
-        reconciliation = 0 if immediate_error <= delayed_error else 7
+        reconciliation, chosen_gate = choose_reconciliation(
+            current_opening=opening,
+            next_march_equinox=equinox,
+            latitude=latitude,
+            longitude=longitude,
+        )
 
         years.append(
             {
                 "year": label,
                 "openingCivilDate": opening.isoformat(),
                 "reconciliationDaysAfterCompletion": reconciliation,
-                "governingMarchEquinoxUTC": equinox.isoformat().replace("+00:00", "Z"),
+                "governingMarchEquinoxUTC": (
+                    equinox.isoformat().replace("+00:00", "Z")
+                ),
+                "nextYearSpringGateCivilDate": chosen_gate.isoformat(),
             }
         )
 
-        opening = immediate_date + dt.timedelta(days=reconciliation)
+        opening = opening + dt.timedelta(days=364 + reconciliation)
 
     reference: dict[str, Any] = {
         "id": "GROUND_ZERO",
         "coordinateCustodyDigest": coordinate_custody_digest(
-            latitude,
-            longitude,
-            coordinate_custody_nonce,
+            latitude, longitude, coordinate_custody_nonce
         ),
     }
     if publish_coordinates:
@@ -228,22 +228,34 @@ def generate(
             "id": "apparent-sunset-0.8333",
             "sunCenterAltitudeDegrees": -0.8333,
         },
-        "snapOperator": "NearestLegalReentry",
+        "seasonalAnchor": {
+            "event": "march_equinox",
+            "commonMonth": 3,
+            "commonDay": 20,
+            "ordinal": SPRING_GATE_ORDINAL,
+        },
+        "snapOperator": "NearestLegalSpringGate",
         "ephemerisEvidence": {
             "source": ephemeris_source,
             "sha256": ephemeris_sha256,
         },
         "years": years,
     }
-
     document["publicationDigest"] = publication_digest(document)
     return document
 
 
 def validate_output(document: dict[str, Any]) -> None:
     supplied_digest = document.get("publicationDigest")
-    if not isinstance(supplied_digest, str) or supplied_digest != publication_digest(document):
+    if (
+        not isinstance(supplied_digest, str)
+        or supplied_digest != publication_digest(document)
+    ):
         raise ValueError("publication digest mismatch")
+
+    anchor = document.get("seasonalAnchor", {})
+    if anchor.get("ordinal") != SPRING_GATE_ORDINAL:
+        raise ValueError("unexpected seasonal anchor")
 
     rows = document["years"]
     if not rows:
@@ -272,11 +284,7 @@ def main() -> None:
     parser.add_argument("--equinoxes", required=True, type=Path)
     parser.add_argument("--count", type=int, default=100)
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument(
-        "--publish-coordinates",
-        action="store_true",
-        help="Include Ground Zero coordinates in published JSON.",
-    )
+    parser.add_argument("--publish-coordinates", action="store_true")
     args = parser.parse_args()
 
     ref = load_json(args.reference)
@@ -287,16 +295,12 @@ def main() -> None:
     longitude = point.get("longitude")
     if latitude is None or longitude is None:
         raise SystemExit(
-            "Ground Zero latitude/longitude are required in the private "
-            "generation config; example placeholders are intentionally null."
+            "Ground Zero latitude/longitude are required in private generation config."
         )
 
     custody_nonce = point.get("custodyNonce")
     if custody_nonce is None:
-        raise SystemExit(
-            "A private high-entropy referencePoint.custodyNonce is required; "
-            "it is used only to create the public coordinate custody commitment."
-        )
+        raise SystemExit("referencePoint.custodyNonce is required")
 
     first = ref["firstOpening"]
     first_year_label = int(first["yearLabel"])
@@ -316,7 +320,6 @@ def main() -> None:
         publish_coordinates=args.publish_coordinates,
     )
     validate_output(output)
-
     args.output.write_text(
         json.dumps(output, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",

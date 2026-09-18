@@ -1,0 +1,10 @@
+{
+  "source": "recognized-astronomical-ephemeris",
+  "generatedAt": "YYYY-MM-DDTHH:MM:SSZ",
+  "marchEquinoxes": [
+    {
+      "year": 2028,
+      "instantUTC": "YYYY-MM-DDTHH:MM:SSZ"
+    }
+  ]
+}

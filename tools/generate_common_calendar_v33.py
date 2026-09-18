@@ -81,7 +81,14 @@ def sunset_utc(civil_date: dt.date, latitude: float, longitude: float) -> dt.dat
 
     hour_angle = _rad2deg(math.acos(cos_hour)) / 15.0
     local_mean_time = hour_angle + right_ascension - (0.06571 * t) - 6.622
-    utc_hours = _norm_hours(local_mean_time - lng_hour)
+
+    # Do not normalize the UTC hour before attaching it to the date.
+    # For western longitudes an evening sunset can legitimately be >24 UTC
+    # hours from UTC midnight bearing the same civil-date label (for example,
+    # Colorado sunset is often early UTC on the following day). Preserving the
+    # raw offset lets timedelta carry the instant across the UTC date boundary.
+    # Normalizing here would silently move the comparison boundary by 24 hours.
+    utc_hours = local_mean_time - lng_hour
 
     midnight = dt.datetime.combine(civil_date, dt.time(0, 0), tzinfo=UTC)
     return midnight + dt.timedelta(hours=utc_hours)

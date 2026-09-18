@@ -5,7 +5,7 @@ struct PublishedCivicYear: Codable, Equatable {
     // Civil date whose local sunset opens this year, YYYY-MM-DD.
     let openingCivilDate: String
     // Mature StillPoint model: the ordinary year is 364 days.
-    // A transition may carry a seven-day Reconciliation interval before next opening.
+    // A transition may carry one seven-day Reconciliation interval.
     let reconciliationDaysAfterCompletion: Int
 }
 
@@ -48,17 +48,22 @@ enum CivicCalendarEngine {
 
         // A named weekday begins at the previous evening.
         // Example: Friday sunset opens Saturday / Sabbath.
-        let namedCivilDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: previous))!
+        let namedCivilDate = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: previous)
+        )!
         let weekday = calendar.component(.weekday, from: namedCivilDate)
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = calendar.timeZone
         let weekdayName = formatter.weekdaySymbols[weekday - 1]
-        let isSabbath = weekday == 7 // Saturday in Gregorian Calendar weekday numbering.
+        let isSabbath = weekday == 7 // Saturday in Gregorian weekday numbering.
 
         let annual = annualLabel(
             now: now,
+            previousBoundary: previous,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: publishedCalendar,
@@ -80,6 +85,7 @@ enum CivicCalendarEngine {
 
     private static func annualLabel(
         now: Date,
+        previousBoundary: Date,
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar?,
@@ -94,11 +100,19 @@ enum CivicCalendarEngine {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
 
         let sorted = publishedCalendar.years.sorted { $0.year < $1.year }
+        let currentBoundaryDay = calendar.startOfDay(for: previousBoundary)
 
         for index in sorted.indices {
             let current = sorted[index]
+
+            // Fail closed if a published row tries to invent a non-week correction.
+            guard current.reconciliationDaysAfterCompletion == 0
+                    || current.reconciliationDaysAfterCompletion == 7
+            else { continue }
+
             guard
                 let openingDay = formatter.date(from: current.openingCivilDate),
                 let opening = SolarBoundaryCalculator.sunset(
@@ -109,31 +123,51 @@ enum CivicCalendarEngine {
                 )
             else { continue }
 
-            let nextOpening: Date?
-            if sorted.indices.contains(index + 1),
-               let nextDay = formatter.date(from: sorted[index + 1].openingCivilDate) {
-                nextOpening = SolarBoundaryCalculator.sunset(
-                    on: nextDay,
-                    latitude: latitude,
-                    longitude: longitude,
-                    calendar: calendar
+            guard now >= opening else { continue }
+
+            let openingBoundaryDay = calendar.startOfDay(for: openingDay)
+            guard let boundaryOffset = calendar.dateComponents(
+                [.day],
+                from: openingBoundaryDay,
+                to: currentBoundaryDay
+            ).day else { continue }
+
+            let legalLength = 364 + current.reconciliationDaysAfterCompletion
+
+            // A published year's authority expires at its declared final dusk.
+            guard boundaryOffset >= 0, boundaryOffset < legalLength else { continue }
+
+            // If the next row exists, it must agree with the current row's
+            // declared 364/371-boundary length. Inconsistent tables fail closed.
+            if sorted.indices.contains(index + 1) {
+                let next = sorted[index + 1]
+                guard
+                    let nextOpeningDay = formatter.date(from: next.openingCivilDate),
+                    let publishedSpan = calendar.dateComponents(
+                        [.day],
+                        from: openingBoundaryDay,
+                        to: calendar.startOfDay(for: nextOpeningDay)
+                    ).day,
+                    publishedSpan == legalLength,
+                    let nextOpening = SolarBoundaryCalculator.sunset(
+                        on: nextOpeningDay,
+                        latitude: latitude,
+                        longitude: longitude,
+                        calendar: calendar
+                    ),
+                    now < nextOpening
+                else { continue }
+            }
+
+            if boundaryOffset >= 364 {
+                let reconciliationDay = boundaryOffset - 364 + 1
+                return (
+                    "RECONCILIATION",
+                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
                 )
-            } else {
-                nextOpening = nil
             }
 
-            let containsNow = now >= opening && (nextOpening == nil || now < nextOpening!)
-            guard containsNow else { continue }
-
-            let completedOrdinaryBoundary = calendar.date(byAdding: .day, value: 364, to: opening)!
-
-            if now >= completedOrdinaryBoundary && current.reconciliationDaysAfterCompletion == 7 {
-                let elapsed = max(0, calendar.dateComponents([.day], from: completedOrdinaryBoundary, to: now).day ?? 0)
-                let r = min(7, elapsed + 1)
-                return ("RECONCILIATION", "R\(r) · YEAR \(current.year) COMPLETE")
-            }
-
-            let day = max(1, min(364, (calendar.dateComponents([.day], from: opening, to: now).day ?? 0) + 1))
+            let day = boundaryOffset + 1
             let week = ((day - 1) / 7) + 1
             let dayInWeek = ((day - 1) % 7) + 1
             let quarter = ((day - 1) / 91) + 1

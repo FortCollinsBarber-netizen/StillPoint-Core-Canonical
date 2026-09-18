@@ -14,7 +14,7 @@ import socket
 import threading
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -54,7 +54,7 @@ class SupervisorConfig:
     max_failures: int = 3
     start_office_workers: bool = True
     office_restart_backoff_seconds: float = 10.0
-    provider_api_key: str | None = None
+    provider_api_key: str | None = field(default=None, repr=False)
 
     def __post_init__(self):
         root=Path(self.root).expanduser().resolve()

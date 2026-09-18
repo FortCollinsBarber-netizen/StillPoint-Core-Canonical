@@ -114,9 +114,29 @@ def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def coordinate_digest(latitude: float, longitude: float) -> str:
-    material = f"{latitude:.8f},{longitude:.8f}".encode("ascii")
+def coordinate_custody_digest(
+    latitude: float,
+    longitude: float,
+    custody_nonce: str,
+) -> str:
+    """Commit privately to the reference coordinates without publishing them.
+
+    A bare hash of a precise coordinate is not privacy preserving: a bounded
+    geographic search can brute-force likely latitude/longitude pairs. The
+    custody nonce is high-entropy private material from the uncommitted
+    reference configuration. It is never included in the public publication.
+    """
+    if len(custody_nonce) < 32:
+        raise ValueError("coordinate custody nonce must contain at least 32 characters")
+    material = (
+        f"GROUND_ZERO\n{latitude:.8f}\n{longitude:.8f}\n{custody_nonce}"
+    ).encode("utf-8")
     return sha256_bytes(material)
+
+
+def publication_digest(document: dict[str, Any]) -> str:
+    unsigned = {key: value for key, value in document.items() if key != "publicationDigest"}
+    return sha256_bytes(canonical_bytes(unsigned))
 
 
 def load_json(path: Path) -> Any:
@@ -142,6 +162,7 @@ def generate(
     ephemerides: dict[int, dt.datetime],
     ephemeris_source: str,
     ephemeris_sha256: str,
+    coordinate_custody_nonce: str,
     publish_coordinates: bool,
 ) -> dict[str, Any]:
     if count < 1:
@@ -190,7 +211,11 @@ def generate(
 
     reference: dict[str, Any] = {
         "id": "GROUND_ZERO",
-        "coordinateDigest": coordinate_digest(latitude, longitude),
+        "coordinateCustodyDigest": coordinate_custody_digest(
+            latitude,
+            longitude,
+            coordinate_custody_nonce,
+        ),
     }
     if publish_coordinates:
         reference["latitude"] = latitude
@@ -211,12 +236,15 @@ def generate(
         "years": years,
     }
 
-    digest = sha256_bytes(canonical_bytes(document))
-    document["publicationDigest"] = digest
+    document["publicationDigest"] = publication_digest(document)
     return document
 
 
 def validate_output(document: dict[str, Any]) -> None:
+    supplied_digest = document.get("publicationDigest")
+    if not isinstance(supplied_digest, str) or supplied_digest != publication_digest(document):
+        raise ValueError("publication digest mismatch")
+
     rows = document["years"]
     if not rows:
         raise ValueError("publication has no year rows")
@@ -263,6 +291,13 @@ def main() -> None:
             "generation config; example placeholders are intentionally null."
         )
 
+    custody_nonce = point.get("custodyNonce")
+    if custody_nonce is None:
+        raise SystemExit(
+            "A private high-entropy referencePoint.custodyNonce is required; "
+            "it is used only to create the public coordinate custody commitment."
+        )
+
     first = ref["firstOpening"]
     first_year_label = int(first["yearLabel"])
     first_opening = dt.date.fromisoformat(first["civilDate"])
@@ -277,6 +312,7 @@ def main() -> None:
         ephemerides=equinox_map(eph_doc),
         ephemeris_source=str(eph_doc["source"]),
         ephemeris_sha256=sha256_bytes(eph_bytes),
+        coordinate_custody_nonce=str(custody_nonce),
         publish_coordinates=args.publish_coordinates,
     )
     validate_output(output)

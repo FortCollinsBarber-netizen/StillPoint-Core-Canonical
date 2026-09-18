@@ -8,7 +8,7 @@ This successor does not rewrite or erase the locked v3.2 Reference Rule. v3.2 re
 
 Robert Emmanuel LaDay has designated one private Loveland, Colorado address as **Ground Zero** for the StillPoint pilot.
 
-The exact street address is intentionally **not committed to this public repository**. Public source uses the symbolic reference `GROUND_ZERO`. Deployment supplies the exact geodetic latitude/longitude through an uncommitted configuration file or equivalent private runtime configuration.
+The exact street address is intentionally **not committed to this public repository**. Public source uses the symbolic reference `GROUND_ZERO`. Deployment supplies the exact geodetic latitude/longitude and a high-entropy custody nonce through an uncommitted configuration file or equivalent private runtime configuration. The public publication contains only a nonce-protected custody commitment unless coordinates are explicitly enacted for publication.
 
 Ground Zero now has these candidate pilot roles:
 
@@ -56,7 +56,7 @@ A published calendar is an evidence object, not permanent truth. Each publicatio
 - format/version identifier;
 - first enacted opening;
 - Ground Zero reference identity;
-- coordinate digest or enacted public coordinates;
+- nonce-protected coordinate custody digest, plus coordinates only when explicitly enacted for publication;
 - dusk protocol;
 - ephemeris source and input-data digest;
 - snap operator;
@@ -81,9 +81,13 @@ The three unresolved constitutional inputs are isolated in `RATIFICATION_RECORD.
 ## Files
 
 - `RATIFICATION_RECORD.md` — unratified decision surface for first opening, reference point P, and equinox evidence source.
-- `reference.example.json` — non-secret configuration shape.
+- `reference.example.json` — public shape only; real coordinates and the custody nonce belong in private runtime/generation configuration.
 - `equinoxes.example.json` — ephemeris input shape.
 - `published_calendar.schema.json` — publication contract.
 - `../../tools/generate_common_calendar_v33.py` — deterministic generator from explicit reference + ephemeris inputs.
 
 No exact Ground Zero street address or coordinate is committed by this candidate.
+
+## Privacy lock
+
+A bare SHA-256 hash of latitude/longitude is **not** treated as privacy protection because a bounded geographic search can enumerate likely coordinate pairs. The generator therefore salts the coordinate commitment with private high-entropy custody material that is never written into the publication. The publication digest is also recomputed during validation so post-generation mutation is detectable.

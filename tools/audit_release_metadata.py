@@ -5,11 +5,11 @@ import json, os, re, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
-EXPECTED_VERSION = "0.4.0a3"
+EXPECTED_VERSION = "0.4.0a4"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
 EXPECTED_SCHEMA = 23
 EXPECTED_PATCH = "041-icloud-auth-boundary-correction"
-EXPECTED_MILESTONE = "v0.4-capability-fabric-3"
+EXPECTED_MILESTONE = "v0.4-stage3-audit-closure"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
 EXPECTED_ACCOUNT = "fortcollinsbarber@icloud.com"
 EXPECTED_JURISDICTION = "personal_business"
@@ -78,6 +78,17 @@ require(manifest.get("provenance",{}).get("canonical_v04_stage2_merge")==EXPECTE
 require(checkpoint.get("git",{}).get("v04_stage2_merge_commit")==EXPECTED_STAGE2,"Stage 2 checkpoint provenance mismatch")
 require(manifest.get("release_invariants",{}).get("capability_grant_is_not_external_action_authority") is True,"capability/authority separation invariant missing")
 require(manifest.get("release_invariants",{}).get("capability_manifest_reactivates_revoked_grants") is False,"capability manifest reactivation invariant mismatch")
+require(manifest.get("release_invariants",{}).get("capability_manifest_suspends_removed_active_grants") is True,"removed active grants must be suspended")
+require(manifest.get("release_invariants",{}).get("capability_reactivation_requires_current_manifest_authority") is True,"grant reactivation must require current manifest authority")
+require(manifest.get("release_invariants",{}).get("state_and_lineage_transitions_atomic") is True,"state/lineage atomicity invariant missing")
+require(manifest.get("release_invariants",{}).get("tool_offers_are_not_tool_invocations") is True,"tool offer/invocation distinction missing")
+require(manifest.get("release_invariants",{}).get("unknown_usage_is_not_zero") is True,"unknown usage must not be treated as zero")
+require(manifest.get("release_invariants",{}).get("migration_hash_custody") is True,"migration hash custody invariant missing")
+require(manifest.get("release_invariants",{}).get("migration_startup_serialized") is True,"migration serialization invariant missing")
+require(manifest.get("release_invariants",{}).get("signal_facts_require_materialized_custody") is True,"Signal materialized facts custody invariant missing")
+require(manifest.get("release_invariants",{}).get("signal_daemon_degradation_is_durable") is True,"Signal durable degradation invariant missing")
+require(manifest.get("release_invariants",{}).get("secret_values_exported_to_environment") is False,"secret values must not be exported to environment")
+require(manifest.get("release_invariants",{}).get("deployment_releases_immutable") is True,"immutable deployment invariant missing")
 require(latest_documented_patch is not None,"no numbered patch documentation found")
 require(EXPECTED_PATCH.startswith(f"{latest_documented_patch:03d}-"),f"0.4 baseline trails latest earned numbered patch: {latest_documented_patch:03d}")
 require(checkpoint.get("known_runtime_defects")==[],"known runtime defects are not empty")
@@ -103,6 +114,9 @@ require(host.get("secret_store")=="macOS Keychain","production host secret-store
 require(host.get("runs_as_root") is False,"Signal host must not run as root")
 require(host.get("production_activation") is False,"release metadata must not claim production activation")
 require(host.get("entrypoint")=="stillpointd","0.4 primary host entrypoint mismatch")
+require(host.get("secret_transport")=="inherited_fd","production secret transport must use inherited file descriptors")
+require(host.get("release_layout")=="commit_addressed_immutable","production release layout must be commit-addressed and immutable")
+require(host.get("service_release_pointers")==["current-company","current-signal"],"service release pointers mismatch")
 
 cp_signal=checkpoint.get("signal_governance",{})
 mf_signal=manifest.get("signal",{})
@@ -117,7 +131,10 @@ boundaries={x.get("name"):x for x in manifest.get("production_boundaries",[])}
 require(set(boundaries)=={"bounded_outbox","gmail_send","signal_mail:icloud"},"production boundary set mismatch")
 icloud=boundaries.get("signal_mail:icloud",{})
 require(icloud.get("auto_start") is False,"iCloud Signal service must not auto-start")
-require(icloud.get("credential_env")=="STILLPOINT_ICLOUD_APP_PASSWORD","iCloud credential boundary mismatch")
+require(icloud.get("credential_transport")=="inherited_fd","iCloud credential transport mismatch")
+require(icloud.get("credential_fd_env")=="STILLPOINT_ICLOUD_APP_PASSWORD_FD","iCloud credential FD boundary mismatch")
+require(icloud.get("model_credential_fd_env")=="STILLPOINT_XAI_API_KEY_FD","Signal xAI credential FD boundary mismatch")
+require(icloud.get("requires_materialized_facts_custody") is True,"iCloud service must require materialized facts custody")
 require(icloud.get("requires_current_delegation") is True,"iCloud service must require current delegation")
 require(icloud.get("requires_current_trigger") is True,"iCloud service must require current trigger")
 require(icloud.get("requires_current_facts_snapshot") is True,"iCloud service must require current facts snapshot")
@@ -125,7 +142,10 @@ require(icloud.get("requires_current_facts_snapshot") is True,"iCloud service mu
 require(checkpoint.get("release_candidate",{}).get("canonical_repository")==EXPECTED_REPOSITORY,"checkpoint canonical repository mismatch")
 require(manifest.get("canonical_repository")==EXPECTED_REPOSITORY,"manifest canonical repository mismatch")
 require(manifest.get("runtime_capability_change") is True,"runtime capability change must be explicit")
-require(manifest.get("intended_release_tag")=="v0.4.0a3","0.4 Stage 3 intended tag mismatch")
+require(manifest.get("intended_release_tag")=="v0.4.0a4","0.4 Stage 3 intended tag mismatch")
+require(checkpoint.get("tests",{}).get("full_suite_non_eval")=={"passed":547,"failed":0},"Stage 3 closure suite count mismatch")
+require(checkpoint.get("tests",{}).get("stage3_audit_closure",{}).get("status")=="PASS","Stage 3 audit closure checkpoint missing")
+require(manifest.get("audit_closure",{}).get("deterministic_release_audit")=="PASS","Stage 3 deterministic release audit evidence missing")
 
 github_repository=os.environ.get("GITHUB_REPOSITORY")
 if github_repository: require(github_repository==EXPECTED_REPOSITORY,f"CI repository mismatch: {github_repository}")

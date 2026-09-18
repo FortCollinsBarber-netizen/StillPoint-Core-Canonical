@@ -1,11 +1,11 @@
 {
   "release": "StillPoint Core",
-  "version": "0.4.0a3",
+  "version": "0.4.0a4",
   "release_stage": "alpha",
   "schema_version": 23,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
-  "intended_release_tag": "v0.4.0a3",
+  "intended_release_tag": "v0.4.0a4",
   "patch": "041-icloud-auth-boundary-correction",
   "runtime_capability_change": true,
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
@@ -44,7 +44,18 @@
     ],
     "credentials_committed": false,
     "capability_grant_is_not_external_action_authority": true,
-    "capability_manifest_reactivates_revoked_grants": false
+    "capability_manifest_reactivates_revoked_grants": false,
+    "capability_manifest_suspends_removed_active_grants": true,
+    "capability_reactivation_requires_current_manifest_authority": true,
+    "state_and_lineage_transitions_atomic": true,
+    "tool_offers_are_not_tool_invocations": true,
+    "unknown_usage_is_not_zero": true,
+    "migration_hash_custody": true,
+    "migration_startup_serialized": true,
+    "signal_facts_require_materialized_custody": true,
+    "signal_daemon_degradation_is_durable": true,
+    "secret_values_exported_to_environment": false,
+    "deployment_releases_immutable": true
   },
   "signal": {
     "provider": "icloud",
@@ -58,7 +69,13 @@
     ],
     "mandatory_review_days": 30,
     "approval_evidence_committed": false,
-    "production_activation": false
+    "production_activation": false,
+    "facts_materialization_required": true,
+    "facts_materialization_states": [
+      "pending",
+      "materialized",
+      "failed"
+    ]
   },
   "production_boundaries": [
     {
@@ -90,10 +107,14 @@
       "provider_env": "STILLPOINT_MAIL_PROVIDER=icloud",
       "account_env": "STILLPOINT_MAIL_ACCOUNT",
       "jurisdiction_env": "STILLPOINT_MAIL_JURISDICTION",
-      "credential_env": "STILLPOINT_ICLOUD_APP_PASSWORD",
       "requires_current_delegation": true,
       "requires_current_trigger": true,
-      "requires_current_facts_snapshot": true
+      "requires_current_facts_snapshot": true,
+      "credential_transport": "inherited_fd",
+      "credential_fd_env": "STILLPOINT_ICLOUD_APP_PASSWORD_FD",
+      "model_credential_fd_env": "STILLPOINT_XAI_API_KEY_FD",
+      "legacy_direct_env_fallback": "STILLPOINT_ICLOUD_APP_PASSWORD",
+      "requires_materialized_facts_custody": true
     }
   ],
   "host_runtime": {
@@ -106,9 +127,29 @@
     "entrypoint": "stillpointd",
     "specialized_services": [
       "stillpoint-signal-mail"
+    ],
+    "secret_transport": "inherited_fd",
+    "release_layout": "commit_addressed_immutable",
+    "service_release_pointers": [
+      "current-company",
+      "current-signal"
     ]
   },
   "program": "0.4-autonomous-company-os",
-  "milestone": "v0.4-capability-fabric-3",
-  "baseline_patch": "041-icloud-auth-boundary-correction"
+  "milestone": "v0.4-stage3-audit-closure",
+  "baseline_patch": "041-icloud-auth-boundary-correction",
+  "audit_closure": {
+    "milestone": "v0.4-stage3-audit-closure",
+    "schema_version": 23,
+    "full_suite": {
+      "passed": 547,
+      "failed": 0,
+      "python": [
+        "3.11",
+        "3.13"
+      ]
+    },
+    "deterministic_release_audit": "PASS",
+    "pre_identity_green_commit": "5bd8c834d5b10b6b1616f5df39dfc6bc4d4f5dcf"
+  }
 }

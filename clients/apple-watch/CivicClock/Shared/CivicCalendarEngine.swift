@@ -2,10 +2,7 @@ import Foundation
 
 struct PublishedCivicYear: Codable, Equatable {
     let year: Int
-    // Civil date whose local sunset opens this year, YYYY-MM-DD.
     let openingCivilDate: String
-    // Mature StillPoint model: the ordinary year is 364 days.
-    // A transition may carry one seven-day Reconciliation interval.
     let reconciliationDaysAfterCompletion: Int
 }
 
@@ -29,15 +26,20 @@ enum CivicCalendarEngine {
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = nil,
         pilotProfile: PilotTemporalCalibration? = nil,
+        calendarCoreContract: CalendarCoreContract? = nil,
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
         var calendar = inputCalendar
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
+        let zenith = calendarCoreContract?.constants.apparentHorizonZenithDegrees
+            ?? SolarBoundaryCalculator.defaultZenithDegrees
+
         let pair = SolarBoundaryCalculator.previousAndNextSunset(
             around: now,
             latitude: latitude,
             longitude: longitude,
+            zenithDegrees: zenith,
             calendar: calendar
         )
 
@@ -63,9 +65,6 @@ enum CivicCalendarEngine {
             )
         }
 
-        // A named weekday begins at the previous evening.
-        // Friday sunset opens Saturday / Sabbath.
-        // Saturday sunset opens Sunday / Lord's Day.
         let namedCivilDate = calendar.date(
             byAdding: .day,
             value: 1,
@@ -84,17 +83,22 @@ enum CivicCalendarEngine {
             weekday: weekday,
             latitude: latitude,
             longitude: longitude,
+            zenithDegrees: zenith,
             nextSunset: next,
             calendar: calendar
         )
 
-        let pilotState = pilotProfile.flatMap {
-            PilotTemporalEngine.state(
+        let pilotState: PilotTemporalState?
+        if let pilotProfile, let calendarCoreContract {
+            pilotState = PilotTemporalEngine.state(
                 now: now,
                 previousBoundary: previous,
-                profile: $0,
+                profile: pilotProfile,
+                contract: calendarCoreContract,
                 calendar: calendar
             )
+        } else {
+            pilotState = nil
         }
 
         let annual = annualLabel(
@@ -102,8 +106,10 @@ enum CivicCalendarEngine {
             previousBoundary: previous,
             latitude: latitude,
             longitude: longitude,
+            zenithDegrees: zenith,
             publishedCalendar: publishedCalendar,
             pilotState: pilotState,
+            calendarCoreContract: calendarCoreContract,
             calendar: calendar
         )
 
@@ -134,12 +140,11 @@ enum CivicCalendarEngine {
         weekday: Int,
         latitude: Double,
         longitude: Double,
+        zenithDegrees: Double,
         nextSunset: Date,
         calendar: Calendar
     ) -> WeeklyProtectedTimeState {
-        // Gregorian Calendar weekday numbering: Sunday=1 ... Saturday=7.
         if weekday == 7 {
-            // Friday sunset -> Saturday sunset.
             return WeeklyProtectedTimeState(
                 isSabbath: true,
                 isLordsDay: false,
@@ -150,13 +155,12 @@ enum CivicCalendarEngine {
         }
 
         if weekday == 1 {
-            // Saturday sunset -> Sunday sunset is Lord's Day.
-            // StillPoint closes earlier, exactly at Sunday apparent sunrise.
             let sunday = calendar.startOfDay(for: namedCivilDate)
             let sunrise = SolarBoundaryCalculator.sunrise(
                 on: sunday,
                 latitude: latitude,
                 longitude: longitude,
+                zenithDegrees: zenithDegrees,
                 calendar: calendar
             )
 
@@ -193,8 +197,10 @@ enum CivicCalendarEngine {
         previousBoundary: Date,
         latitude: Double,
         longitude: Double,
+        zenithDegrees: Double,
         publishedCalendar: PublishedCivicCalendar?,
         pilotState: PilotTemporalState?,
+        calendarCoreContract: CalendarCoreContract?,
         calendar: Calendar
     ) -> (label: String, detail: String) {
         guard let publishedCalendar else {
@@ -206,6 +212,17 @@ enum CivicCalendarEngine {
             }
             return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
         }
+
+        guard let contract = calendarCoreContract else {
+            return ("COMMON CALENDAR", "CORE CONTRACT UNAVAILABLE")
+        }
+
+        let baseYearDays = contract.constants.baseYearDays
+        let allowedReconciliation = contract.constants.reconciliationDaysAllowed
+        guard baseYearDays > 0, baseYearDays % 4 == 0 else {
+            return ("COMMON CALENDAR", "CORE CONTRACT INVALID")
+        }
+        let quarterDays = baseYearDays / 4
 
         let formatter = DateFormatter()
         formatter.calendar = calendar
@@ -220,9 +237,9 @@ enum CivicCalendarEngine {
         for index in sorted.indices {
             let current = sorted[index]
 
-            guard current.reconciliationDaysAfterCompletion == 0
-                    || current.reconciliationDaysAfterCompletion == 7
-            else { continue }
+            guard allowedReconciliation.contains(
+                current.reconciliationDaysAfterCompletion
+            ) else { continue }
 
             guard
                 let openingDay = formatter.date(from: current.openingCivilDate),
@@ -230,6 +247,7 @@ enum CivicCalendarEngine {
                     on: openingDay,
                     latitude: latitude,
                     longitude: longitude,
+                    zenithDegrees: zenithDegrees,
                     calendar: calendar
                 )
             else { continue }
@@ -243,9 +261,8 @@ enum CivicCalendarEngine {
                 to: currentBoundaryDay
             ).day else { continue }
 
-            let legalLength = 364 + current.reconciliationDaysAfterCompletion
-
-            guard boundaryOffset >= 0, boundaryOffset < legalLength else { continue }
+            let legalSpan = baseYearDays + current.reconciliationDaysAfterCompletion
+            guard boundaryOffset >= 0, boundaryOffset < legalSpan else { continue }
 
             if sorted.indices.contains(index + 1) {
                 let next = sorted[index + 1]
@@ -256,19 +273,20 @@ enum CivicCalendarEngine {
                         from: openingBoundaryDay,
                         to: calendar.startOfDay(for: nextOpeningDay)
                     ).day,
-                    publishedSpan == legalLength,
+                    publishedSpan == legalSpan,
                     let nextOpening = SolarBoundaryCalculator.sunset(
                         on: nextOpeningDay,
                         latitude: latitude,
                         longitude: longitude,
+                        zenithDegrees: zenithDegrees,
                         calendar: calendar
                     ),
                     now < nextOpening
                 else { continue }
             }
 
-            if boundaryOffset >= 364 {
-                let reconciliationDay = boundaryOffset - 364 + 1
+            if boundaryOffset >= baseYearDays {
+                let reconciliationDay = boundaryOffset - baseYearDays + 1
                 return (
                     "RECONCILIATION",
                     "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
@@ -278,7 +296,7 @@ enum CivicCalendarEngine {
             let day = boundaryOffset + 1
             let week = ((day - 1) / 7) + 1
             let dayInWeek = ((day - 1) % 7) + 1
-            let season = ((day - 1) / 91) + 1
+            let season = ((day - 1) / quarterDays) + 1
             return (
                 "YEAR \(current.year) · DAY \(String(format: "%03d", day))",
                 "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek)"

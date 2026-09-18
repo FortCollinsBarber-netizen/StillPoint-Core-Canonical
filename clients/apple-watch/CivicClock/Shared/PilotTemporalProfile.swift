@@ -52,7 +52,10 @@ enum PilotTemporalLoader {
             forResource: "pilot_calibration_2026",
             withExtension: "json"
         ) else { return nil }
+        return load(url: url)
+    }
 
+    static func load(url: URL) -> PilotTemporalCalibration? {
         guard
             let data = try? Data(contentsOf: url),
             let profile = try? JSONDecoder().decode(
@@ -60,18 +63,16 @@ enum PilotTemporalLoader {
                 from: data
             )
         else { return nil }
-
         return profile
     }
 }
 
 enum PilotTemporalEngine {
-    private static let monthLengths = [30, 30, 31, 30, 30, 31, 30, 30, 31, 30, 30, 31]
-
     static func state(
         now: Date,
         previousBoundary: Date,
         profile: PilotTemporalCalibration,
+        contract: CalendarCoreContract,
         calendar inputCalendar: Calendar
     ) -> PilotTemporalState? {
         var calendar = inputCalendar
@@ -98,11 +99,14 @@ enum PilotTemporalEngine {
         ).day else { return nil }
 
         let ordinal = offset + 1
-        guard ordinal >= 1, ordinal <= 364 else { return nil }
+        let baseYearDays = contract.constants.baseYearDays
+        guard ordinal >= 1, ordinal <= baseYearDays else { return nil }
 
         guard let common = commonPosition(
             ordinal: ordinal,
-            day001Weekday: profile.commonCalendar.day001Weekday
+            day001Weekday: profile.commonCalendar.day001Weekday,
+            monthLengths: contract.constants.monthLengths,
+            baseYearDays: baseYearDays
         ) else { return nil }
 
         let year = profile.commonCalendar.yearLabel
@@ -132,7 +136,9 @@ enum PilotTemporalEngine {
 
     private static func commonPosition(
         ordinal: Int,
-        day001Weekday: String
+        day001Weekday: String,
+        monthLengths: [Int],
+        baseYearDays: Int
     ) -> (
         month: Int,
         day: Int,
@@ -145,9 +151,13 @@ enum PilotTemporalEngine {
             "Sunday", "Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday"
         ]
-        guard let start = weekdays.firstIndex(of: day001Weekday) else {
-            return nil
-        }
+        guard
+            let start = weekdays.firstIndex(of: day001Weekday),
+            monthLengths.count == 12,
+            monthLengths.reduce(0, +) == baseYearDays,
+            baseYearDays % 4 == 0,
+            baseYearDays % 7 == 0
+        else { return nil }
 
         var remaining = ordinal
         var month = 1
@@ -161,7 +171,8 @@ enum PilotTemporalEngine {
             remaining -= length
         }
 
-        let quarter = ((ordinal - 1) / 91) + 1
+        let quarterDays = baseYearDays / 4
+        let quarter = ((ordinal - 1) / quarterDays) + 1
         let week = ((ordinal - 1) / 7) + 1
         let dayInWeek = ((ordinal - 1) % 7) + 1
         let weekday = weekdays[(start + ordinal - 1) % 7]

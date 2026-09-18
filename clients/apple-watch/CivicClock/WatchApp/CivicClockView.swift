@@ -118,7 +118,7 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("CLOCK TRANSLATES · HORIZON BOUNDARY COUNTS")
+                    Text("CLOCK TRANSLATES · CALENDAR CORE GOVERNS")
                         .font(.system(size: 8, weight: .medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.tertiary)
@@ -145,7 +145,8 @@ struct CivicClockView: View {
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
             publishedCalendar: PublishedCalendarLoader.load(),
-            pilotProfile: PilotTemporalLoader.load()
+            pilotProfile: PilotTemporalLoader.load(),
+            calendarCoreContract: CalendarCoreContractLoader.load()
         )
     }
 }

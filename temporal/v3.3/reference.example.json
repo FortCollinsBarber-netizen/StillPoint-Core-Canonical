@@ -12,10 +12,17 @@
     "id": "apparent-sunset-0.8333",
     "sunCenterAltitudeDegrees": -0.8333
   },
-  "snapOperator": "NearestLegalReentry",
+  "seasonalAnchor": {
+    "event": "march_equinox",
+    "commonMonth": 3,
+    "commonDay": 20,
+    "ordinal": 80
+  },
+  "snapOperator": "NearestLegalSpringGate",
   "firstOpening": {
     "yearLabel": 2027,
-    "civilDate": "YYYY-MM-DD"
+    "civilDate": "YYYY-MM-DD",
+    "day001Weekday": "UNRATIFIED"
   },
   "ephemeris": {
     "source": "recognized-astronomical-ephemeris",

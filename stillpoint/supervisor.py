@@ -54,6 +54,7 @@ class SupervisorConfig:
     max_failures: int = 3
     start_office_workers: bool = True
     office_restart_backoff_seconds: float = 10.0
+    provider_api_key: str | None = None
 
     def __post_init__(self):
         root=Path(self.root).expanduser().resolve()
@@ -69,7 +70,7 @@ class SupervisorConfig:
 
 
 def _runtime(config: SupervisorConfig) -> CompanyRuntime:
-    provider=make_provider(config.provider_name)
+    provider=make_provider(config.provider_name, api_key=config.provider_api_key)
     config_path=config.root/"config"/"agents.json"
     if not config_path.is_file():
         config_path=Path(__file__).resolve().parent/"defaults"/"agents.json"

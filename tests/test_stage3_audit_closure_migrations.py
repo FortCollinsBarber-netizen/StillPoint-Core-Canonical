@@ -100,7 +100,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
             db_path = tmp / "company.sqlite"
 
             db = CompanyDB(db_path, migrations_dir=copied)
-            self.assertEqual(db.schema_version, 22)
+            self.assertEqual(db.schema_version, 23)
             db.close()
 
             changed = copied / "022_stage3_audit_closure.sql"

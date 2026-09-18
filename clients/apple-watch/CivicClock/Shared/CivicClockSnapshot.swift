@@ -5,9 +5,13 @@ struct CivicClockSnapshot: Codable, Equatable {
     let namedDay: String
     let weekdayNumber: Int
     let isSabbath: Bool
+    let isLordsDay: Bool
+    let isStillPoint: Bool
     let previousBoundary: Date?
     let nextBoundary: Date?
     let boundaryStatus: String
+    let nextProtectedBoundary: Date?
+    let nextProtectedBoundaryLabel: String?
     let commonCalendarLabel: String
     let commonCalendarDetail: String
 
@@ -16,9 +20,13 @@ struct CivicClockSnapshot: Codable, Equatable {
         namedDay: "COMMON DAY",
         weekdayNumber: 0,
         isSabbath: false,
+        isLordsDay: false,
+        isStillPoint: false,
         previousBoundary: nil,
         nextBoundary: nil,
         boundaryStatus: "SUN BOUNDARY UNAVAILABLE",
+        nextProtectedBoundary: nil,
+        nextProtectedBoundaryLabel: nil,
         commonCalendarLabel: "CALENDAR",
         commonCalendarDetail: "PUBLISHED TABLE PENDING"
     )

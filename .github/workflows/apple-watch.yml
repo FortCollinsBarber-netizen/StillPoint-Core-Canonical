@@ -1,0 +1,24 @@
+name: Apple Watch Common Calendar CI
+
+on:
+  push:
+    paths:
+      - "clients/apple-watch/**"
+      - ".github/workflows/apple-watch.yml"
+  pull_request:
+    paths:
+      - "clients/apple-watch/**"
+      - ".github/workflows/apple-watch.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  calendar-core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Test dusk-boundary calendar core
+        working-directory: clients/apple-watch/CivicClock
+        run: swift test

@@ -164,4 +164,23 @@ class BudgetTests(unittest.TestCase):
                 rt._budget_before_call(task,tool_offers=0)
             rt.db.close()
 
+    def test_provider_failure_is_not_masked_by_budget_evidence_accounting(self):
+        class FailingProvider:
+            def generate(self,**kwargs):
+                raise RuntimeError("provider exploded")
+        with tempfile.TemporaryDirectory() as d:
+            rt=self.make(Path(d),FailingProvider(),BudgetLimits(max_cost_usd=1.0,max_tool_calls=1))
+            task=rt.db.create_task('provider failure')
+            rt.db.set_task_budget(task,BudgetLimits(max_cost_usd=1.0,max_tool_calls=1))
+            rt._budgeted_provider._task_id_getter=lambda:task
+            with self.assertRaisesRegex(RuntimeError,"provider exploded"):
+                rt._budgeted_provider.generate(
+                    system="s",prompt="p",model="count",tools=["web_search"]
+                )
+            usage=rt.db.get_task_usage(task)
+            self.assertEqual(usage['model_calls'],1)
+            self.assertEqual(usage['tool_invocation_unknown_calls'],1)
+            self.assertEqual(usage['cost_unknown_calls'],1)
+            rt.db.close()
+
 if __name__=='__main__':unittest.main()

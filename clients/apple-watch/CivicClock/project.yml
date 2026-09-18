@@ -14,6 +14,8 @@ targets:
     sources:
       - path: Shared
       - path: WatchApp
+      - path: Resources
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stillpoint.civicclock.watch
@@ -30,6 +32,8 @@ targets:
     sources:
       - path: Shared
       - path: Widgets
+      - path: Resources
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stillpoint.civicclock.watch.widgets
@@ -37,3 +41,14 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Civic Clock
         INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
         CODE_SIGN_ENTITLEMENTS: Widgets/CivicClockWidgets.entitlements
+
+  CivicClockTests:
+    type: bundle.unit-test
+    platform: watchOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: CivicClockWatch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.stillpoint.civicclock.tests

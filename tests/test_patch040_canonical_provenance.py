@@ -14,12 +14,13 @@ class Patch040Tests(unittest.TestCase):
         self.assertEqual(cp['git']['patch039_merge_commit'],expected)
         self.assertEqual(mf['provenance']['canonical_patch039_merge'],expected)
 
-    def test_host_installer_requires_current_manifest_identity(self):
-        mf=json.loads((ROOT/'RELEASE_MANIFEST.json').read_text())
-        patch=mf['patch'];number=patch.split('-',1)[0]
+    def test_host_installer_requires_current_canonical_commit_and_green_ci(self):
         text=(ROOT/'deploy/macos/install_signal_host.sh').read_text()
-        self.assertIn(f'test "$PATCH_ID" = "{patch}"',text)
-        self.assertIn(f'canonical main is not Patch {number}',text)
+        self.assertIn('COMMIT="$(gh api "repos/$REPO/commits/main"',text)
+        self.assertIn('gh run list --repo "$REPO" --commit "$COMMIT"',text)
+        self.assertIn('canonical CI is not green',text)
+        self.assertNotIn('PATCH_ID=',text)
+        self.assertNotIn('canonical main is not Patch',text)
 
     def test_release_audit_guards_latest_numbered_patch_against_metadata_drift(self):
         text=(ROOT/'tools/audit_release_metadata.py').read_text()

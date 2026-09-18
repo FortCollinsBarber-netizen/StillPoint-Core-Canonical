@@ -102,64 +102,108 @@ class CapabilityBroker:
         conn = self.db._connection()
         inserted_capabilities = 0
         inserted_grants = 0
+        suspended_grants = 0
+        canonical_grants = {
+            (grant["role"], grant["capability_id"])
+            for grant in self.grant_specs
+        }
 
-        for definition in self.definitions.values():
-            row = conn.execute(
-                "SELECT kind,external_effect,status FROM company_capabilities WHERE capability_id=?",
-                (definition["capability_id"],),
-            ).fetchone()
-            if row:
-                if row["kind"] != definition["kind"] or int(row["external_effect"]) != int(definition["external_effect"]):
-                    raise CapabilityConfigurationError(
-                        f"durable capability definition drift: {definition['capability_id']}"
-                    )
-                continue
-            conn.execute(
-                """INSERT INTO company_capabilities(
-                   capability_id,kind,external_effect,description,status,metadata_json,created_at,updated_at
-                   ) VALUES(?,?,?,?,?,?,?,?)""",
-                (
-                    definition["capability_id"],
-                    definition["kind"],
-                    1 if definition["external_effect"] else 0,
-                    definition["description"],
-                    "active",
-                    json.dumps(definition["metadata"], sort_keys=True),
-                    now_iso,
-                    now_iso,
-                ),
-            )
-            inserted_capabilities += 1
+        try:
+            conn.execute("BEGIN IMMEDIATE")
 
-        for grant in self.grant_specs:
-            row = conn.execute(
-                "SELECT status FROM office_capability_grants WHERE role=? AND capability_id=?",
-                (grant["role"], grant["capability_id"]),
-            ).fetchone()
-            if row:
-                continue
-            conn.execute(
-                """INSERT INTO office_capability_grants(
-                   role,capability_id,status,granted_by,valid_from,review_by,constraints_json,created_at,updated_at
-                   ) VALUES(?,?,?,?,?,?,?,?,?)""",
-                (
-                    grant["role"],
-                    grant["capability_id"],
-                    "active",
-                    grant["granted_by"],
-                    now_iso,
-                    None,
-                    json.dumps(grant["constraints"], sort_keys=True),
-                    now_iso,
-                    now_iso,
-                ),
-            )
-            inserted_grants += 1
+            for definition in self.definitions.values():
+                row = conn.execute(
+                    "SELECT kind,external_effect,status FROM company_capabilities WHERE capability_id=?",
+                    (definition["capability_id"],),
+                ).fetchone()
+                if row:
+                    if row["kind"] != definition["kind"] or int(row["external_effect"]) != int(definition["external_effect"]):
+                        raise CapabilityConfigurationError(
+                            f"durable capability definition drift: {definition['capability_id']}"
+                        )
+                    continue
+                conn.execute(
+                    """INSERT INTO company_capabilities(
+                       capability_id,kind,external_effect,description,status,metadata_json,created_at,updated_at
+                       ) VALUES(?,?,?,?,?,?,?,?)""",
+                    (
+                        definition["capability_id"],
+                        definition["kind"],
+                        1 if definition["external_effect"] else 0,
+                        definition["description"],
+                        "active",
+                        json.dumps(definition["metadata"], sort_keys=True),
+                        now_iso,
+                        now_iso,
+                    ),
+                )
+                inserted_capabilities += 1
 
-        conn.commit()
+            for grant in self.grant_specs:
+                row = conn.execute(
+                    "SELECT status FROM office_capability_grants WHERE role=? AND capability_id=?",
+                    (grant["role"], grant["capability_id"]),
+                ).fetchone()
+                if row:
+                    continue
+                conn.execute(
+                    """INSERT INTO office_capability_grants(
+                       role,capability_id,status,granted_by,valid_from,review_by,constraints_json,created_at,updated_at
+                       ) VALUES(?,?,?,?,?,?,?,?,?)""",
+                    (
+                        grant["role"],
+                        grant["capability_id"],
+                        "active",
+                        grant["granted_by"],
+                        now_iso,
+                        None,
+                        json.dumps(grant["constraints"], sort_keys=True),
+                        now_iso,
+                        now_iso,
+                    ),
+                )
+                inserted_grants += 1
+
+            durable_grants = conn.execute(
+                """SELECT role,capability_id,status
+                   FROM office_capability_grants"""
+            ).fetchall()
+            for row in durable_grants:
+                key = (row["role"], row["capability_id"])
+                if row["status"] != "active" or key in canonical_grants:
+                    continue
+                conn.execute(
+                    """UPDATE office_capability_grants
+                       SET status='suspended',updated_at=?
+                       WHERE role=? AND capability_id=?""",
+                    (now_iso, row["role"], row["capability_id"]),
+                )
+                self._event(
+                    role=row["role"],
+                    capability_id=row["capability_id"],
+                    event_type="grant_changed",
+                    detail={
+                        "from_status": "active",
+                        "to_status": "suspended",
+                        "changed_by": "manifest_reconciliation",
+                        "reason": "grant_not_present_in_current_manifest",
+                        "external_authority_granted": False,
+                    },
+                    now_iso=now_iso,
+                    conn=conn,
+                    commit=False,
+                )
+                suspended_grants += 1
+
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+
         return {
             "inserted_capabilities": inserted_capabilities,
             "inserted_grants": inserted_grants,
+            "suspended_grants": suspended_grants,
         }
 
     def _event(
@@ -173,9 +217,11 @@ class CapabilityBroker:
         provider: str = "",
         detail: dict[str, Any] | None = None,
         now_iso: str | None = None,
+        conn=None,
+        commit: bool = True,
     ) -> str:
         event_id = uuid.uuid4().hex
-        conn = self.db._connection()
+        conn = conn or self.db._connection()
         conn.execute(
             """INSERT INTO capability_events(
                event_id,task_id,role,phase,capability_id,event_type,provider,occurred_at,detail_json
@@ -192,7 +238,8 @@ class CapabilityBroker:
                 json.dumps(detail or {}, sort_keys=True),
             ),
         )
-        conn.commit()
+        if commit:
+            conn.commit()
         return event_id
 
     def _grant_current(self, row, *, now: datetime) -> bool:
@@ -301,33 +348,50 @@ class CapabilityBroker:
     ) -> None:
         if status not in {"active", "suspended", "revoked"}:
             raise ValueError(status)
+        if status == "active":
+            canonical_grants = {
+                (grant["role"], grant["capability_id"])
+                for grant in self.grant_specs
+            }
+            if (role, capability_id) not in canonical_grants:
+                raise CapabilityConfigurationError(
+                    f"cannot activate grant absent from current manifest: {role}:{capability_id}"
+                )
+
         now_iso = now_iso or _iso()
         conn = self.db._connection()
-        row = conn.execute(
-            "SELECT status FROM office_capability_grants WHERE role=? AND capability_id=?",
-            (role, capability_id),
-        ).fetchone()
-        if not row:
-            raise KeyError((role, capability_id))
-        conn.execute(
-            """UPDATE office_capability_grants
-               SET status=?,updated_at=? WHERE role=? AND capability_id=?""",
-            (status, now_iso, role, capability_id),
-        )
-        conn.commit()
-        self._event(
-            role=role,
-            capability_id=capability_id,
-            event_type="grant_changed",
-            detail={
-                "from_status": row["status"],
-                "to_status": status,
-                "changed_by": changed_by,
-                "reason": reason,
-                "external_authority_granted": False,
-            },
-            now_iso=now_iso,
-        )
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT status FROM office_capability_grants WHERE role=? AND capability_id=?",
+                (role, capability_id),
+            ).fetchone()
+            if not row:
+                raise KeyError((role, capability_id))
+            conn.execute(
+                """UPDATE office_capability_grants
+                   SET status=?,updated_at=? WHERE role=? AND capability_id=?""",
+                (status, now_iso, role, capability_id),
+            )
+            self._event(
+                role=role,
+                capability_id=capability_id,
+                event_type="grant_changed",
+                detail={
+                    "from_status": row["status"],
+                    "to_status": status,
+                    "changed_by": changed_by,
+                    "reason": reason,
+                    "external_authority_granted": False,
+                },
+                now_iso=now_iso,
+                conn=conn,
+                commit=False,
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
     def list_events(self, *, limit: int = 100) -> list[dict]:
         rows = self.db._connection().execute(
@@ -349,6 +413,8 @@ class CapabilityBroker:
         missing_capabilities = []
         definition_mismatches = []
         missing_grants = []
+        unexpected_active_capabilities = []
+        unexpected_active_grants = []
         conn = self.db._connection()
         for cid, definition in self.definitions.items():
             row = conn.execute(
@@ -366,12 +432,38 @@ class CapabilityBroker:
             ).fetchone()
             if not row:
                 missing_grants.append(f"{grant['role']}:{grant['capability_id']}")
+        canonical_capabilities = set(self.definitions)
+        canonical_grants = {
+            (grant["role"], grant["capability_id"])
+            for grant in self.grant_specs
+        }
+        for row in conn.execute(
+            """SELECT capability_id FROM company_capabilities
+               WHERE status='active' ORDER BY capability_id"""
+        ).fetchall():
+            if row["capability_id"] not in canonical_capabilities:
+                unexpected_active_capabilities.append(row["capability_id"])
+        for row in conn.execute(
+            """SELECT role,capability_id FROM office_capability_grants
+               WHERE status='active' ORDER BY role,capability_id"""
+        ).fetchall():
+            key = (row["role"], row["capability_id"])
+            if key not in canonical_grants:
+                unexpected_active_grants.append(f"{row['role']}:{row['capability_id']}")
+
         external_provider_caps = [
             cid for cid, definition in self.definitions.items()
             if definition["kind"] in {"provider_tool", "provider_control"} and definition["external_effect"]
         ]
         return {
-            "ok": not missing_capabilities and not definition_mismatches and not missing_grants and not external_provider_caps,
+            "ok": (
+                not missing_capabilities
+                and not definition_mismatches
+                and not missing_grants
+                and not unexpected_active_capabilities
+                and not unexpected_active_grants
+                and not external_provider_caps
+            ),
             "manifest": str(self.manifest_path),
             "manifest_version": int(self.raw["version"]),
             "capability_count": len(self.definitions),
@@ -379,8 +471,11 @@ class CapabilityBroker:
             "missing_capabilities": missing_capabilities,
             "definition_mismatches": definition_mismatches,
             "missing_grants": missing_grants,
+            "unexpected_active_capabilities": unexpected_active_capabilities,
+            "unexpected_active_grants": unexpected_active_grants,
             "external_effect_provider_capabilities": external_provider_caps,
             "manifest_reactivates_existing_grants": False,
+            "manifest_suspends_removed_active_grants": True,
         }
 
     def snapshot(self, *, include_events: bool = True) -> dict[str, Any]:

@@ -1,5 +1,6 @@
-import json,sqlite3,tempfile,unittest
+import hashlib,json,sqlite3,tempfile,unittest
 from pathlib import Path
+from unittest.mock import patch
 from stillpoint.signal_mail_governance_policy import (
     DRAFT_SCHEMA, POLICY_SCHEMA, CEO_ISSUER, build_bootstrap_plan,
     SignalMailGovernanceProvisioner, SignalMailGovernanceError,
@@ -16,6 +17,8 @@ CREATE TABLE temporal_claims(claim_id TEXT PRIMARY KEY,subject TEXT NOT NULL,pre
 CREATE TABLE temporal_claim_envelopes(envelope_id TEXT PRIMARY KEY,claim_id TEXT NOT NULL,domain TEXT NOT NULL,purpose TEXT NOT NULL,epistemic_reach_json TEXT NOT NULL,permitted_uses_json TEXT NOT NULL,prohibited_uses_json TEXT NOT NULL,continuation_conditions_json TEXT NOT NULL,correction_routes_json TEXT NOT NULL,release_conditions_json TEXT NOT NULL,reentry_requirements_json TEXT NOT NULL,memory_policy_json TEXT NOT NULL,memory_may_reauthorize INTEGER NOT NULL,operational INTEGER NOT NULL,status TEXT NOT NULL,supersedes_envelope_id TEXT,superseded_by_envelope_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(claim_id) REFERENCES temporal_claims(claim_id));
 CREATE TABLE standing_delegations(delegation_id TEXT PRIMARY KEY,delegate_role TEXT,issuer TEXT,policy_basis TEXT,purpose TEXT,claim_envelope_ids_json TEXT,allowed_action_types_json TEXT,continuation_conditions_json TEXT,execution_conditions_json TEXT,exclusions_json TEXT,release_conditions_json TEXT,valid_from TEXT,review_by TEXT,status TEXT,supersedes_delegation_id TEXT,created_at TEXT,updated_at TEXT);
 CREATE TABLE trigger_definitions(trigger_id TEXT PRIMARY KEY,owner_role TEXT,trigger_kind TEXT,source TEXT,event_type TEXT,goal_template TEXT,project TEXT,status TEXT,valid_from TEXT,review_by TEXT,next_run_at TEXT,interval_seconds INTEGER,max_runs INTEGER,run_count INTEGER,catch_up_policy TEXT,metadata_json TEXT,created_at TEXT,updated_at TEXT);
+CREATE TABLE signal_governance_materializations(governance_sha256 TEXT NOT NULL,facts_path TEXT NOT NULL,delegation_id TEXT NOT NULL,trigger_id TEXT NOT NULL,facts_sha256 TEXT NOT NULL,status TEXT NOT NULL,last_error TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,materialized_at TEXT,PRIMARY KEY(governance_sha256,facts_path));
+CREATE TABLE signal_governance_materialization_events(event_id TEXT PRIMARY KEY,governance_sha256 TEXT NOT NULL,facts_path TEXT NOT NULL,facts_sha256 TEXT NOT NULL,status TEXT NOT NULL,error TEXT,occurred_at TEXT NOT NULL);
 ''');self.c.commit()
     def _connection(self): return self.c
 
@@ -42,8 +45,27 @@ class Tests(unittest.TestCase):
             f=Path(td)/'facts.json'
             with self.assertRaises(SignalMailGovernanceError):p.apply(spec,facts_file=f,expected_sha256='0'*64,ceo_confirmed=True)
             out=p.apply(spec,facts_file=f,expected_sha256=spec.digest(),ceo_confirmed=True);self.assertTrue(out['applied'])
+            self.assertEqual(out['materialization_status'],'materialized')
+            self.assertEqual(out['facts_sha256'],hashlib.sha256(f.read_bytes()).hexdigest())
             self.assertEqual(db.c.execute('select count(*) from standing_delegations').fetchone()[0],1);self.assertEqual(db.c.execute('select count(*) from trigger_definitions').fetchone()[0],1)
             t=db.c.execute('select source,event_type from trigger_definitions').fetchone();self.assertEqual((t['source'],t['event_type']),('icloud','message_received'))
+            m=db.c.execute('select * from signal_governance_materializations').fetchone();self.assertEqual(m['status'],'materialized');self.assertEqual(m['facts_sha256'],out['facts_sha256'])
+            events=[r['status'] for r in db.c.execute('select status from signal_governance_materialization_events order by rowid').fetchall()];self.assertEqual(events,['pending','materialized'])
+    def test_filesystem_failure_leaves_governance_non_operational(self):
+        db=DB();p=SignalMailGovernanceProvisioner(db);plan=build_bootstrap_plan(raw());p.seed(raw(),expected_draft_sha256=plan.draft_sha256,ceo_confirmed=True);spec=plan.governance_spec
+        with tempfile.TemporaryDirectory() as td:
+            f=Path(td)/'facts.json'
+            with patch('stillpoint.signal_mail_governance_policy.os.replace',side_effect=OSError('injected materialization failure')):
+                with self.assertRaises(OSError):
+                    p.apply(spec,facts_file=f,expected_sha256=spec.digest(),ceo_confirmed=True)
+            self.assertEqual(db.c.execute('select count(*) from standing_delegations').fetchone()[0],1)
+            self.assertEqual(db.c.execute('select count(*) from trigger_definitions').fetchone()[0],1)
+            row=db.c.execute('select * from signal_governance_materializations').fetchone()
+            self.assertEqual(row['status'],'failed')
+            self.assertIn('injected materialization failure',row['last_error'])
+            self.assertFalse(f.exists())
+            events=[r['status'] for r in db.c.execute('select status from signal_governance_materialization_events order by rowid').fetchall()]
+            self.assertEqual(events,['pending','failed'])
     def test_machine_conditions_bind_single_mailbox(self):
         s=build_bootstrap_plan(raw()).governance_spec;c={x.key:(x.operator.value,x.expected) for x in s.execution_conditions()}
         self.assertEqual(c['signal_email.provider'],('eq','icloud'));self.assertEqual(c['signal_email.account'],('eq','fortcollinsbarber@icloud.com'));self.assertEqual(c['signal_email.jurisdiction'],('eq','personal_business'));self.assertEqual(c['signal_email.requires_human'],('eq',False))

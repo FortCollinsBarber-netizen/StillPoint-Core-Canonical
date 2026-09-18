@@ -64,6 +64,24 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    if let lunar = snapshot.lunarLabel {
+                        Text(lunar)
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let season = snapshot.seasonLabel {
+                        Text(season)
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let jubilee = snapshot.jubileeLabel {
+                        Text(jubilee)
+                            .font(.caption2.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                    }
+
                     if let protectedBoundary = snapshot.nextProtectedBoundary {
                         Divider()
 

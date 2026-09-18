@@ -75,6 +75,19 @@ def common_position(ordinal: int, *, day001_weekday: str) -> dict:
     }
 
 
+def boundary_dates_for_common_date(
+    *,
+    opening_civil_date: dt.date,
+    month: int,
+    day: int,
+) -> tuple[dt.date, dt.date]:
+    """Return civil dates whose local sunsets open and close a Common date."""
+    ordinal = ordinal_day(month, day)
+    opens_on = opening_civil_date + dt.timedelta(days=ordinal - 1)
+    closes_on = opens_on + dt.timedelta(days=1)
+    return opens_on, closes_on
+
+
 def position_from_boundary_date(
     *,
     opening_civil_date: dt.date,

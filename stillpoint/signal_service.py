@@ -211,11 +211,19 @@ class ContinuationFactsSnapshot:
 
 
 class SnapshotFactsProvider:
-    """Reloads the finite facts snapshot for every authorization consideration."""
-    def __init__(self, path: Path, *, now_fn: Callable[[], datetime] = _now):
-        self.path=Path(path);self.now_fn=now_fn
+    """Reloads finite facts and revalidates their custody on every use."""
+    def __init__(
+        self,
+        path: Path,
+        *,
+        now_fn: Callable[[], datetime] = _now,
+        validator: Callable[[], None] | None = None,
+    ):
+        self.path=Path(path);self.now_fn=now_fn;self.validator=validator
 
     def snapshot(self) -> ContinuationFactsSnapshot:
+        if self.validator is not None:
+            self.validator()
         return ContinuationFactsSnapshot.load(self.path,now_iso=_iso(self.now_fn()))
 
     def continuation(self, **_: Any) -> dict[str, Any]:

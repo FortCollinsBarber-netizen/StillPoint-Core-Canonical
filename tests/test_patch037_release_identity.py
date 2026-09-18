@@ -9,10 +9,24 @@ MF=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
 
 class Patch037ReleaseIdentityTests(unittest.TestCase):
     def test_schema_and_migration_identity_are_current(self):
-        self.assertEqual(CP["schema_version"],19)
-        self.assertEqual(MF["schema_version"],19)
-        self.assertEqual(len(CP["migrations"]),19)
-        self.assertEqual(CP["migrations"][-1],"019_provider_neutral_mailboxes.sql")
+        migration_files=sorted(
+            path for path in (ROOT/"migrations").glob("[0-9][0-9][0-9]_*.sql")
+        )
+        self.assertTrue(migration_files)
+        expected_names=[path.name for path in migration_files]
+        latest=int(expected_names[-1].split("_",1)[0])
+
+        # Release metadata follows the actual earned migration set rather than
+        # freezing an old schema number as permanent identity.
+        self.assertEqual(CP["schema_version"],latest)
+        self.assertEqual(MF["schema_version"],latest)
+        self.assertEqual(CP["migrations"],expected_names)
+
+        packaged=ROOT/"stillpoint"/"migrations"
+        for source in migration_files:
+            mirror=packaged/source.name
+            self.assertTrue(mirror.is_file(),source.name)
+            self.assertEqual(source.read_bytes(),mirror.read_bytes(),source.name)
 
     def test_release_metadata_does_not_activate_production(self):
         self.assertEqual(CP["external_action_adapters"]["production_enabled"],[])

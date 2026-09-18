@@ -77,11 +77,21 @@ def _sql_statements(script: str) -> Iterable[str]:
 
 
 class CompanyDB:
-    def __init__(self, path: Path, *, migrations_dir: Path | None = None):
+    def __init__(
+        self,
+        path: Path,
+        *,
+        migrations_dir: Path | None = None,
+        check_same_thread: bool = True,
+    ):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.migrations_dir = Path(migrations_dir or MIGRATIONS_DIR)
-        self.conn: sqlite3.Connection | None = sqlite3.connect(self.path)
+        self.check_same_thread = bool(check_same_thread)
+        self.conn: sqlite3.Connection | None = sqlite3.connect(
+            self.path,
+            check_same_thread=self.check_same_thread,
+        )
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.execute("PRAGMA journal_mode=WAL")

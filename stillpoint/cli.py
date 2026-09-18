@@ -12,6 +12,7 @@ from .registry import AgentRegistry
 from .runtime import CompanyRuntime
 from .doctor import run_doctor
 from .adapters.production import build_production_registry, reconcile_gmail_send
+from .office_runtime import OfficeRuntimeCoordinator
 
 
 def _root() -> Path:
@@ -74,6 +75,7 @@ def main(argv=None) -> int:
     sub=parser.add_subparsers(dest="cmd",required=True)
     sub.add_parser("status")
     submit=sub.add_parser("submit");submit.add_argument("goal");submit.add_argument("--project");submit.add_argument("--file",action="append",default=[]);submit.add_argument("--max-model-calls",type=int);submit.add_argument("--max-tool-calls",type=int);submit.add_argument("--max-tokens",type=int)
+    enqueue=sub.add_parser("enqueue");enqueue.add_argument("goal");enqueue.add_argument("--project");enqueue.add_argument("--file",action="append",default=[]);enqueue.add_argument("--max-model-calls",type=int);enqueue.add_argument("--max-tool-calls",type=int);enqueue.add_argument("--max-tokens",type=int)
     approve=sub.add_parser("approve");approve.add_argument("task_id");approve.add_argument("--note",default="")
     reject=sub.add_parser("reject");reject.add_argument("task_id");reject.add_argument("--note",default="")
     resume=sub.add_parser("resume");resume.add_argument("task_id");resume.add_argument("--note",default="")
@@ -83,6 +85,7 @@ def main(argv=None) -> int:
     execute_action=sub.add_parser("execute-action");execute_action.add_argument("action_id")
     reconcile_gmail=sub.add_parser("reconcile-gmail-send");reconcile_gmail.add_argument("action_id")
     sub.add_parser("approvals")
+    sub.add_parser("offices")
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
     root=_root();rt=_runtime(root,args.provider)
@@ -93,6 +96,10 @@ def main(argv=None) -> int:
             if any(v is not None for v in (args.max_model_calls,args.max_tool_calls,args.max_tokens)):
                 budget=BudgetLimits(max_model_calls=args.max_model_calls,max_tool_calls=args.max_tool_calls,max_total_tokens=args.max_tokens)
             out=rt.submit(args.goal,project=args.project,files=args.file or None,budget=budget);_json({"task_id":out.task_id,"status":out.status.value,"primary":out.plan.primary,"restricted_actions":out.plan.restricted_actions})
+        elif args.cmd=="enqueue":
+            budget=None
+            if any(v is not None for v in (args.max_model_calls,args.max_tool_calls,args.max_tokens)):budget=BudgetLimits(max_model_calls=args.max_model_calls,max_tool_calls=args.max_tool_calls,max_total_tokens=args.max_tokens)
+            task_id=rt.enqueue(args.goal,project=args.project,files=args.file or None,budget=budget);_json({"task_id":task_id,"status":"new","queued":True})
         elif args.cmd=="approve":_json(rt.approve(args.task_id,args.note))
         elif args.cmd=="reject":_json(rt.reject(args.task_id,args.note))
         elif args.cmd=="resume":
@@ -100,7 +107,8 @@ def main(argv=None) -> int:
         elif args.cmd=="task":
             task=rt.db.get_task(args.task_id)
             if not task:raise KeyError(args.task_id)
-            task["runs"]=rt.db.list_runs(args.task_id);task["artifacts"]=rt.db.list_artifacts(args.task_id);task["actions"]=rt.db.list_action_requests(args.task_id);task["usage"]=rt.db.get_task_usage(args.task_id);_json(task)
+            task["runs"]=rt.db.list_runs(args.task_id);task["artifacts"]=rt.db.list_artifacts(args.task_id);task["actions"]=rt.db.list_action_requests(args.task_id);task["usage"]=rt.db.get_task_usage(args.task_id)
+            offices=OfficeRuntimeCoordinator(rt.db);task["office_assignment"]=offices.get_assignment(args.task_id);task["office_handoffs"]=offices.list_handoffs(args.task_id);_json(task)
         elif args.cmd=="actions":
             rows=[]
             tasks=[rt.db.get_task(args.task_id)] if args.task_id else rt.db.list_tasks(100)
@@ -111,6 +119,8 @@ def main(argv=None) -> int:
         elif args.cmd=="execute-action":_json(rt.execute_action(args.action_id,build_production_registry(rt)))
         elif args.cmd=="reconcile-gmail-send":_json(reconcile_gmail_send(rt,args.action_id))
         elif args.cmd=="approvals":_json([t for t in rt.db.list_tasks(100) if t["status"]=="waiting_approval"])
+        elif args.cmd=="offices":
+            offices=OfficeRuntimeCoordinator(rt.db);_json({"offices":offices.get_office_states(),"active_assignment_counts":offices.assignment_counts(),"active_assignments":offices.list_assignments(state="active")})
         elif args.cmd=="doctor":return cmd_doctor(rt,root)
         return 0
     finally:rt.db.close()

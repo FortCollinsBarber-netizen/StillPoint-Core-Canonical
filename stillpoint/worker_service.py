@@ -35,6 +35,7 @@ class WorkerServiceConfig:
     auto_retry_failed: bool = False
     triggered_only: bool = True
     excluded_trigger_sources: tuple[str, ...] = ()
+    use_office_assignments: bool = False
 
     def __post_init__(self):
         if not self.role.strip(): raise ValueError('role required')
@@ -114,7 +115,7 @@ class PersistentWorkerService:
                     return False
         if status in {'new','running'}: return True
         if status!='failed' or not self.config.auto_retry_failed: return False
-        if not row: return True
+        if not row or row['last_outcome']!='failed': return False
         return not row['next_eligible_at'] or _parse(row['next_eligible_at']) <= now
 
     def eligible_task_ids(self, *, now_iso: str, limit: int=20) -> list[str]:
@@ -123,14 +124,18 @@ class PersistentWorkerService:
         out=[]
         for row in rows:
             if not self._eligible(row['id'],row['status'],now): continue
-            # SELECT d.* keeps the worker compatible with narrow historical/test
-            # trigger schemas while allowing newer schemas to expose source/event_type.
             firing=conn.execute("""SELECT d.* FROM trigger_firings f JOIN trigger_definitions d ON d.trigger_id=f.trigger_id WHERE f.task_id=?""",(row['id'],)).fetchone()
+            assignment=None
+            if self.config.use_office_assignments:
+                has_table=conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_office_assignments'").fetchone()
+                if has_table: assignment=conn.execute("SELECT * FROM task_office_assignments WHERE task_id=? AND state='active'",(row['id'],)).fetchone()
             if firing:
                 if firing['owner_role']!=self.config.role: continue
-                keys=set(firing.keys())
-                source=firing['source'] if 'source' in keys else None
+                if assignment is not None and assignment['owner_role']!=self.config.role: continue
+                keys=set(firing.keys()); source=firing['source'] if 'source' in keys else None
                 if source and source in self.config.excluded_trigger_sources: continue
+            elif assignment is not None:
+                if assignment['owner_role']!=self.config.role: continue
             elif self.config.triggered_only: continue
             out.append(row['id'])
             if len(out)>=limit: break

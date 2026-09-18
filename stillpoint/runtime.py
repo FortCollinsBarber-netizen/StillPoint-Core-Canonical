@@ -241,6 +241,30 @@ class CompanyRuntime:
                 if self._judgment(review_text)!="PASS":
                     self.db.update_task(task_id,status="blocked",final_output=primary_output,review_output=review_text);return TaskOutcome(task_id,TaskStatus.BLOCKED,plan,primary_output,review_text)
         return self._finish(task_id,goal,plan,primary_output,review_text)
+    def enqueue(self,goal,*,project=None,files=None,budget:BudgetLimits|None=None):
+        task_id=self.db.create_task(goal,project)
+        if budget or self.default_budget:self.db.set_task_budget(task_id,budget or self.default_budget)
+        for source in files or []:
+            item=import_attachment(source,self.managed_files,task_id,allowed_roots=self.allowed_import_roots)
+            self.db.add_task_file(task_id,item["path"],item["name"],item["sha256"],original_name=item.get("original_name") or item["name"],media_type=item.get("media_type"),size_bytes=item.get("size_bytes"))
+        return task_id
+    def plan_task(self,task_id,note=""):
+        task=self.db.get_task(task_id)
+        if not task:raise KeyError(task_id)
+        if task["status"] not in {"new","running","failed","blocked"}:raise RuntimeError(f"task cannot be planned from status={task['status']}")
+        if task.get("plan_json") and not note:return WorkPlan.from_dict(json.loads(task["plan_json"]))
+        self._active_task_id=task_id
+        try:
+            effective=task["goal"]
+            if note:effective+=f"\n\nORCHESTRA PLANNING NOTE:\n{note}"
+            plan,planning_output,model_planned,planning_model=self.planner.plan(effective);self.db.set_plan(task_id,plan.to_dict())
+            self._record_planning(task_id,effective,task.get("project"),planning_output,model_planned,planning_model)
+            pr=self.db.add_plan_revision(task_id,fingerprint(effective),plan.authority_revision,plan.to_dict())
+            if note:self.db.add_resume_instruction(task_id,note,fingerprint(note),plan.authority_revision,pr)
+            return plan
+        except BudgetExceeded as exc:self.db.update_task(task_id,status="blocked",error=str(exc));raise
+        except Exception as exc:self.db.update_task(task_id,status="failed",error=str(exc));raise
+        finally:self._active_task_id=None
     def submit(self,goal,*,project=None,files=None,budget:BudgetLimits|None=None):
         task_id=self.db.create_task(goal,project)
         if budget or self.default_budget:

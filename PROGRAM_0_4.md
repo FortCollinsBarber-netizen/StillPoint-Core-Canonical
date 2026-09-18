@@ -71,3 +71,8 @@ This integration stage must earn:
 7. Source-control/release custody hardening and 0.4.0 production closure.
 
 0.4.0 is not earned merely because this document exists or because stage 1 merges.
+
+
+## Earned stage 2 — Persistent Eight-Office Runtime
+
+Stage 2 adds durable office accountability distinct from execution leases. Trigger-created work inherits its office; new queued work enters Orchestra triage; Orchestra persists a plan and explicitly hands specialist work to the planned primary; handoffs are append-only and bounded; failed work cannot auto-resurrect without retry evidence; office health is durable; and `stillpoint enqueue` becomes the asynchronous company front door. This stage grants no new external-action authority.

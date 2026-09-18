@@ -49,7 +49,7 @@ class Patch014Tests(unittest.TestCase):
         t=self.add_signal_task('failed'); self.assertEqual(self.service.eligible_task_ids(now_iso=T0),[])
     def test_retry_can_be_enabled_and_exhausts(self):
         self.service.config=WorkerServiceConfig(role='signal',lease_ttl_seconds=60,heartbeat_interval_seconds=10,retry_backoff_seconds=0,max_failures=1,auto_retry_failed=True)
-        t=self.add_signal_task('failed'); self.assertIn(t,self.service.eligible_task_ids(now_iso=T0)); self.service._set_retry(t,outcome='failed',now=__import__('datetime').datetime.fromisoformat(T0)); self.assertNotIn(t,self.service.eligible_task_ids(now_iso=T0))
+        t=self.add_signal_task('failed'); self.assertNotIn(t,self.service.eligible_task_ids(now_iso=T0)); self.service._set_retry(t,outcome='failed',now=__import__('datetime').datetime.fromisoformat(T0)); self.assertNotIn(t,self.service.eligible_task_ids(now_iso=T0))
     def test_service_creates_no_authority(self):
         self.add_signal_task(); before=self.db.conn.execute('select count(*) from temporal_warrants').fetchone()[0]
         self.service.run_once(lambda task,guard:'x',now_iso=T0)

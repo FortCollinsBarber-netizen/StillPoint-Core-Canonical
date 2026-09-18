@@ -2,12 +2,18 @@
 set -euo pipefail
 
 APP_SUPPORT="$HOME/Library/Application Support/StillPoint"
-VENV="$APP_SUPPORT/venv"
 RUNTIME="$APP_SUPPORT/Runtime"
+RELEASE_ROOT="${STILLPOINT_RELEASE_ROOT:-$APP_SUPPORT/current-signal}"
+VENV="$RELEASE_ROOT/venv"
 
 ICLOUD_SERVICE="com.stillpoint.signal.icloud-app-password"
 XAI_SERVICE="com.stillpoint.signal.xai-api-key"
 ACCOUNT="$(id -un)"
+
+test -x "$VENV/bin/stillpoint-signal-mail" || {
+  echo "StillPoint Signal release is not ready: $RELEASE_ROOT" >&2
+  exit 70
+}
 
 ICLOUD_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$ICLOUD_SERVICE" -w)"
 XAI_SECRET="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$XAI_SERVICE" -w)"
@@ -25,6 +31,7 @@ export STILLPOINT_SIGNAL_MODEL="${STILLPOINT_SIGNAL_MODEL:-grok-4.6}"
 export STILLPOINT_ICLOUD_APP_PASSWORD="$ICLOUD_SECRET"
 export XAI_API_KEY="$XAI_SECRET"
 export PYTHONUNBUFFERED=1
+export PYTHONDONTWRITEBYTECODE=1
 
 unset ICLOUD_SECRET XAI_SECRET
 

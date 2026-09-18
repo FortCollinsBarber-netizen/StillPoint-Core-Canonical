@@ -11,6 +11,26 @@ final class CivicCalendarTests: XCTestCase {
     private let latitude = 40.3978
     private let longitude = -105.0749
 
+    private func resourceURL(_ name: String) -> URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Resources")
+            .appendingPathComponent(name)
+    }
+
+    private func coreContract() throws -> CalendarCoreContract {
+        try XCTUnwrap(CalendarCoreContractLoader.load(
+            url: resourceURL("calendar_core_contract.json")
+        ))
+    }
+
+    private func pilotProfile() throws -> PilotTemporalCalibration {
+        try XCTUnwrap(PilotTemporalLoader.load(
+            url: resourceURL("pilot_calibration_2026.json")
+        ))
+    }
+
     func testSunriseAndSunsetStayOnRequestedLocalCivilDate() throws {
         let calendar = denverCalendar
         let requested = calendar.date(from: DateComponents(
@@ -196,6 +216,7 @@ final class CivicCalendarTests: XCTestCase {
             now: now,
             previousBoundary: previous,
             profile: profile,
+            contract: try coreContract(),
             calendar: calendar
         ))
 
@@ -241,6 +262,7 @@ final class CivicCalendarTests: XCTestCase {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
+            calendarCoreContract: try coreContract(),
             calendar: calendar
         )
         let after = CivicCalendarEngine.snapshot(
@@ -248,6 +270,7 @@ final class CivicCalendarTests: XCTestCase {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
+            calendarCoreContract: try coreContract(),
             calendar: calendar
         )
 
@@ -255,7 +278,7 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertTrue(after.commonCalendarLabel.contains("DAY 002"))
     }
 
-    func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() {
+    func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() throws {
         let calendar = denverCalendar
         let published = PublishedCivicCalendar(
             version: "test",
@@ -277,13 +300,14 @@ final class CivicCalendarTests: XCTestCase {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
+            calendarCoreContract: try coreContract(),
             calendar: calendar
         )
 
         XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
     }
 
-    func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() {
+    func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() throws {
         let calendar = denverCalendar
         let inconsistent = PublishedCivicCalendar(
             version: "test",
@@ -310,13 +334,14 @@ final class CivicCalendarTests: XCTestCase {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: inconsistent,
+            calendarCoreContract: try coreContract(),
             calendar: calendar
         )
 
         XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
     }
 
-    func testExampleAnnualDayMathIsBoundedTo364() {
+    func testExampleAnnualDayMathIsBoundedTo364() throws {
         let calendar = denverCalendar
         let published = PublishedCivicCalendar(
             version: "test",
@@ -338,9 +363,82 @@ final class CivicCalendarTests: XCTestCase {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
+            calendarCoreContract: try coreContract(),
             calendar: calendar
         )
 
         XCTAssertTrue(snapshot.commonCalendarLabel.contains("YEAR 7"))
     }
+
+    func testNativeProjectionConformsToCalendarCoreGoldenVectors() throws {
+        let contract = try coreContract()
+        let profile = try pilotProfile()
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(
+            identifier: contract.conformanceContext.legalCivilZone
+        ))
+
+        let parser = ISO8601DateFormatter()
+
+        for vector in contract.goldenVectors {
+            let now = try XCTUnwrap(
+                parser.date(from: vector.instantUTC),
+                "Could not parse \(vector.id)"
+            )
+
+            let snapshot = CivicCalendarEngine.snapshot(
+                now: now,
+                latitude: contract.conformanceContext.latitude,
+                longitude: contract.conformanceContext.longitude,
+                pilotProfile: profile,
+                calendarCoreContract: contract,
+                calendar: calendar
+            )
+            let expected = vector.expected
+
+            XCTAssertEqual(
+                snapshot.namedDay,
+                expected.namedDay.uppercased(),
+                vector.id
+            )
+            XCTAssertEqual(snapshot.isSabbath, expected.sabbath, vector.id)
+            XCTAssertEqual(snapshot.isLordsDay, expected.lordsDay, vector.id)
+            XCTAssertEqual(snapshot.isStillPoint, expected.stillPoint, vector.id)
+            XCTAssertEqual(
+                snapshot.nextProtectedBoundaryLabel,
+                expected.nextProtectedBoundaryLabel,
+                vector.id
+            )
+
+            if let common = expected.commonDate {
+                XCTAssertTrue(
+                    snapshot.commonCalendarLabel.contains(
+                        "DAY \(String(format: "%03d", common.ordinal))"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains(
+                        "M\(String(format: "%02d", common.month)) D\(String(format: "%02d", common.day))"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains(
+                        "Q\(common.quarter)"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains(
+                        "W\(String(format: "%02d", common.week))"
+                    ),
+                    vector.id
+                )
+            }
+        }
+    }
+
+
 }

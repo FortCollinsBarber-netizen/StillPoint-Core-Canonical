@@ -8,7 +8,7 @@ confirmation of the exact canonical policy digest.
 """
 from __future__ import annotations
 
-import hashlib, json, os, tempfile
+import hashlib, json, os, tempfile, uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -289,6 +289,46 @@ class SignalMailGovernanceProvisioner:
             if meta.get("signal_mail_governance_sha256") != digest: conflicts.append("trigger_id_already_used_by_different_policy")
         return {"spec_id":spec.spec_id,"sha256":digest,"ready_to_apply":not(missing or former or conflicts),"missing_envelopes":missing,"noncurrent_envelopes":former,"conflicts":conflicts,"existing_delegation":bool(d),"existing_trigger":bool(t),"authority_change":True}
 
+    def _materialization_transition(
+        self,
+        *,
+        conn,
+        spec: SignalMailGovernanceSpec,
+        facts_file: Path,
+        facts_sha256: str,
+        status: str,
+        error: str = "",
+        occurred_at: str | None = None,
+    ) -> None:
+        if status not in {"pending","materialized","failed"}:
+            raise ValueError(status)
+        now=occurred_at or _now()
+        materialized_at=now if status=="materialized" else None
+        conn.execute(
+            """INSERT INTO signal_governance_materializations(
+               governance_sha256,facts_path,delegation_id,trigger_id,facts_sha256,
+               status,last_error,created_at,updated_at,materialized_at
+               ) VALUES(?,?,?,?,?,?,?,?,?,?)
+               ON CONFLICT(governance_sha256,facts_path) DO UPDATE SET
+                 delegation_id=excluded.delegation_id,
+                 trigger_id=excluded.trigger_id,
+                 facts_sha256=excluded.facts_sha256,
+                 status=excluded.status,
+                 last_error=excluded.last_error,
+                 updated_at=excluded.updated_at,
+                 materialized_at=excluded.materialized_at""",
+            (
+                spec.digest(),str(facts_file),spec.delegation_id,spec.trigger_id,
+                facts_sha256,status,error or None,now,now,materialized_at,
+            ),
+        )
+        conn.execute(
+            """INSERT INTO signal_governance_materialization_events(
+               event_id,governance_sha256,facts_path,facts_sha256,status,error,occurred_at
+               ) VALUES(?,?,?,?,?,?,?)""",
+            (uuid.uuid4().hex,spec.digest(),str(facts_file),facts_sha256,status,error or None,now),
+        )
+
     def apply(self, spec: SignalMailGovernanceSpec, *, facts_file: Path, expected_sha256: str, ceo_confirmed: bool) -> dict[str,Any]:
         digest=spec.digest()
         if not ceo_confirmed: raise SignalMailGovernanceError("explicit CEO confirmation required")
@@ -298,9 +338,15 @@ class SignalMailGovernanceProvisioner:
         facts_file=Path(facts_file)
         if not facts_file.is_absolute() or facts_file.is_symlink(): raise SignalMailGovernanceError("facts_file must be absolute and not a symlink")
         facts_file.parent.mkdir(parents=True,exist_ok=True)
-        tmp_path=Path(tempfile.mkstemp(prefix=".signal-mail-facts-",dir=facts_file.parent)[1]); tmp_path.write_text(_canon(spec.facts_snapshot)+"\n",encoding="utf-8")
+        facts_bytes=(_canon(spec.facts_snapshot)+"\n").encode("utf-8")
+        facts_sha256=hashlib.sha256(facts_bytes).hexdigest()
+        fd,tmp_name=tempfile.mkstemp(prefix=".signal-mail-facts-",dir=facts_file.parent)
+        os.close(fd)
+        tmp_path=Path(tmp_name)
+        tmp_path.write_bytes(facts_bytes)
         c=self.db._connection(); now=_now(); marker=f"{spec.policy_basis};signal_mail_governance_spec:{digest}"
         standing=spec.standing_spec().standing()
+        authority_committed=False
         try:
             try:
                 c.execute("BEGIN IMMEDIATE")
@@ -321,11 +367,51 @@ class SignalMailGovernanceProvisioner:
                     try: existing=json.loads(t["metadata_json"] or "{}")
                     except Exception: existing={}
                     if existing.get("signal_mail_governance_sha256") != digest: raise SignalMailGovernanceError("trigger conflict during apply")
+                self._materialization_transition(
+                    conn=c,spec=spec,facts_file=facts_file,facts_sha256=facts_sha256,
+                    status="pending",occurred_at=now,
+                )
+                c.commit()
+                authority_committed=True
+            except Exception:
+                c.rollback(); raise
+
+            try:
+                os.replace(tmp_path,facts_file)
+            except Exception as exc:
+                if authority_committed:
+                    try:
+                        c.execute("BEGIN IMMEDIATE")
+                        self._materialization_transition(
+                            conn=c,spec=spec,facts_file=facts_file,facts_sha256=facts_sha256,
+                            status="failed",error=f"{type(exc).__name__}: {exc}",
+                        )
+                        c.commit()
+                    except Exception:
+                        c.rollback()
+                raise
+
+            actual_sha256=hashlib.sha256(facts_file.read_bytes()).hexdigest()
+            if actual_sha256 != facts_sha256:
+                raise SignalMailGovernanceError("facts materialization digest mismatch")
+
+            try:
+                c.execute("BEGIN IMMEDIATE")
+                self._materialization_transition(
+                    conn=c,spec=spec,facts_file=facts_file,facts_sha256=facts_sha256,
+                    status="materialized",
+                )
                 c.commit()
             except Exception:
                 c.rollback(); raise
-            os.replace(tmp_path,facts_file)
-            return {"applied":True,"sha256":digest,"delegation_id":spec.delegation_id,"trigger_id":spec.trigger_id,"mailbox":spec.identity.to_dict(),"facts_file":str(facts_file),"reused_existing":preview["existing_delegation"] and preview["existing_trigger"]}
+
+            return {
+                "applied":True,"sha256":digest,"delegation_id":spec.delegation_id,
+                "trigger_id":spec.trigger_id,"mailbox":spec.identity.to_dict(),
+                "facts_file":str(facts_file),"facts_sha256":facts_sha256,
+                "materialization_status":"materialized",
+                "reused_existing":preview["existing_delegation"] and preview["existing_trigger"],
+            }
         finally:
             if tmp_path.exists():
                 try: tmp_path.unlink()

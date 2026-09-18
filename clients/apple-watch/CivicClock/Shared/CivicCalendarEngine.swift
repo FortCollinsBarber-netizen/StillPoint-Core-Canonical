@@ -159,21 +159,23 @@ enum CivicCalendarEngine {
                 else { continue }
             }
 
+            let yearShape = legalLength == 371 ? "53W" : "52W"
+
             if boundaryOffset >= 364 {
                 let reconciliationDay = boundaryOffset - 364 + 1
                 return (
                     "RECONCILIATION",
-                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
+                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE · \(yearShape)"
                 )
             }
 
             let day = boundaryOffset + 1
             let week = ((day - 1) / 7) + 1
             let dayInWeek = ((day - 1) % 7) + 1
-            let quarter = ((day - 1) / 91) + 1
+            let season = ((day - 1) / 91) + 1
             return (
                 "YEAR \(current.year) · DAY \(String(format: "%03d", day))",
-                "Q\(quarter) · W\(String(format: "%02d", week)) · D\(dayInWeek)"
+                "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek) · \(yearShape)"
             )
         }
 

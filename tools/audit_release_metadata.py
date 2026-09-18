@@ -63,7 +63,7 @@ require(checkpoint.get("version")==EXPECTED_VERSION,f"checkpoint version mismatc
 require(manifest.get("version")==EXPECTED_VERSION,f"manifest version mismatch: {manifest.get('version')!r}")
 require(checkpoint.get("schema_version")==EXPECTED_SCHEMA,f"checkpoint schema mismatch: {checkpoint.get('schema_version')!r}")
 require(manifest.get("schema_version")==EXPECTED_SCHEMA,f"manifest schema mismatch: {manifest.get('schema_version')!r}")
-require(checkpoint.get("migrations",[])[-1:] == ["021_company_capability_fabric.sql"], "checkpoint migration tail mismatch")
+require(checkpoint.get("migrations",[])[-1:] == ["023_signal_operational_custody.sql"], "checkpoint migration tail mismatch")
 require(len(checkpoint.get("migrations",[]))==EXPECTED_SCHEMA,"checkpoint migration count mismatch")
 require(checkpoint.get("last_completed_milestone")==EXPECTED_MILESTONE,"checkpoint milestone mismatch")
 require(manifest.get("baseline_patch")==EXPECTED_PATCH,"0.4 baseline patch mismatch")

@@ -14,6 +14,7 @@ from typing import Any,Callable,Mapping
 
 from .mail_contracts import MailboxIdentity
 from .signal_service import ContinuationFactsSnapshot,SnapshotFactsProvider,SignalServiceConfigurationError
+from .secret_custody import read_secret
 
 
 def _now():return datetime.now(timezone.utc)
@@ -32,6 +33,7 @@ class SignalMailboxServiceConfig:
     model:str
     identity:MailboxIdentity
     credential:str=field(repr=False)
+    model_api_key:str=field(default='',repr=False)
     delegation_id:str=''
     trigger_id:str=''
     governance_sha256:str=''
@@ -49,16 +51,21 @@ class SignalMailboxServiceConfig:
         provider=(env.get('STILLPOINT_MAIL_PROVIDER') or '').strip().lower();account=(env.get('STILLPOINT_MAIL_ACCOUNT') or '').strip().lower();jurisdiction=(env.get('STILLPOINT_MAIL_JURISDICTION') or '').strip().lower()
         try:identity=MailboxIdentity(provider,account,jurisdiction)
         except Exception as exc:raise SignalServiceConfigurationError(str(exc)) from exc
-        credential=(env.get('STILLPOINT_ICLOUD_APP_PASSWORD') if provider=='icloud' else env.get('STILLPOINT_GMAIL_ACCESS_TOKEN')) or ''
-        credential=credential.strip();delegation=(env.get('STILLPOINT_SIGNAL_DELEGATION_ID') or '').strip();trigger=(env.get('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID') or '').strip();governance=(env.get('STILLPOINT_SIGNAL_GOVERNANCE_SHA256') or '').strip().lower();facts_raw=(env.get('STILLPOINT_SIGNAL_FACTS_FILE') or '').strip()
+        credential=read_secret(
+            env,
+            value_name='STILLPOINT_ICLOUD_APP_PASSWORD' if provider=='icloud' else 'STILLPOINT_GMAIL_ACCESS_TOKEN',
+            fd_name='STILLPOINT_ICLOUD_APP_PASSWORD_FD' if provider=='icloud' else 'STILLPOINT_GMAIL_ACCESS_TOKEN_FD',
+        )
+        delegation=(env.get('STILLPOINT_SIGNAL_DELEGATION_ID') or '').strip();trigger=(env.get('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID') or '').strip();governance=(env.get('STILLPOINT_SIGNAL_GOVERNANCE_SHA256') or '').strip().lower();facts_raw=(env.get('STILLPOINT_SIGNAL_FACTS_FILE') or '').strip()
         mp=(env.get('STILLPOINT_PROVIDER') or 'xai').strip().lower();allow_mock=_bool(env.get('STILLPOINT_SIGNAL_ALLOW_MOCK'));model=(env.get('STILLPOINT_SIGNAL_MODEL') or env.get('STILLPOINT_MODEL') or env.get('XAI_MODEL') or '').strip()
+        model_api_key=read_secret(env,value_name='XAI_API_KEY',fd_name='STILLPOINT_XAI_API_KEY_FD') if mp=='xai' else ''
         missing=[]
         if not credential:missing.append('iCloud app-specific password' if provider=='icloud' else 'Gmail access token')
         if not delegation:missing.append('STILLPOINT_SIGNAL_DELEGATION_ID')
         if not trigger:missing.append('STILLPOINT_SIGNAL_MAIL_TRIGGER_ID')
         if len(governance)!=64 or any(ch not in '0123456789abcdef' for ch in governance):missing.append('STILLPOINT_SIGNAL_GOVERNANCE_SHA256')
         if not facts_raw:missing.append('STILLPOINT_SIGNAL_FACTS_FILE')
-        if mp=='xai' and not (env.get('XAI_API_KEY') or '').strip():missing.append('XAI_API_KEY')
+        if mp=='xai' and not model_api_key:missing.append('xAI credential')
         if mp=='mock' and not allow_mock:raise SignalServiceConfigurationError('production Signal refuses mock provider unless explicitly allowed')
         if missing:raise SignalServiceConfigurationError('missing/invalid Signal mailbox configuration: '+', '.join(missing))
         facts=Path(facts_raw).expanduser()
@@ -67,10 +74,10 @@ class SignalMailboxServiceConfig:
         if hb>=ttl:raise SignalServiceConfigurationError('heartbeat must be shorter than lease ttl')
         worker=(env.get('STILLPOINT_SIGNAL_WORKER_ID') or '').strip() or f"signal-mail:{provider}:{jurisdiction}:{socket.gethostname()}:{os.getpid()}"
         if not model:model='grok-4.6' if mp=='xai' else 'default'
-        return cls(root=root,model_provider=mp,model=model,identity=identity,credential=credential,delegation_id=delegation,trigger_id=trigger,governance_sha256=governance,facts_file=facts.resolve(strict=False),worker_id=worker,poll_interval_seconds=_pos('STILLPOINT_SIGNAL_POLL_SECONDS',env.get('STILLPOINT_SIGNAL_POLL_SECONDS'),10),lease_ttl_seconds=ttl,heartbeat_interval_seconds=hb,timeout_seconds=_pos('STILLPOINT_MAIL_TIMEOUT_SECONDS',env.get('STILLPOINT_MAIL_TIMEOUT_SECONDS'),30),allow_mock_provider=allow_mock)
+        return cls(root=root,model_provider=mp,model=model,identity=identity,credential=credential,model_api_key=model_api_key,delegation_id=delegation,trigger_id=trigger,governance_sha256=governance,facts_file=facts.resolve(strict=False),worker_id=worker,poll_interval_seconds=_pos('STILLPOINT_SIGNAL_POLL_SECONDS',env.get('STILLPOINT_SIGNAL_POLL_SECONDS'),10),lease_ttl_seconds=ttl,heartbeat_interval_seconds=hb,timeout_seconds=_pos('STILLPOINT_MAIL_TIMEOUT_SECONDS',env.get('STILLPOINT_MAIL_TIMEOUT_SECONDS'),30),allow_mock_provider=allow_mock)
 
     def redacted(self):
-        return {'root':str(self.root),'model_provider':self.model_provider,'model':self.model,'mailbox':self.identity.to_dict(),'credential_configured':bool(self.credential),'delegation_id':self.delegation_id,'trigger_id':self.trigger_id,'governance_sha256':self.governance_sha256,'facts_file':str(self.facts_file),'worker_id':self.worker_id,'poll_interval_seconds':self.poll_interval_seconds,'lease_ttl_seconds':self.lease_ttl_seconds,'heartbeat_interval_seconds':self.heartbeat_interval_seconds}
+        return {'root':str(self.root),'model_provider':self.model_provider,'model':self.model,'mailbox':self.identity.to_dict(),'credential_configured':bool(self.credential),'model_api_key_configured':bool(self.model_api_key),'delegation_id':self.delegation_id,'trigger_id':self.trigger_id,'governance_sha256':self.governance_sha256,'facts_file':str(self.facts_file),'worker_id':self.worker_id,'poll_interval_seconds':self.poll_interval_seconds,'lease_ttl_seconds':self.lease_ttl_seconds,'heartbeat_interval_seconds':self.heartbeat_interval_seconds}
 
 
 def _condition_match(delegation,key,operator,expected):
@@ -219,7 +226,7 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
         for envelope_id in delegation.claim_envelope_ids:
             row=c.execute('select status from temporal_claim_envelopes where envelope_id=?',(envelope_id,)).fetchone()
             if not row or row['status']!='active':raise SignalServiceConfigurationError(f'supporting claim envelope not current: {envelope_id}')
-        provider=make_provider(config.model_provider);config_path=config.root/'config'/'agents.json'
+        provider=make_provider(config.model_provider,api_key=config.model_api_key or None);config_path=config.root/'config'/'agents.json'
         if not config_path.is_file():config_path=Path(__file__).resolve().parent/'defaults'/'agents.json'
         runtime=CompanyRuntime(root=config.root,db=db,registry=AgentRegistry(config_path),provider=provider,default_model=config.model,smart_routing=False,allowed_import_roots=[config.root])
         triggers=TaskTriggerCoordinator(db)

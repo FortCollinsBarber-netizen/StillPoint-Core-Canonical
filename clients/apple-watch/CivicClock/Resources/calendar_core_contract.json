@@ -121,7 +121,7 @@
         },
         "lordsDay": false,
         "namedDay": "Saturday",
-        "nextProtectedBoundaryLabel": "SABBATH ENDS · LORD'S DAY BEGINS",
+        "nextProtectedBoundaryLabel": "SABBATH ENDS \u00b7 LORD'S DAY BEGINS",
         "sabbath": true,
         "solarGate": 1,
         "stillPoint": true
@@ -154,7 +154,7 @@
         },
         "lordsDay": true,
         "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE · SUNDAY SUNRISE",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
         "sabbath": false,
         "solarGate": 1,
         "stillPoint": true
@@ -187,7 +187,7 @@
         },
         "lordsDay": true,
         "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE · SUNDAY SUNRISE",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
         "sabbath": false,
         "solarGate": 1,
         "stillPoint": true
@@ -220,7 +220,7 @@
         },
         "lordsDay": true,
         "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "LORD'S DAY ENDS · SUNDAY SUNSET",
+        "nextProtectedBoundaryLabel": "LORD'S DAY ENDS \u00b7 SUNDAY SUNSET",
         "sabbath": false,
         "solarGate": 1,
         "stillPoint": false

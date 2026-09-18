@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "semantics": {
+    "grant_means": "office may be offered this non-external capability when a current work plan requests it",
+    "grant_does_not_mean": "external-action authority",
+    "reactivation_rule": "manifest sync inserts missing grants only; suspended or revoked durable grants are never silently reactivated"
+  },
+  "capabilities": [
+    {
+      "id": "web_research",
+      "kind": "provider_tool",
+      "external_effect": false,
+      "description": "Provider-native public web research with bounded request-scoped filters.",
+      "metadata": {"provider_implementations": ["xai:web_search"]}
+    },
+    {
+      "id": "x_research",
+      "kind": "provider_tool",
+      "external_effect": false,
+      "description": "Provider-native public X research with bounded date/handle scope.",
+      "metadata": {"provider_implementations": ["xai:x_search"]}
+    },
+    {
+      "id": "code_execution",
+      "kind": "provider_tool",
+      "external_effect": false,
+      "description": "Provider-native sandboxed code execution for analysis and computation.",
+      "metadata": {"provider_implementations": ["xai:code_interpreter"]}
+    },
+    {
+      "id": "structured_output",
+      "kind": "provider_control",
+      "external_effect": false,
+      "description": "Provider response-shaping control; does not itself access an external system.",
+      "metadata": {}
+    }
+  ],
+  "grants": [
+    {"role": "press", "capabilities": ["web_research"], "granted_by": "program:0.4-stage3"},
+    {"role": "signal", "capabilities": ["web_research", "x_research"], "granted_by": "program:0.4-stage3"},
+    {"role": "ledger", "capabilities": ["web_research", "code_execution"], "granted_by": "program:0.4-stage3"},
+    {"role": "research", "capabilities": ["web_research", "x_research"], "granted_by": "program:0.4-stage3"},
+    {"role": "builder", "capabilities": ["web_research", "code_execution"], "granted_by": "program:0.4-stage3"},
+    {"role": "stillpoint", "capabilities": ["web_research"], "granted_by": "program:0.4-stage3"}
+  ]
+}

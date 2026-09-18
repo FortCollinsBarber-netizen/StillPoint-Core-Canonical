@@ -5,6 +5,7 @@ from pathlib import Path
 from .attachments import select_attachment_context
 from .budgets import BudgetExceeded, BudgetLimits, BudgetedProviderProxy
 from .capabilities import capabilities_for_call
+from .capability_fabric import CapabilityBroker, capability_manifest_path
 from .contracts.models import ActionEvidence,ActionRequest,ActionResult,ArtifactRef
 from .providers.base import IncompleteResponseError, InProgressResponseError
 from .adapters.base import NotAuthorized, runtime_complete
@@ -28,6 +29,8 @@ class CompanyRuntime:
         self.raw_provider=provider;self._active_task_id=None;self.default_budget=default_budget
         self.provider=BudgetedProviderProxy(provider,task_id_getter=lambda:self._active_task_id,before_call=self._budget_before_call,after_call=self._budget_after_call)
         self.policy=CompanyPolicy(provider=self.provider,authority_model=default_model)
+        self.capability_broker=CapabilityBroker(self.db,capability_manifest_path(root))
+        self.capability_broker.sync_manifest()
         self.planner=Planner(registry,self.policy,self.provider,default_model,smart=smart_routing)
         self.managed_files=root/"state"/"managed_files"
         self.allowed_import_roots=[Path(r).resolve() for r in (allowed_import_roots or [root])]
@@ -114,7 +117,17 @@ class CompanyRuntime:
         agent=self.registry.get(agent_id);model=agent.model or self.default_model
         selected=select_attachment_context(attachments,goal)
         prompt=task_prompt(goal,project,self._memory_text(project),contributions,selected,correction)
-        tools=capabilities_for_call(agent_id=agent_id,plan_capabilities=list(plan.capabilities),agent_capabilities=self._spec_caps(plan,agent_id,phase),review_reason=plan.review_reason,scoped_requests=self._spec_requests(plan,agent_id,phase))
+        tools=capabilities_for_call(
+            agent_id=agent_id,
+            plan_capabilities=list(plan.capabilities),
+            agent_capabilities=self._spec_caps(plan,agent_id,phase),
+            review_reason=plan.review_reason,
+            scoped_requests=self._spec_requests(plan,agent_id,phase),
+            broker=self.capability_broker,
+            task_id=task_id,
+            phase=phase,
+            provider=type(self.raw_provider).__name__,
+        )
         try:
             result=self.provider.generate(system=agent_system_prompt(agent),prompt=prompt,model=model,tools=tools,task_id=task_id,phase=phase,effort="high" if agent_id in {"author","stillpoint","builder"} else "medium")
         except IncompleteResponseError as exc:
@@ -133,7 +146,16 @@ class CompanyRuntime:
         existing=self._existing_stage(task_id,phase,"stillpoint",input_fp,legacy_fp)
         if existing:return existing["output"]
         agent=self.registry.get("stillpoint");model=agent.model or self.default_model
-        tools=capabilities_for_call(agent_id="stillpoint",plan_capabilities=[],agent_capabilities=[],review_reason=reason)
+        tools=capabilities_for_call(
+            agent_id="stillpoint",
+            plan_capabilities=[],
+            agent_capabilities=[],
+            review_reason=reason,
+            broker=self.capability_broker,
+            task_id=task_id,
+            phase=phase,
+            provider=type(self.raw_provider).__name__,
+        )
         try:
             result=self.provider.generate(system=agent_system_prompt(agent),prompt=review_prompt(goal,artifact,reason),model=model,tools=tools,task_id=task_id,phase=phase,effort="high")
         except IncompleteResponseError as exc:

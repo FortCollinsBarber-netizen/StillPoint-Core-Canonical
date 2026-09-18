@@ -19,7 +19,7 @@ class V04PersistentOfficeRuntimeTests(unittest.TestCase):
   try:self.db.close()
   except Exception:pass
   self.tmp.cleanup()
- def test_schema20_and_all_office_states_exist(self): self.assertEqual(self.db.schema_version,20);self.assertEqual({r["role"] for r in self.offices.get_office_states()},set(OFFICE_ROLES))
+ def test_schema20_and_all_office_states_exist(self): self.assertGreaterEqual(self.db.schema_version,20);self.assertEqual({r["role"] for r in self.offices.get_office_states()},set(OFFICE_ROLES))
  def test_assignment_cannot_silently_change_owner(self):
   t=self.db.create_task("Write","book");self.offices.assign_task(t,"author",assigned_by="test",reason="writing")
   with self.assertRaises(OfficeAssignmentConflict):self.offices.assign_task(t,"press",assigned_by="test",reason="publish")
@@ -56,5 +56,5 @@ class V04PersistentOfficeRuntimeTests(unittest.TestCase):
    time.sleep(.05)
   sup.stop_event.set();th.join(timeout=5);self.assertEqual(status,"completed");self.db=CompanyDB(self.root/"state"/"company.sqlite");self.offices=OfficeRuntimeCoordinator(self.db);a=self.offices.get_assignment(t);self.assertEqual(a["owner_role"],"builder");self.assertEqual(a["state"],"released");ev=self.offices.list_handoffs(t);self.assertEqual(ev[0]["to_role"],"orchestra");self.assertTrue(any(x["event_type"]=="handoff" and x["to_role"]=="builder" for x in ev))
  def test_stage2_identity_and_kernel1_provenance(self):
-  cp=json.loads((ROOT/"CHECKPOINT.json").read_text());mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text());self.assertEqual(cp["version"],"0.4.0a2");self.assertEqual(cp["schema_version"],20);self.assertEqual(cp["last_completed_milestone"],"v0.4-persistent-office-runtime-2");self.assertEqual(mf["provenance"]["canonical_v04_kernel1_merge"],"9f5ed7f3cc2f030648d997a38edb195f8c9b87bb")
+  cp=json.loads((ROOT/"CHECKPOINT.json").read_text());mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text());self.assertGreaterEqual(cp["schema_version"],20);self.assertEqual(cp["tests"]["v04_persistent_office_runtime"]["status"],"PASS");self.assertEqual(mf["provenance"]["canonical_v04_kernel1_merge"],"9f5ed7f3cc2f030648d997a38edb195f8c9b87bb");self.assertEqual(mf["provenance"]["canonical_v04_stage2_merge"],"0cee62189f39da747b9a506b6b2f4cc369bbacdc")
 if __name__=="__main__":unittest.main()

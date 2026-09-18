@@ -76,3 +76,14 @@ This integration stage must earn:
 ## Earned stage 2 — Persistent Eight-Office Runtime
 
 Stage 2 adds durable office accountability distinct from execution leases. Trigger-created work inherits its office; new queued work enters Orchestra triage; Orchestra persists a plan and explicitly hands specialist work to the planned primary; handoffs are append-only and bounded; failed work cannot auto-resurrect without retry evidence; office health is durable; and `stillpoint enqueue` becomes the asynchronous company front door. This stage grants no new external-action authority.
+
+## Earned stage 3 — Company Capability Fabric
+
+Stage 3 separates company capability custody from provider implementation. Provider-native
+web, X, and code tools now pass through a durable capability catalog and office-grant
+broker before they can enter a model call. Capability offers and denials are append-only
+audit evidence. Packaged defaults may seed missing grants but may not silently reactivate
+a suspended or revoked durable grant. Current Stage-3 capabilities have no external
+effect; possessing or being offered one never creates ActionRequest, warrant, send,
+publish, spend, sign, delete, or other external-action authority. The fabric is visible
+through source doctor, `stillpoint capabilities`, and `stillpointd` status.

@@ -86,6 +86,7 @@ def main(argv=None) -> int:
     reconcile_gmail=sub.add_parser("reconcile-gmail-send");reconcile_gmail.add_argument("action_id")
     sub.add_parser("approvals")
     sub.add_parser("offices")
+    sub.add_parser("capabilities")
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
     root=_root();rt=_runtime(root,args.provider)
@@ -121,6 +122,8 @@ def main(argv=None) -> int:
         elif args.cmd=="approvals":_json([t for t in rt.db.list_tasks(100) if t["status"]=="waiting_approval"])
         elif args.cmd=="offices":
             offices=OfficeRuntimeCoordinator(rt.db);_json({"offices":offices.get_office_states(),"active_assignment_counts":offices.assignment_counts(),"active_assignments":offices.list_assignments(state="active")})
+        elif args.cmd=="capabilities":
+            _json(rt.capability_broker.snapshot(include_events=True))
         elif args.cmd=="doctor":return cmd_doctor(rt,root)
         return 0
     finally:rt.db.close()

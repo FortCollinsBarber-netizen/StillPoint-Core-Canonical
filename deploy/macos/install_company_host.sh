@@ -36,7 +36,7 @@ text=(Path(sys.argv[1])/"pyproject.toml").read_text()
 print(re.search(r'^version\s*=\s*"([^"]+)"',text,re.M).group(1))
 PY
 )"
-test "$VERSION" = "0.4.0a2" || die "canonical main is not StillPoint 0.4 Stage 2 alpha; found $VERSION"
+test "$VERSION" = "0.4.0a3" || die "canonical main is not StillPoint 0.4 Stage 3 alpha; found $VERSION"
 
 COMMIT="$(git -C "$CORE" rev-parse HEAD)"
 echo "Canonical commit: $COMMIT"

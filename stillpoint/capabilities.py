@@ -114,32 +114,69 @@ def capabilities_for_call(
     agent_capabilities: list[str] | None = None,
     review_reason: str = "",
     scoped_requests: list[dict] | None = None,
+    broker=None,
+    task_id: str | None = None,
+    phase: str | None = None,
+    provider: str = "",
 ) -> list[ToolRequest]:
-    """Request-scoped semantic capabilities. Roles do not permanently own tools."""
+    """Request-scoped semantic capabilities.
+
+    Roles do not permanently own tools. When a capability broker is supplied,
+    durable office grants are the final eligibility boundary for provider-native
+    tool offers. A capability offer is still not external-action authority.
+    """
     caps = list(agent_capabilities if agent_capabilities is not None else plan_capabilities)
+
     if agent_id == "stillpoint":
+        requested = []
+        declared = list(caps)
         if any(m in (review_reason or "").lower() for m in SOURCE_REVIEW_MARKERS):
-            return [web_research()]
-        return []
+            requested = [web_research()]
+            if CAP_WEB_RESEARCH not in declared:
+                declared.append(CAP_WEB_RESEARCH)
+        if broker is not None:
+            return broker.resolve_provider_requests(
+                role=agent_id,
+                requests=requested,
+                declared_capabilities=declared,
+                task_id=task_id,
+                phase=phase or "",
+                provider=provider,
+            )
+        return requested
+
     if agent_id in {"author", "orchestra"}:
         return []
 
     if scoped_requests is not None:
         requested = [tool_request_from_dict(r) for r in scoped_requests]
-        allowed_by_role = {
-            "research": {CAP_WEB_RESEARCH, CAP_X_RESEARCH},
-            "press": {CAP_WEB_RESEARCH},
-            "signal": {CAP_WEB_RESEARCH, CAP_X_RESEARCH},
-            "ledger": {CAP_WEB_RESEARCH, CAP_CODE_EXECUTION},
-            "builder": {CAP_WEB_RESEARCH, CAP_CODE_EXECUTION},
-        }.get(agent_id, set())
-        return [r for r in requested if r.capability in allowed_by_role and r.capability in caps]
+    else:
+        requested = []
+        if CAP_WEB_RESEARCH in caps:
+            requested.append(web_research())
+        if CAP_X_RESEARCH in caps:
+            requested.append(x_research(from_date=(date.today() - timedelta(days=30)).isoformat()))
+        if CAP_CODE_EXECUTION in caps:
+            requested.append(code_execution())
 
-    out: list[ToolRequest] = []
-    if CAP_WEB_RESEARCH in caps and agent_id in {"research", "press", "signal", "ledger", "builder"}:
-        out.append(web_research())
-    if CAP_X_RESEARCH in caps and agent_id in {"signal", "research"}:
-        out.append(x_research(from_date=(date.today() - timedelta(days=30)).isoformat()))
-    if CAP_CODE_EXECUTION in caps and agent_id in {"ledger", "builder"}:
-        out.append(code_execution())
-    return out
+    if broker is not None:
+        return broker.resolve_provider_requests(
+            role=agent_id,
+            requests=requested,
+            declared_capabilities=caps,
+            task_id=task_id,
+            phase=phase or "",
+            provider=provider,
+        )
+
+    allowed_by_role = {
+        "research": {CAP_WEB_RESEARCH, CAP_X_RESEARCH},
+        "press": {CAP_WEB_RESEARCH},
+        "signal": {CAP_WEB_RESEARCH, CAP_X_RESEARCH},
+        "ledger": {CAP_WEB_RESEARCH, CAP_CODE_EXECUTION},
+        "builder": {CAP_WEB_RESEARCH, CAP_CODE_EXECUTION},
+    }.get(agent_id, set())
+    return [
+        r for r in requested
+        if r.capability in allowed_by_role and r.capability in caps
+    ]

@@ -1,0 +1,45 @@
+{
+  "version": "stillpoint-observances-v1-candidate",
+  "weekdayEpoch": {
+    "day001": "Friday",
+    "status": "candidate-from-2026-fixed-date-anchors"
+  },
+  "fixedDateObservances": [
+    {
+      "id": "christmas",
+      "name": "Christmas",
+      "month": 12,
+      "day": 25,
+      "expectedWeekday": "Friday"
+    },
+    {
+      "id": "independence-day",
+      "name": "Independence Day",
+      "month": 7,
+      "day": 4
+    },
+    {
+      "id": "trumpets",
+      "name": "Feast of Trumpets",
+      "month": 7,
+      "day": 1
+    },
+    {
+      "id": "atonement",
+      "name": "Day of Atonement",
+      "month": 7,
+      "day": 10
+    },
+    {
+      "id": "booths-opening",
+      "name": "Feast of Booths Opening",
+      "month": 7,
+      "day": 15
+    }
+  ],
+  "notes": [
+    "This file is an example candidate registry, not a complete enacted holiday code.",
+    "Firstfruits/Weeks and other observances with interpretive counting rules require separate explicit definitions.",
+    "Lunar events are not fixed-date observances unless expressly enacted as such."
+  ]
+}

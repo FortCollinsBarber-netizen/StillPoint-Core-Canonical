@@ -98,6 +98,14 @@ def run_doctor(*, root: Path, db, registry) -> dict[str, Any]:
     except Exception as exc:
         checks["agent_registry"]={"ok":False,"error":str(exc)}
 
+    try:
+        from .capability_fabric import CapabilityBroker, capability_manifest_path
+        broker=CapabilityBroker(db,capability_manifest_path(root))
+        broker.sync_manifest()
+        checks["capability_fabric"]=broker.audit_manifest()
+    except Exception as exc:
+        checks["capability_fabric"]={"ok":False,"error":str(exc)}
+
     if source_checkout:
         canonical_agents=root/"config"/"agents.json"
         packaged_agents=package_root/"defaults"/"agents.json"
@@ -109,6 +117,18 @@ def run_doctor(*, root: Path, db, registry) -> dict[str, Any]:
             checks["agent_registry_mirror"]={
                 "ok":False,
                 "error":"canonical or packaged agents.json missing",
+            }
+
+        canonical_capabilities=root/"config"/"capabilities.json"
+        packaged_capabilities=package_root/"defaults"/"capabilities.json"
+        if canonical_capabilities.is_file() and packaged_capabilities.is_file():
+            checks["capability_manifest_mirror"]={
+                "ok": canonical_capabilities.read_bytes() == packaged_capabilities.read_bytes()
+            }
+        else:
+            checks["capability_manifest_mirror"]={
+                "ok":False,
+                "error":"canonical or packaged capabilities.json missing",
             }
 
         try:
@@ -149,6 +169,11 @@ def run_doctor(*, root: Path, db, registry) -> dict[str, Any]:
             "files": transfer_files,
         }
     else:
+        checks["capability_manifest_mirror"]={
+            "ok":True,
+            "runtime_only":True,
+            "note":"runtime-only wheel uses packaged capability manifest",
+        }
         checks["frozen_corpora"]={
             "ok":True,
             "runtime_only":True,

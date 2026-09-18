@@ -27,6 +27,7 @@ from .office_runtime import OfficeRuntimeCoordinator, OFFICE_ROLES
 from .triggers import TaskTriggerCoordinator
 from .workers import DurableWorkerCoordinator, WorkerNotActive
 from .worker_service import PersistentWorkerService, WorkerServiceConfig
+from .capability_fabric import CapabilityBroker, capability_manifest_path
 
 
 MAIL_TRIGGER_SOURCES = ("icloud", "gmail")
@@ -191,11 +192,13 @@ class CompanySupervisor:
             self.config.root/"state"/"company.sqlite",
             check_same_thread=False,
         )
-        if self.db.schema_version < 20:
-            raise RuntimeError(f"StillPoint 0.4 Stage 2 requires schema >=20, found {self.db.schema_version}")
+        if self.db.schema_version < 21:
+            raise RuntimeError(f"StillPoint 0.4 Stage 3 requires schema >=21, found {self.db.schema_version}")
         self.triggers=TaskTriggerCoordinator(self.db)
         self.offices=OfficeRuntimeCoordinator(self.db)
         self.offices.initialize_offices()
+        self.capabilities=CapabilityBroker(self.db,capability_manifest_path(self.config.root))
+        self.capabilities.sync_manifest()
         self.stop_event=threading.Event()
         self.office_workers:list[OfficeWorker]=[]
         self._office_last_started:dict[str,float]={}
@@ -374,6 +377,7 @@ class CompanySupervisor:
             "office_health":self.offices.get_office_states(),
             "active_assignment_counts":self.offices.assignment_counts(),
             "active_assignments":self.offices.list_assignments(state="active")[:50],
+            "capability_fabric":self.capabilities.snapshot(include_events=False),
         }
 
     def write_snapshot(self, snapshot: dict[str,Any]):

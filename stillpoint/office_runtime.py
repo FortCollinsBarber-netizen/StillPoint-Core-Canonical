@@ -64,12 +64,15 @@ class OfficeRuntimeCoordinator:
             c.commit()
         except Exception:
             c.rollback(); raise
-    def worker_stopped(self,role,worker_id,*,now_iso=None):
+    def worker_stopped(self,role,worker_id,*,error="",now_iso=None):
         now_iso=now_iso or _now(); c=self.db._connection()
         try:
             c.execute("BEGIN IMMEDIATE")
-            c.execute("UPDATE office_runtime_state SET health_state='stopped',current_worker_id=NULL,updated_at=? WHERE role=? AND (current_worker_id=? OR current_worker_id IS NULL)",(now_iso,role,worker_id))
-            self._event(role=role,worker_id=worker_id,event_type='stopped',occurred_at=now_iso,conn=c)
+            c.execute("""UPDATE office_runtime_state
+                         SET health_state='stopped',current_worker_id=NULL,last_error=?,updated_at=?
+                         WHERE role=? AND (current_worker_id=? OR current_worker_id IS NULL)""",
+                      (error or None,now_iso,role,worker_id))
+            self._event(role=role,worker_id=worker_id,event_type='stopped',occurred_at=now_iso,error=error,conn=c)
             c.commit()
         except Exception:
             c.rollback(); raise

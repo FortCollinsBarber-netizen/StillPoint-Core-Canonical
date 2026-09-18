@@ -13,6 +13,7 @@ SPEC.loader.exec_module(v33)
 class CommonCalendarV33Tests(unittest.TestCase):
     latitude = 40.4
     longitude = -105.1
+    custody_nonce = "test-private-custody-nonce-" + ("x" * 40)
 
     def test_loveland_sunset_preserves_next_utc_day_rollover(self):
         sunset = v33.sunset_utc(
@@ -38,6 +39,7 @@ class CommonCalendarV33Tests(unittest.TestCase):
             ephemerides={2028: next_equinox},
             ephemeris_source="test",
             ephemeris_sha256="0" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
             publish_coordinates=False,
         )
 
@@ -48,6 +50,43 @@ class CommonCalendarV33Tests(unittest.TestCase):
         self.assertNotIn("latitude", doc["referencePoint"])
         self.assertNotIn("longitude", doc["referencePoint"])
         v33.validate_output(doc)
+
+    def test_coordinate_commitment_is_nonce_protected(self):
+        a = v33.coordinate_custody_digest(
+            self.latitude,
+            self.longitude,
+            self.custody_nonce,
+        )
+        b = v33.coordinate_custody_digest(
+            self.latitude,
+            self.longitude,
+            self.custody_nonce + "different",
+        )
+        self.assertNotEqual(a, b)
+        with self.assertRaises(ValueError):
+            v33.coordinate_custody_digest(self.latitude, self.longitude, "short")
+
+    def test_publication_digest_detects_tampering(self):
+        opening = dt.date(2027, 3, 17)
+        immediate = opening + dt.timedelta(days=364)
+        doc = v33.generate(
+            latitude=self.latitude,
+            longitude=self.longitude,
+            first_year_label=2027,
+            first_opening=opening,
+            count=1,
+            ephemerides={
+                2028: v33.sunset_utc(immediate, self.latitude, self.longitude)
+            },
+            ephemeris_source="test",
+            ephemeris_sha256="f" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
+            publish_coordinates=False,
+        )
+        v33.validate_output(doc)
+        doc["years"][0]["year"] = 9999
+        with self.assertRaisesRegex(ValueError, "publication digest mismatch"):
+            v33.validate_output(doc)
 
     def test_delayed_reentry_is_seven_transition_days_not_a_371_day_year(self):
         opening = dt.date(2027, 3, 17)
@@ -63,6 +102,7 @@ class CommonCalendarV33Tests(unittest.TestCase):
             ephemerides={2028: next_equinox},
             ephemeris_source="test",
             ephemeris_sha256="1" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
             publish_coordinates=False,
         )
 
@@ -88,6 +128,7 @@ class CommonCalendarV33Tests(unittest.TestCase):
             },
             ephemeris_source="test",
             ephemeris_sha256="2" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
             publish_coordinates=False,
         )
 

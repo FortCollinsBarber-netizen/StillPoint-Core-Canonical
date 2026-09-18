@@ -31,6 +31,20 @@ The three decisions below must be ratified separately.
 
 **Weekly protected-time geometry is already ratified separately.** See `WEEKLY_PROTECTED_TIME.md`. Its adoption does not answer any of the three annual questions below.
 
+
+## Candidate correction adopted for engineering review — Spring Gate, not equinox opening
+
+The fixed-date calendar requirement exposed a category error in the earlier candidate wording: if familiar fixed month/day labels are to remain seasonally meaningful, the March equinox should govern a named **Spring Gate inside the year**, not force the annual opening itself to occur in March.
+
+The current engineering candidate therefore uses:
+
+```
+COMMON SPRING GATE = Month 3 Day 20 = ordinal 80
+SNAP OPERATOR      = NearestLegalSpringGate
+```
+
+This is an architectural correction inside the still-unratified v3.3 candidate. It does not by itself enact the national epoch, reference point, or evidence source.
+
 ---
 
 ## Decision 1 — First enacted Common Calendar opening

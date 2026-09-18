@@ -150,20 +150,11 @@ class V04AutonomousKernelTests(unittest.TestCase):
         text=(ROOT/"deploy"/"macos"/"install_company_host.sh").read_text()
         self.assertLess(text.index("probe_xai_access.py"),text.index("/bin/launchctl bootstrap"))
 
-    def test_v04_identity_and_stillpointd_entrypoint(self):
-        cp=json.loads((ROOT/"CHECKPOINT.json").read_text())
-        mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
-        py=(ROOT/"pyproject.toml").read_text()
-        self.assertEqual(cp["version"],"0.4.0a1")
-        self.assertEqual(cp["program"],"0.4-autonomous-company-os")
-        self.assertEqual(cp["last_completed_milestone"],"v0.4-autonomous-kernel-1")
-        self.assertEqual(mf["version"],"0.4.0a1")
-        self.assertEqual(mf["program"],"0.4-autonomous-company-os")
-        self.assertEqual(mf["baseline_patch"],"041-icloud-auth-boundary-correction")
-        self.assertIn('stillpointd = "stillpoint.supervisor_service:main"',py)
-        self.assertEqual(tuple(OFFICE_ROLES),(
-            "orchestra","author","press","signal","ledger","research","builder","stillpoint"
-        ))
+    def test_v04_kernel1_remains_bound_after_later_stages(self):
+        cp=json.loads((ROOT/"CHECKPOINT.json").read_text()); mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text()); py=(ROOT/"pyproject.toml").read_text()
+        self.assertEqual(cp["program"],"0.4-autonomous-company-os"); self.assertEqual(mf["program"],"0.4-autonomous-company-os"); self.assertEqual(mf["baseline_patch"],"041-icloud-auth-boundary-correction")
+        self.assertEqual(cp["git"]["v04_kernel1_merge_commit"],"9f5ed7f3cc2f030648d997a38edb195f8c9b87bb"); self.assertEqual(mf["provenance"]["canonical_v04_kernel1_merge"],"9f5ed7f3cc2f030648d997a38edb195f8c9b87bb")
+        self.assertIn('stillpointd = "stillpoint.supervisor_service:main"',py); self.assertEqual(tuple(OFFICE_ROLES),("orchestra","author","press","signal","ledger","research","builder","stillpoint"))
 
 if __name__=="__main__":
     unittest.main()

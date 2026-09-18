@@ -1,12 +1,12 @@
 {
-  "version": "0.4.0a1",
+  "version": "0.4.0a2",
   "name": "StillPoint",
   "package": "stillpoint",
   "integration_base_commit": "a0073017e9d994e649d889d44d681ef5b3b2d0fd",
-  "last_completed_milestone": "v0.4-autonomous-kernel-1",
+  "last_completed_milestone": "v0.4-persistent-office-runtime-2",
   "tests": {
     "full_suite_non_eval": {
-      "passed": 494,
+      "passed": 505,
       "failed": 0
     },
     "focused_patch035_compatibility": {
@@ -42,6 +42,10 @@
     "v04_autonomous_kernel": {
       "status": "PASS",
       "note": "stillpointd continuity, eight office loops, retry exhaustion closure, restart recovery, and live provider activation preflight"
+    },
+    "v04_persistent_office_runtime": {
+      "status": "PASS",
+      "note": "durable office health, accountable assignments, bounded handoffs, async enqueue, Orchestra triage, specialist queues, no historical failed-task resurrection, and constructor-thread to serve-thread supervisor continuity"
     }
   },
   "behavioral_evaluations": {
@@ -68,7 +72,7 @@
     "stillpoint_adversarial_50.jsonl": "8859048ddccf79bf6787fcca15dcff135fcfb4b52ac0fe8b4f658b6793cbde05",
     "shadow_20.jsonl": "bed3f85b08a6829e392663bd73d17e46feba091e944c73c2bb2f124ef0c33ee2"
   },
-  "schema_version": 19,
+  "schema_version": 20,
   "migrations": [
     "001_baseline_v5.sql",
     "002_packet2_artifacts.sql",
@@ -88,7 +92,8 @@
     "016_signal_gmail_inbox.sql",
     "017_signal_email_preparation.sql",
     "018_delegated_dispatch_revalidation.sql",
-    "019_provider_neutral_mailboxes.sql"
+    "019_provider_neutral_mailboxes.sql",
+    "020_persistent_office_runtime.sql"
   ],
   "known_runtime_defects": [],
   "known_nonblocking_test_warnings": [
@@ -157,7 +162,8 @@
     },
     "patch039_merge_commit": "b8391f9cf4fec0ecdf7329b82b11994d014688b5",
     "patch040_merge_commit": "8c06cf9079b05083b46cf9c9982d580b2be8148f",
-    "v04_program_base_commit": "2b3173c6783a1f0ddbac035008b970af9ee5fc7e"
+    "v04_program_base_commit": "2b3173c6783a1f0ddbac035008b970af9ee5fc7e",
+    "v04_kernel1_merge_commit": "9f5ed7f3cc2f030648d997a38edb195f8c9b87bb"
   },
   "independent_audit_hardening": {
     "action_boundary_audit": "PASS",
@@ -169,15 +175,15 @@
     "provider_neutral_mailbox_authority": "PASS"
   },
   "release_candidate": {
-    "version": "0.4.0a1",
+    "version": "0.4.0a2",
     "closure_patch": "041",
     "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
     "canonical_branch": "main",
-    "intended_release_tag": "v0.4.0a1",
+    "intended_release_tag": "v0.4.0a2",
     "runtime_capability_change": true,
     "production_activation": false,
     "program": "0.4-autonomous-company-os",
-    "milestone": "v0.4-autonomous-kernel-1"
+    "milestone": "v0.4-persistent-office-runtime-2"
   },
   "program": "0.4-autonomous-company-os"
 }

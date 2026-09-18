@@ -23,20 +23,11 @@ from .db import CompanyDB
 from .providers import make_provider
 from .registry import AgentRegistry
 from .runtime import CompanyRuntime
+from .office_runtime import OfficeRuntimeCoordinator, OFFICE_ROLES
 from .triggers import TaskTriggerCoordinator
 from .workers import DurableWorkerCoordinator, WorkerNotActive
 from .worker_service import PersistentWorkerService, WorkerServiceConfig
 
-OFFICE_ROLES = (
-    "orchestra",
-    "author",
-    "press",
-    "signal",
-    "ledger",
-    "research",
-    "builder",
-    "stillpoint",
-)
 
 MAIL_TRIGGER_SOURCES = ("icloud", "gmail")
 
@@ -111,6 +102,8 @@ class OfficeWorker(threading.Thread):
         try:
             rt=_runtime(self.config)
             coord=DurableWorkerCoordinator(rt.db)
+            offices=OfficeRuntimeCoordinator(rt.db)
+            trigger_context=TaskTriggerCoordinator(rt.db)
             self.worker_id=f"office:{self.role}:{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:8]}"
             self.started_at=_iso()
             coord.register_worker(
@@ -123,6 +116,7 @@ class OfficeWorker(threading.Thread):
                     "pid":os.getpid(),
                 },
             )
+            offices.worker_started(self.role,self.worker_id)
             db_path=self.config.root/"state"/"company.sqlite"
 
             def coordinator_factory():
@@ -141,18 +135,23 @@ class OfficeWorker(threading.Thread):
                     auto_retry_failed=True,
                     triggered_only=(self.role!="orchestra"),
                     excluded_trigger_sources=MAIL_TRIGGER_SOURCES if self.role=="signal" else (),
+                    use_office_assignments=True,
                 ),
                 worker_id=self.worker_id,
             )
 
             def execute(task_id, guard):
-                result=rt.resume(task_id)
-                self.completed_attempts += 1
-                return {
-                    "task_id":result.task_id,
-                    "status":result.status.value,
-                    "primary":result.plan.primary,
-                }
+                assignment=offices.get_assignment(task_id); context=trigger_context.context_for_task(task_id)
+                if self.role=="orchestra" and context is None:
+                    if assignment is None or assignment.get("owner_role")!="orchestra": raise RuntimeError(f"Orchestra cannot triage misowned task {task_id}")
+                    plan=rt.plan_task(task_id); target=plan.primary
+                    if target!="orchestra":
+                        offices.handoff_task(task_id,from_role="orchestra",to_role=target,reason=f"Orchestra plan primary={target}")
+                        self.completed_attempts+=1; offices.mark_completed(self.role,self.worker_id)
+                        return {"task_id":task_id,"status":"handed_off","primary":target}
+                result=rt.resume(task_id); self.completed_attempts+=1; offices.mark_completed(self.role,self.worker_id)
+                if result.status.value in {"completed","rejected"}: offices.release_task(task_id,owner_role=self.role,reason=f"terminal runtime outcome: {result.status.value}")
+                return {"task_id":result.task_id,"status":result.status.value,"primary":result.plan.primary}
 
             service.serve(
                 execute,
@@ -162,6 +161,9 @@ class OfficeWorker(threading.Thread):
         except Exception as exc:
             self.last_error=f"{type(exc).__name__}: {exc}"
         finally:
+            if rt is not None and self.worker_id:
+                try: OfficeRuntimeCoordinator(rt.db).worker_stopped(self.role,self.worker_id)
+                except Exception: pass
             if coord is not None and self.worker_id:
                 try:
                     coord.stop_worker(self.worker_id)
@@ -181,10 +183,19 @@ class CompanySupervisor:
         self.config=config
         self.config.root.mkdir(parents=True,exist_ok=True)
         (self.config.root/"state").mkdir(parents=True,exist_ok=True)
-        self.db=CompanyDB(self.config.root/"state"/"company.sqlite")
-        if self.db.schema_version < 19:
-            raise RuntimeError(f"StillPoint 0.4 requires schema >=19, found {self.db.schema_version}")
+        # The supervisor may be constructed by one control thread and served by
+        # another (tests, embedded hosts, service managers). Its control-plane
+        # connection is therefore explicitly cross-thread-capable. Office workers
+        # still create independent strict CompanyDB connections of their own.
+        self.db=CompanyDB(
+            self.config.root/"state"/"company.sqlite",
+            check_same_thread=False,
+        )
+        if self.db.schema_version < 20:
+            raise RuntimeError(f"StillPoint 0.4 Stage 2 requires schema >=20, found {self.db.schema_version}")
         self.triggers=TaskTriggerCoordinator(self.db)
+        self.offices=OfficeRuntimeCoordinator(self.db)
+        self.offices.initialize_offices()
         self.stop_event=threading.Event()
         self.office_workers:list[OfficeWorker]=[]
         self._office_last_started:dict[str,float]={}
@@ -292,14 +303,28 @@ class CompanySupervisor:
     def tick(self, *, now_iso: str | None=None) -> dict[str,Any]:
         now_iso=now_iso or _iso()
         repaired=self.repair_exhausted_task_states(now_iso=now_iso)
-        self.ensure_offices()
-        fired=self.triggers.fire_due(now_iso=now_iso)
-        self._last_fired=list(fired)
+        trigger_assignments=self.offices.ensure_trigger_assignments(now_iso=now_iso)
+        orchestra_assignments=self.offices.assign_new_unowned_to_orchestra(now_iso=now_iso)
+        released=self.offices.release_terminal_assignments(now_iso=now_iso)
+        self.ensure_offices(); fired=self.triggers.fire_due(now_iso=now_iso)
+        if fired: trigger_assignments += self.offices.ensure_trigger_assignments(now_iso=now_iso)
+        self._last_fired=list(fired); self._reconcile_office_health(now_iso=now_iso)
         snapshot=self.snapshot(now_iso=now_iso)
         snapshot["repaired_exhausted_task_states_this_tick"]=repaired
+        snapshot["trigger_assignments_created_this_tick"]=trigger_assignments
+        snapshot["orchestra_assignments_created_this_tick"]=orchestra_assignments
+        snapshot["terminal_assignments_released_this_tick"]=released
         snapshot["scheduled_tasks_fired_this_tick"]=list(fired)
         self.write_snapshot(snapshot)
         return snapshot
+
+    def _reconcile_office_health(self, *, now_iso: str) -> None:
+        conn=self.db._connection(); live={w.role:w for w in self.office_workers if w.is_alive()}
+        for role in OFFICE_ROLES:
+            thread=live.get(role); worker_id=thread.worker_id if thread else None; row=None
+            if worker_id: row=conn.execute("SELECT * FROM worker_instances WHERE worker_id=?",(worker_id,)).fetchone()
+            healthy=bool(thread and worker_id and row and row["status"]=="active")
+            self.offices.observe_health(role,worker_id=worker_id,heartbeat_at=row["last_heartbeat_at"] if row else None,healthy=healthy,error="" if healthy else (thread.last_error if thread else "office thread not alive"),now_iso=now_iso)
 
     def snapshot(self, *, now_iso: str | None=None) -> dict[str,Any]:
         now_iso=now_iso or _iso()
@@ -346,6 +371,9 @@ class CompanySupervisor:
             "exhausted_retry_rows":exhausted,
             "repair_count_since_start":self._repair_count,
             "worker_instances":workers,
+            "office_health":self.offices.get_office_states(),
+            "active_assignment_counts":self.offices.assignment_counts(),
+            "active_assignments":self.offices.list_assignments(state="active")[:50],
         }
 
     def write_snapshot(self, snapshot: dict[str,Any]):
@@ -356,10 +384,13 @@ class CompanySupervisor:
 
     def serve(self):
         self.acquire_singleton()
-        self.retire_prior_supervisor_workers()
-        self.repair_exhausted_task_states()
-        self.start_offices()
         try:
+            # Startup recovery is inside the cleanup boundary. A failure while
+            # retiring stale workers, repairing state, or starting offices must
+            # not leak the singleton lock or database handle.
+            self.retire_prior_supervisor_workers()
+            self.repair_exhausted_task_states()
+            self.start_offices()
             while not self.stop_event.is_set():
                 self.tick()
                 self.stop_event.wait(self.config.supervisor_interval_seconds)

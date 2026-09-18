@@ -88,22 +88,34 @@ class BudgetedProviderProxy:
         tool_offers = len(tools)
         if task_id:
             self._before_call(task_id, tool_offers=tool_offers)
-        result = None
         try:
             result = self._provider.generate(**kwargs)
-            return result
-        finally:
+        except Exception:
             if task_id:
-                usage = getattr(result, "usage", None) if result is not None else None
-                tool_invocations, invocation_known = observe_tool_invocations(
-                    result,
-                    tool_offers=tool_offers,
-                )
                 self._after_call(
                     task_id,
-                    result=result,
-                    usage=usage or {},
+                    result=None,
+                    usage={},
                     tool_offers=tool_offers,
-                    tool_invocations=tool_invocations,
-                    tool_invocations_known=invocation_known,
+                    tool_invocations=0,
+                    tool_invocations_known=(tool_offers == 0),
+                    provider_failed=True,
                 )
+            raise
+
+        if task_id:
+            usage = getattr(result, "usage", None)
+            tool_invocations, invocation_known = observe_tool_invocations(
+                result,
+                tool_offers=tool_offers,
+            )
+            self._after_call(
+                task_id,
+                result=result,
+                usage=usage or {},
+                tool_offers=tool_offers,
+                tool_invocations=tool_invocations,
+                tool_invocations_known=invocation_known,
+                provider_failed=False,
+            )
+        return result

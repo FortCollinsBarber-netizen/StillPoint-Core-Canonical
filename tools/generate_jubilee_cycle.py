@@ -1,30 +1,21 @@
 #!/usr/bin/env python3
-"""Deterministic StillPoint Jubilee / fixed-date calendar helpers.
-
-This module does not select the astronomical annual epoch. It operates on an
-already-enacted year sequence and a separately enacted weekday epoch.
-"""
+"""StillPoint fixed-grid, Jubilee, and Observation-Zero helpers."""
 
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 from pathlib import Path
 
 MONTH_LENGTHS = (30, 30, 31) * 4
-MONTH_NAMES = (
-    "January", "February", "March",
-    "April", "May", "June",
-    "July", "August", "September",
-    "October", "November", "December",
-)
 WEEKDAYS = ("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
 
 
 def validate_grid() -> None:
     if sum(MONTH_LENGTHS) != 364:
         raise RuntimeError("ordinary year must contain exactly 364 days")
-    if any(sum(MONTH_LENGTHS[q:q+3]) != 91 for q in range(0, 12, 3)):
+    if any(sum(MONTH_LENGTHS[q:q + 3]) != 91 for q in range(0, 12, 3)):
         raise RuntimeError("each quarter must contain exactly 91 days")
 
 
@@ -38,12 +29,69 @@ def ordinal_day(month: int, day: int) -> int:
     return sum(MONTH_LENGTHS[:month - 1]) + day
 
 
-def weekday_for_date(month: int, day: int, *, day001_weekday: str) -> str:
+def month_day_from_ordinal(ordinal: int) -> tuple[int, int]:
+    validate_grid()
+    if not 1 <= ordinal <= 364:
+        raise ValueError("ordinal must be 1..364")
+    remaining = ordinal
+    for month, length in enumerate(MONTH_LENGTHS, start=1):
+        if remaining <= length:
+            return month, remaining
+        remaining -= length
+    raise AssertionError("unreachable")
+
+
+def weekday_for_ordinal(ordinal: int, *, day001_weekday: str) -> str:
     if day001_weekday not in WEEKDAYS:
         raise ValueError("unknown weekday epoch")
     start = WEEKDAYS.index(day001_weekday)
-    offset = ordinal_day(month, day) - 1
-    return WEEKDAYS[(start + offset) % 7]
+    return WEEKDAYS[(start + ordinal - 1) % 7]
+
+
+def weekday_for_date(month: int, day: int, *, day001_weekday: str) -> str:
+    return weekday_for_ordinal(
+        ordinal_day(month, day),
+        day001_weekday=day001_weekday,
+    )
+
+
+def common_position(ordinal: int, *, day001_weekday: str) -> dict:
+    month, day = month_day_from_ordinal(ordinal)
+    quarter = ((ordinal - 1) // 91) + 1
+    day_of_quarter = ((ordinal - 1) % 91) + 1
+    week = ((ordinal - 1) // 7) + 1
+    day_in_week = ((ordinal - 1) % 7) + 1
+    return {
+        "dayOfYear": ordinal,
+        "month": month,
+        "day": day,
+        "quarter": quarter,
+        "dayOfQuarter": day_of_quarter,
+        "weekOfYear": week,
+        "dayInWeek": day_in_week,
+        "weekday": weekday_for_ordinal(
+            ordinal, day001_weekday=day001_weekday
+        ),
+    }
+
+
+def position_from_boundary_date(
+    *,
+    opening_civil_date: dt.date,
+    active_boundary_civil_date: dt.date,
+    day001_weekday: str,
+) -> dict:
+    """Map a local sunset boundary date to the ordinary Common year.
+
+    opening_civil_date is the civil date whose sunset opens Day 001.
+    active_boundary_civil_date is the civil date of the sunset immediately
+    preceding the observation instant.
+    """
+    offset = (active_boundary_civil_date - opening_civil_date).days
+    ordinal = offset + 1
+    if not 1 <= ordinal <= 364:
+        raise ValueError("observation is outside the ordinary year")
+    return common_position(ordinal, day001_weekday=day001_weekday)
 
 
 def jubilee_year_state(cycle_year: int) -> dict:
@@ -57,7 +105,11 @@ def jubilee_year_state(cycle_year: int) -> dict:
             "yearWithinBlock": None,
             "isSabbaticalThreshold": False,
             "isJubileeYear": True,
-            "releaseGate": {"month": 7, "day": 10, "name": "Day of Atonement"}
+            "releaseGate": {
+                "month": 7,
+                "day": 10,
+                "name": "Day of Atonement",
+            },
         }
 
     block = ((cycle_year - 1) // 7) + 1
@@ -80,18 +132,22 @@ def generate_cycle(*, first_common_year: int, day001_weekday: str) -> dict:
         row["commonYear"] = first_common_year + cycle_year - 1
         years.append(row)
 
-    anchors = {
-        "december10": weekday_for_date(12, 10, day001_weekday=day001_weekday),
-        "christmas": weekday_for_date(12, 25, day001_weekday=day001_weekday),
-        "atonement": weekday_for_date(7, 10, day001_weekday=day001_weekday),
-    }
-
     return {
         "version": "stillpoint-jubilee-v1-candidate",
         "ordinaryYearDays": 364,
         "monthLengths": list(MONTH_LENGTHS),
         "day001Weekday": day001_weekday,
-        "fixedWeekdayAnchors": anchors,
+        "fixedWeekdayAnchors": {
+            "december10": weekday_for_date(
+                12, 10, day001_weekday=day001_weekday
+            ),
+            "christmas": weekday_for_date(
+                12, 25, day001_weekday=day001_weekday
+            ),
+            "atonement": weekday_for_date(
+                7, 10, day001_weekday=day001_weekday
+            ),
+        },
         "years": years,
     }
 

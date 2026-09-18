@@ -29,6 +29,8 @@ K_(n+1) = K_n + B + R_n
 
 The three decisions below must be ratified separately.
 
+**Weekly protected-time geometry is already ratified separately.** See `WEEKLY_PROTECTED_TIME.md`. Its adoption does not answer any of the three annual questions below.
+
 ---
 
 ## Decision 1 — First enacted Common Calendar opening

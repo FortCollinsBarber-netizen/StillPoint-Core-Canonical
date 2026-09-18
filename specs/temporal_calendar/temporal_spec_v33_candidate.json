@@ -1,0 +1,27 @@
+{
+  "spec_id": "stillpoint-calendar-core-v3.3-candidate",
+  "status": "successor-candidate-not-yet-nationally-ratified",
+  "inherits_without_erasing": [
+    "Unified_Temporal_Constitution_v3.0_FINAL_LOCKED.docx",
+    "StillPoint_Reconciliation_Equation_v3.2_Reference_Rule_LOCKED.docx"
+  ],
+  "changes": [
+    "ordinary_year_is_always_364_days",
+    "reconciliation_is_interannual_0_or_7_days",
+    "sabbath_friday_sunset_to_saturday_sunset",
+    "lords_day_saturday_sunset_to_sunday_sunset",
+    "stillpoint_friday_sunset_to_sunday_sunrise",
+    "fixed_common_grid_30_30_31_x4",
+    "spring_gate_candidate_common_month_3_day_20_ordinal_80",
+    "moon_is_evidence_layer_not_month_governor"
+  ],
+  "gate_sequence": [4,5,6,6,5,4,3,2,1,1,2,3],
+  "phase_lengths": [30,30,31,30,30,31,30,30,31,30,30,31],
+  "reconciliation_days": [0,7],
+  "spring_gate_ordinal": 80,
+  "open_ratification": [
+    "first_enacted_common_calendar_opening",
+    "national_reference_rule_point",
+    "recognized_march_equinox_evidence_source"
+  ]
+}

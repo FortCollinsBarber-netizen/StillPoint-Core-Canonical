@@ -50,7 +50,11 @@ enum CivicCalendarEngine {
         // Example: Friday sunset opens Saturday / Sabbath.
         let namedCivilDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: previous))!
         let weekday = calendar.component(.weekday, from: namedCivilDate)
-        let weekdayName = calendar.weekdaySymbols[weekday - 1]
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        let weekdayName = formatter.weekdaySymbols[weekday - 1]
         let isSabbath = weekday == 7 // Saturday in Gregorian Calendar weekday numbering.
 
         let annual = annualLabel(

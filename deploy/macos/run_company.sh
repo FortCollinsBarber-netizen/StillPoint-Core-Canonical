@@ -21,7 +21,9 @@ export PYTHONDONTWRITEBYTECODE=1
 
 CMD="${1:-serve}"
 if [[ "$STILLPOINT_PROVIDER" == "xai" && "$CMD" == "serve" ]]; then
-  export XAI_API_KEY="$(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$SERVICE" -w)"
+  exec 3< <(/usr/bin/security find-generic-password -a "$ACCOUNT" -s "$SERVICE" -w)
+  export STILLPOINT_XAI_API_KEY_FD=3
+  unset XAI_API_KEY
 fi
 
 exec "$VENV/bin/stillpointd" "$CMD"

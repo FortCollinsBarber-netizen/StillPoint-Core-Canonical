@@ -1386,8 +1386,10 @@ class CompanyDB:
                 ),
             )
             conn.execute(
-                "INSERT OR IGNORE INTO task_usage(task_id,model_calls,tool_calls,total_tokens,cost_usd,updated_at) "
-                "VALUES(?,0,0,0,0,?)",
+                """INSERT OR IGNORE INTO task_usage(
+                   task_id,model_calls,tool_calls,total_tokens,cost_usd,updated_at,
+                   tool_offers,tool_invocations,tool_invocation_unknown_calls,cost_unknown_calls
+                   ) VALUES(?,0,0,0,0,?,0,0,0,0)""",
                 (task_id, utcnow()),
             )
             conn.commit()
@@ -1411,8 +1413,12 @@ class CompanyDB:
             "task_id": task_id,
             "model_calls": 0,
             "tool_calls": 0,
+            "tool_offers": 0,
+            "tool_invocations": 0,
+            "tool_invocation_unknown_calls": 0,
             "total_tokens": 0,
             "cost_usd": 0.0,
+            "cost_unknown_calls": 0,
             "updated_at": None,
         }
 
@@ -1421,27 +1427,52 @@ class CompanyDB:
         task_id: str,
         *,
         model_calls: int = 0,
-        tool_calls: int = 0,
+        tool_offers: int = 0,
+        tool_invocations: int = 0,
+        tool_invocation_unknown_calls: int = 0,
         total_tokens: int = 0,
         cost_usd: float = 0.0,
+        cost_unknown_calls: int = 0,
+        tool_calls: int | None = None,
     ) -> dict[str, Any]:
+        # Backward compatibility: pre-schema-22 callers used tool_calls to mean
+        # len(tools), which is an offer count. Preserve that meaning only.
+        if tool_calls is not None:
+            if tool_offers and int(tool_offers) != int(tool_calls):
+                raise ValueError("tool_calls legacy alias conflicts with tool_offers")
+            tool_offers = int(tool_calls)
+
         conn = self._connection()
         try:
             conn.execute("BEGIN IMMEDIATE")
             conn.execute(
-                "INSERT OR IGNORE INTO task_usage(task_id,model_calls,tool_calls,total_tokens,cost_usd,updated_at) "
-                "VALUES(?,0,0,0,0,?)",
+                """INSERT OR IGNORE INTO task_usage(
+                   task_id,model_calls,tool_calls,total_tokens,cost_usd,updated_at,
+                   tool_offers,tool_invocations,tool_invocation_unknown_calls,cost_unknown_calls
+                   ) VALUES(?,0,0,0,0,?,0,0,0,0)""",
                 (task_id, utcnow()),
             )
             conn.execute(
                 """UPDATE task_usage SET
-                model_calls=model_calls+?, tool_calls=tool_calls+?, total_tokens=total_tokens+?,
-                cost_usd=cost_usd+?, updated_at=? WHERE task_id=?""",
+                model_calls=model_calls+?,
+                tool_calls=tool_calls+?,
+                tool_offers=tool_offers+?,
+                tool_invocations=tool_invocations+?,
+                tool_invocation_unknown_calls=tool_invocation_unknown_calls+?,
+                total_tokens=total_tokens+?,
+                cost_usd=cost_usd+?,
+                cost_unknown_calls=cost_unknown_calls+?,
+                updated_at=?
+                WHERE task_id=?""",
                 (
                     int(model_calls),
-                    int(tool_calls),
+                    int(tool_offers),
+                    int(tool_offers),
+                    int(tool_invocations),
+                    int(tool_invocation_unknown_calls),
                     int(total_tokens),
                     float(cost_usd),
+                    int(cost_unknown_calls),
                     utcnow(),
                     task_id,
                 ),

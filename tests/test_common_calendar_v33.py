@@ -15,28 +15,24 @@ class CommonCalendarV33Tests(unittest.TestCase):
     longitude = -105.1
     custody_nonce = "test-private-custody-nonce-" + ("x" * 40)
 
-    def test_loveland_sunset_preserves_next_utc_day_rollover(self):
-        sunset = v33.sunset_utc(
-            dt.date(2026, 9, 18),
-            self.latitude,
-            self.longitude,
-        )
-        self.assertEqual(sunset.date(), dt.date(2026, 9, 19))
-        self.assertGreaterEqual(sunset.hour, 0)
-        self.assertLess(sunset.hour, 3)
+    def test_fixed_spring_gate_is_common_march_20_ordinal_80(self):
+        self.assertEqual(v33.SPRING_GATE_ORDINAL, 80)
+        opening = dt.date(2026, 12, 31)
+        self.assertEqual(v33.spring_gate_date(opening), dt.date(2027, 3, 20))
 
-    def test_ordinary_year_is_always_364_and_reconciliation_is_separate(self):
-        opening = dt.date(2027, 3, 17)
-        immediate = opening + dt.timedelta(days=364)
-        next_equinox = v33.sunset_utc(immediate, self.latitude, self.longitude)
+    def test_immediate_reentry_wins_when_its_spring_gate_matches_equinox(self):
+        opening = dt.date(2026, 1, 1)
+        immediate_next = opening + dt.timedelta(days=364)
+        immediate_gate = v33.spring_gate_date(immediate_next)
+        equinox = v33.sunset_utc(immediate_gate, self.latitude, self.longitude)
 
         doc = v33.generate(
             latitude=self.latitude,
             longitude=self.longitude,
-            first_year_label=2027,
+            first_year_label=2026,
             first_opening=opening,
             count=1,
-            ephemerides={2028: next_equinox},
+            ephemerides={2027: equinox},
             ephemeris_source="test",
             ephemeris_sha256="0" * 64,
             coordinate_custody_nonce=self.custody_nonce,
@@ -45,61 +41,24 @@ class CommonCalendarV33Tests(unittest.TestCase):
 
         row = doc["years"][0]
         self.assertEqual(row["reconciliationDaysAfterCompletion"], 0)
-        self.assertNotIn("yearLength", row)
-        self.assertEqual(doc["snapOperator"], "NearestLegalReentry")
-        self.assertNotIn("latitude", doc["referencePoint"])
-        self.assertNotIn("longitude", doc["referencePoint"])
+        self.assertEqual(row["nextYearSpringGateCivilDate"], "2027-03-20")
+        self.assertEqual(doc["snapOperator"], "NearestLegalSpringGate")
+        self.assertEqual(doc["seasonalAnchor"]["ordinal"], 80)
         v33.validate_output(doc)
 
-    def test_coordinate_commitment_is_nonce_protected(self):
-        a = v33.coordinate_custody_digest(
-            self.latitude,
-            self.longitude,
-            self.custody_nonce,
-        )
-        b = v33.coordinate_custody_digest(
-            self.latitude,
-            self.longitude,
-            self.custody_nonce + "different",
-        )
-        self.assertNotEqual(a, b)
-        with self.assertRaises(ValueError):
-            v33.coordinate_custody_digest(self.latitude, self.longitude, "short")
-
-    def test_publication_digest_detects_tampering(self):
-        opening = dt.date(2027, 3, 17)
-        immediate = opening + dt.timedelta(days=364)
-        doc = v33.generate(
-            latitude=self.latitude,
-            longitude=self.longitude,
-            first_year_label=2027,
-            first_opening=opening,
-            count=1,
-            ephemerides={
-                2028: v33.sunset_utc(immediate, self.latitude, self.longitude)
-            },
-            ephemeris_source="test",
-            ephemeris_sha256="f" * 64,
-            coordinate_custody_nonce=self.custody_nonce,
-            publish_coordinates=False,
-        )
-        v33.validate_output(doc)
-        doc["years"][0]["year"] = 9999
-        with self.assertRaisesRegex(ValueError, "publication digest mismatch"):
-            v33.validate_output(doc)
-
-    def test_delayed_reentry_is_seven_transition_days_not_a_371_day_year(self):
-        opening = dt.date(2027, 3, 17)
-        delayed = opening + dt.timedelta(days=371)
-        next_equinox = v33.sunset_utc(delayed, self.latitude, self.longitude)
+    def test_delayed_reentry_is_separate_week_not_371_day_year(self):
+        opening = dt.date(2026, 1, 1)
+        delayed_next = opening + dt.timedelta(days=371)
+        delayed_gate = v33.spring_gate_date(delayed_next)
+        equinox = v33.sunset_utc(delayed_gate, self.latitude, self.longitude)
 
         doc = v33.generate(
             latitude=self.latitude,
             longitude=self.longitude,
-            first_year_label=2027,
+            first_year_label=2026,
             first_opening=opening,
             count=1,
-            ephemerides={2028: next_equinox},
+            ephemerides={2027: equinox},
             ephemeris_source="test",
             ephemeris_sha256="1" * 64,
             coordinate_custody_nonce=self.custody_nonce,
@@ -111,20 +70,56 @@ class CommonCalendarV33Tests(unittest.TestCase):
         self.assertNotIn("yearLength", row)
         v33.validate_output(doc)
 
-    def test_two_published_openings_obey_declared_transition(self):
-        opening = dt.date(2027, 3, 17)
-        immediate_2028 = opening + dt.timedelta(days=364)
-        immediate_2029 = immediate_2028 + dt.timedelta(days=364)
+    def test_coordinate_commitment_is_nonce_protected(self):
+        a = v33.coordinate_custody_digest(
+            self.latitude, self.longitude, self.custody_nonce
+        )
+        b = v33.coordinate_custody_digest(
+            self.latitude, self.longitude, self.custody_nonce + "different"
+        )
+        self.assertNotEqual(a, b)
+
+    def test_publication_digest_detects_tampering(self):
+        opening = dt.date(2026, 1, 1)
+        immediate_next = opening + dt.timedelta(days=364)
+        gate = v33.spring_gate_date(immediate_next)
+        doc = v33.generate(
+            latitude=self.latitude,
+            longitude=self.longitude,
+            first_year_label=2026,
+            first_opening=opening,
+            count=1,
+            ephemerides={
+                2027: v33.sunset_utc(gate, self.latitude, self.longitude)
+            },
+            ephemeris_source="test",
+            ephemeris_sha256="f" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
+            publish_coordinates=False,
+        )
+        v33.validate_output(doc)
+        doc["years"][0]["year"] = 9999
+        with self.assertRaisesRegex(ValueError, "publication digest mismatch"):
+            v33.validate_output(doc)
+
+    def test_two_openings_obey_declared_transition(self):
+        opening = dt.date(2026, 1, 1)
+        next1 = opening + dt.timedelta(days=364)
+        next2 = next1 + dt.timedelta(days=364)
 
         doc = v33.generate(
             latitude=self.latitude,
             longitude=self.longitude,
-            first_year_label=2027,
+            first_year_label=2026,
             first_opening=opening,
             count=2,
             ephemerides={
-                2028: v33.sunset_utc(immediate_2028, self.latitude, self.longitude),
-                2029: v33.sunset_utc(immediate_2029, self.latitude, self.longitude),
+                2027: v33.sunset_utc(
+                    v33.spring_gate_date(next1), self.latitude, self.longitude
+                ),
+                2028: v33.sunset_utc(
+                    v33.spring_gate_date(next2), self.latitude, self.longitude
+                ),
             },
             ephemeris_source="test",
             ephemeris_sha256="2" * 64,

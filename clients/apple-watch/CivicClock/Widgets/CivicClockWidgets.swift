@@ -31,7 +31,8 @@ struct CivicClockProvider: TimelineProvider {
                 snapshot = CivicCalendarEngine.snapshot(
                     now: date,
                     latitude: coordinate.latitude,
-                    longitude: coordinate.longitude
+                    longitude: coordinate.longitude,
+                    publishedCalendar: PublishedCalendarLoader.load()
                 )
             }
 

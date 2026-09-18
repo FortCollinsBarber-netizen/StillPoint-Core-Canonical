@@ -1,0 +1,42 @@
+name: Apple Watch Common Calendar CI
+
+on:
+  push:
+    paths:
+      - "clients/apple-watch/**"
+      - ".github/workflows/apple-watch.yml"
+  pull_request:
+    paths:
+      - "clients/apple-watch/**"
+      - ".github/workflows/apple-watch.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  calendar-core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Test dusk-boundary calendar core
+        working-directory: clients/apple-watch/CivicClock
+        run: swift test
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate watchOS project
+        working-directory: clients/apple-watch/CivicClock
+        run: xcodegen generate
+
+      - name: Build watchOS app and WidgetKit complications
+        working-directory: clients/apple-watch/CivicClock
+        run: |
+          xcodebuild \
+            -project CivicClock.xcodeproj \
+            -scheme CivicClockWatch \
+            -sdk watchsimulator \
+            -destination 'generic/platform=watchOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

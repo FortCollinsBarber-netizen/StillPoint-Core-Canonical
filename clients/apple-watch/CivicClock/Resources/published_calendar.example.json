@@ -1,0 +1,15 @@
+{
+  "version": "EXAMPLE-NOT-CANONICAL",
+  "years": [
+    {
+      "year": 1,
+      "openingCivilDate": "YYYY-MM-DD",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "year": 2,
+      "openingCivilDate": "YYYY-MM-DD",
+      "reconciliationDaysAfterCompletion": 7
+    }
+  ]
+}

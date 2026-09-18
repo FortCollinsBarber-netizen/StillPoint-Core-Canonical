@@ -1,6 +1,6 @@
-import unittest
+import threading,unittest
 from datetime import datetime,timezone
-from stillpoint.signal_employee import SignalEmailEmployee
+from stillpoint.signal_employee import SignalEmailEmployee,SignalEmployeeTick
 T=datetime(2026,9,17,21,0,tzinfo=timezone.utc)
 class Guard:
  def __init__(self):self.n=0
@@ -33,6 +33,25 @@ class Tests(unittest.TestCase):
   e=self.build(ok=False);r=e.tick().work['result'];self.assertFalse(r['authorized']);self.assertEqual(len(self.a.calls),1);self.assertEqual(self.r.calls,[])
  def test_intake_failure_still_drains_durable_work(self):
   e=self.build(pollerr=RuntimeError('gmail down'));tick=e.tick();self.assertEqual(tick.intake['status'],'degraded');self.assertIsNotNone(tick.work);self.assertEqual(len(self.r.calls),1)
+ def test_serve_records_degraded_recovered_and_stopped_transitions(self):
+  e=self.build();events=[];e.health_recorder=lambda **kw:events.append(kw);stop=threading.Event();calls={'n':0}
+  def tick():
+   calls['n']+=1
+   if calls['n']==1:raise RuntimeError('provider exploded')
+   stop.set();return SignalEmployeeTick(intake={'status':'succeeded'},work=None)
+  e.tick=tick;e.serve(interval_seconds=0,stop_event=stop)
+  self.assertEqual([x['status'] for x in events],['degraded','recovered','stopped'])
+  self.assertIn('provider exploded',events[0]['error'])
+ def test_serve_without_health_evidence_fails_loudly(self):
+  e=self.build();e.tick=lambda:(_ for _ in ()).throw(RuntimeError('boom'))
+  with self.assertRaisesRegex(RuntimeError,'health recorder is required'):
+   e.serve(interval_seconds=0,stop_event=threading.Event())
+ def test_health_recorder_failure_is_not_swallowed(self):
+  e=self.build();e.tick=lambda:(_ for _ in ()).throw(RuntimeError('boom'))
+  def broken(**kw):raise RuntimeError('health db unavailable')
+  e.health_recorder=broken
+  with self.assertRaisesRegex(RuntimeError,'health db unavailable'):
+   e.serve(interval_seconds=0,stop_event=threading.Event())
  def test_delegation_id_is_mandatory(self):
   with self.assertRaises(ValueError):SignalEmailEmployee(poller=Poller(),worker_service=Worker(),preparer=Prep(),authorizer=Auth(),runtime=Runtime(),adapter_registry=None,delegation_id='',continuation_facts_provider=lambda **kw:{})
 if __name__=='__main__':unittest.main()

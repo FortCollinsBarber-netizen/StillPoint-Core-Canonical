@@ -172,9 +172,9 @@ class BudgetTests(unittest.TestCase):
             rt=self.make(Path(d),FailingProvider(),BudgetLimits(max_cost_usd=1.0,max_tool_calls=1))
             task=rt.db.create_task('provider failure')
             rt.db.set_task_budget(task,BudgetLimits(max_cost_usd=1.0,max_tool_calls=1))
-            rt._budgeted_provider._task_id_getter=lambda:task
+            rt.provider._task_id_getter=lambda:task
             with self.assertRaisesRegex(RuntimeError,"provider exploded"):
-                rt._budgeted_provider.generate(
+                rt.provider.generate(
                     system="s",prompt="p",model="count",tools=["web_search"]
                 )
             usage=rt.db.get_task_usage(task)

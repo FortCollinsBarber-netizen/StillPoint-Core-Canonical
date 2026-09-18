@@ -57,7 +57,7 @@ class CompanyRuntime:
                 created=datetime.fromisoformat(task["created_at"].replace("Z","+00:00")); elapsed=(_now_dt()-created).total_seconds()
             except Exception: elapsed=0
             if elapsed>=budget["max_elapsed_seconds"]:raise BudgetExceeded("elapsed-time budget exhausted")
-    def _budget_after_call(self,task_id,*,result,usage,tool_offers=0,tool_invocations=0,tool_invocations_known=True):
+    def _budget_after_call(self,task_id,*,result,usage,tool_offers=0,tool_invocations=0,tool_invocations_known=True,provider_failed=False):
         total=usage.get("total_tokens") if isinstance(usage,dict) else 0
         if total is None and isinstance(usage,dict):total=(usage.get("input_tokens") or 0)+(usage.get("output_tokens") or 0)
         cost=0.0;cost_known=False
@@ -80,7 +80,7 @@ class CompanyRuntime:
             cost_unknown_calls=0 if cost_known else 1,
         )
         budget=self.db.get_task_budget(task_id)
-        if not budget:return
+        if provider_failed or not budget:return
         tool_limit=budget.get("max_tool_calls")
         if tool_limit is not None:
             if not tool_invocations_known and tool_offers:

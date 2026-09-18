@@ -1,0 +1,23 @@
+{
+  "version": "stillpoint-temporal-v3.3-candidate",
+  "referencePoint": {
+    "id": "GROUND_ZERO",
+    "label": "Private Loveland pilot reference",
+    "latitude": null,
+    "longitude": null,
+    "coordinatesPublic": false
+  },
+  "duskProtocol": {
+    "id": "apparent-sunset-0.8333",
+    "sunCenterAltitudeDegrees": -0.8333
+  },
+  "snapOperator": "NearestLegalReentry",
+  "firstOpening": {
+    "yearLabel": 2027,
+    "civilDate": "YYYY-MM-DD"
+  },
+  "ephemeris": {
+    "source": "recognized-astronomical-ephemeris",
+    "inputFile": "equinoxes.json"
+  }
+}

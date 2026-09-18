@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -76,6 +77,68 @@ def _sql_statements(script: str) -> Iterable[str]:
         raise RuntimeError("migration contains incomplete SQL")
 
 
+def _migration_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _custody_table_exists(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master "
+        "WHERE type='table' AND name='schema_migration_custody'"
+    ).fetchone()
+    return bool(row)
+
+
+def _sync_migration_custody(
+    conn: sqlite3.Connection,
+    migrations: list[tuple[int, Path]],
+    *,
+    applied_now: set[int],
+) -> None:
+    """Verify known migration hashes and record missing custody rows.
+
+    Rows for migrations applied in this process are exact execution custody.
+    Older rows discovered after custody support was introduced are explicitly
+    labeled canonical_backfill; they attest current canonical bytes, not
+    historical execution bytes.
+    """
+
+    if not _custody_table_exists(conn):
+        return
+
+    applied = {
+        int(row[0])
+        for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
+    }
+    existing = {
+        int(row["version"]): (str(row["sha256"]), str(row["migration_name"]))
+        for row in conn.execute(
+            "SELECT version,sha256,migration_name FROM schema_migration_custody"
+        ).fetchall()
+    }
+
+    for version, path in migrations:
+        if version not in applied:
+            continue
+        digest = _migration_sha256(path)
+        name = path.name
+        prior = existing.get(version)
+        if prior:
+            if prior != (digest, name):
+                raise RuntimeError(
+                    f"migration custody mismatch for version {version}: "
+                    f"recorded={prior[1]}:{prior[0]} current={name}:{digest}"
+                )
+            continue
+        source = "applied_exact" if version in applied_now else "canonical_backfill"
+        conn.execute(
+            """INSERT INTO schema_migration_custody(
+               version,sha256,migration_name,recorded_at,custody_source
+               ) VALUES(?,?,?,?,?)""",
+            (version, digest, name, utcnow(), source),
+        )
+
+
 class CompanyDB:
     def __init__(
         self,
@@ -112,32 +175,63 @@ class CompanyDB:
         if versions != list(range(versions[0], versions[-1] + 1)) or versions[0] != 1:
             raise RuntimeError(f"migration versions must be contiguous from 1: {versions}")
 
+        # Bootstrap only. The migration decision itself is made after acquiring
+        # the write reservation so concurrent startup processes cannot both
+        # decide that the same migration is pending.
         conn.execute(
             "CREATE TABLE IF NOT EXISTS schema_migrations "
             "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
         )
-        current = conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0] or 0
-        latest = migrations[-1][0]
-        if current > latest:
-            raise RuntimeError(f"database schema version {current} is newer than runtime {latest}")
+        conn.commit()
 
-        for version, path in migrations:
-            if version <= current:
-                continue
-            script = path.read_text(encoding="utf-8")
-            try:
-                conn.execute("BEGIN IMMEDIATE")
+        latest = migrations[-1][0]
+        applied_now: set[int] = set()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            current = (
+                conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
+                or 0
+            )
+            if current > latest:
+                raise RuntimeError(
+                    f"database schema version {current} is newer than runtime {latest}"
+                )
+
+            # If custody already exists, verify it before applying anything new.
+            _sync_migration_custody(conn, migrations, applied_now=applied_now)
+
+            for version, path in migrations:
+                if version <= current:
+                    continue
+                if version != current + 1:
+                    raise RuntimeError(
+                        f"migration sequence gap: current={current} next={version}"
+                    )
+                script = path.read_text(encoding="utf-8")
                 for statement in _sql_statements(script):
                     conn.execute(statement)
                 conn.execute(
                     "INSERT INTO schema_migrations(version, applied_at) VALUES(?, ?)",
                     (version, utcnow()),
                 )
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
-            current = version
+                applied_now.add(version)
+                current = version
+
+                # Migration 22 creates the custody table. Recording here keeps
+                # the current migration hash in the same transaction as the SQL
+                # bytes that produced the schema.
+                _sync_migration_custody(
+                    conn,
+                    migrations,
+                    applied_now=applied_now,
+                )
+
+            # Also backfill/verify custody when no migration was pending.
+            _sync_migration_custody(conn, migrations, applied_now=applied_now)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
     @property
     def schema_version(self) -> int:

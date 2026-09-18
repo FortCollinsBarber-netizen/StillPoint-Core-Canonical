@@ -74,6 +74,10 @@ Ground Zero fixes the pilot comparison geometry. It does not own local human tim
 
 A traveling watch may still show the lived day using the wearer's local apparent sunset. A published national or civic schedule, if later enacted, is generated once from its enacted reference point. These are different jobs.
 
+## Weekly protected-time geometry
+
+The weekly horizon-break rule is separately ratified in `WEEKLY_PROTECTED_TIME.md`: Sabbath = Friday sunset → Saturday sunset; Lord's Day = Saturday sunset → Sunday sunset; StillPoint = Friday sunset → Sunday sunrise. The same standardized apparent-horizon geometry governs rise and set. This weekly rule does not ratify any annual-calendar input.
+
 ## Ratification gate
 
 The three unresolved constitutional inputs are isolated in `RATIFICATION_RECORD.md`. No generated calendar becomes canonical until those decisions are separately enacted and the promotion gates in that record pass.

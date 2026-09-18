@@ -1,0 +1,56 @@
+{
+  "version": "stillpoint-pilot-calibration-v1",
+  "status": "PILOT_CALIBRATION_NOT_NATIONAL_RATIFICATION",
+  "commonCalendar": {
+    "yearLabel": 2026,
+    "openingCivilDate": "2026-01-01",
+    "openingBoundary": "LOCAL_APPARENT_SUNSET",
+    "day001Weekday": "Friday",
+    "monthPattern": [30,30,31,30,30,31,30,30,31,30,30,31],
+    "springGate": {"month":3,"day":20,"ordinal":80}
+  },
+  "observationZero": {
+    "instantUTC": "2026-09-18T19:28:57Z",
+    "legalCivilStamp": "2026-09-18T13:28:57-06:00",
+    "commonStandardStamp": "2026-09-18T12:28:57-07:00",
+    "commonPosition": {
+      "year": 2026,
+      "dayOfYear": 260,
+      "month": 9,
+      "day": 18,
+      "quarter": 3,
+      "dayOfQuarter": 78,
+      "weekOfYear": 38,
+      "dayInWeek": 1,
+      "weekday": "Friday"
+    }
+  },
+  "jubileePilot": {
+    "cycle": 1,
+    "cycleYear": 1,
+    "commonYear": 2026,
+    "sevenYearBlock": 1,
+    "yearWithinBlock": 1,
+    "isSabbaticalThreshold": false,
+    "isJubileeYear": false
+  },
+  "lunarWitness": {
+    "source": "U.S. Naval Observatory",
+    "newMoonUTC": "2026-09-11T03:27:00Z",
+    "firstQuarterUTC": "2026-09-18T20:44:00Z",
+    "fullMoonUTC": "2026-09-26T16:49:00Z",
+    "lastQuarterUTC": "2026-10-03T13:25:00Z",
+    "phaseAtObservationZero": "waxing_crescent",
+    "ageSinceNewMoonSeconds": 663717,
+    "secondsUntilFirstQuarter": 4503,
+    "lunationIndexFromObservationZero": 0
+  },
+  "seasonWitness": {
+    "source": "U.S. Naval Observatory",
+    "seasonAtObservationZero": "northern_astronomical_summer",
+    "juneSolsticeUTC": "2026-06-21T08:24:00Z",
+    "septemberEquinoxUTC": "2026-09-23T00:05:00Z",
+    "seasonProgressFraction": 0.9552424348,
+    "secondsUntilSeptemberEquinox": 362163
+  }
+}

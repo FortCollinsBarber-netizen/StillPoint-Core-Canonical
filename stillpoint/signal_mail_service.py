@@ -6,7 +6,7 @@ standing delegation, trigger, cursor, worker lease, and credentials remain separ
 """
 from __future__ import annotations
 
-import hashlib,os,socket
+import hashlib,json,os,socket,uuid
 from dataclasses import dataclass,field
 from datetime import datetime,timezone
 from pathlib import Path
@@ -135,6 +135,40 @@ def _require_materialized_facts(db, config:SignalMailboxServiceConfig) -> dict[s
         )
     return row
 
+
+def _record_signal_health(
+    db,
+    config:SignalMailboxServiceConfig,
+    *,
+    status:str,
+    error:str="",
+    detail:dict[str,Any]|None=None,
+    occurred_at:str|None=None,
+) -> None:
+    if status not in {"healthy","degraded","recovered","stopped"}:
+        raise ValueError(status)
+    c=db._connection()
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        c.execute(
+            """INSERT INTO signal_service_health_events(
+               event_id,service,worker_id,status,error,detail_json,occurred_at
+               ) VALUES(?,?,?,?,?,?,?)""",
+            (
+                uuid.uuid4().hex,
+                "signal_mail",
+                config.worker_id,
+                status,
+                error or None,
+                json.dumps(detail or {},sort_keys=True),
+                occurred_at or _iso(_now()),
+            ),
+        )
+        c.commit()
+    except Exception:
+        c.rollback()
+        raise
+
 @dataclass
 class SignalMailboxServiceAssembly:
     config:SignalMailboxServiceConfig
@@ -202,7 +236,8 @@ def build_signal_mailbox_service(config:SignalMailboxServiceConfig,*,now_fn:Call
         worker=PersistentWorkerService(db=db,coordinator=coordinator,coordinator_factory=coordinator_factory,config=WorkerServiceConfig(role='signal',lease_ttl_seconds=config.lease_ttl_seconds,heartbeat_interval_seconds=config.heartbeat_interval_seconds,auto_retry_failed=False,triggered_only=True),worker_id=config.worker_id)
         responder=ProviderSignalResponder(provider,model=config.model);preparer=SignalInboxExecutor(db=db,trigger_coordinator=triggers,account=config.identity.account,provider=config.identity.provider,jurisdiction=config.identity.jurisdiction,responder=responder)
         authorizer=SignalStandingAuthorizer(db=db,delegation_store=ds,envelope_store=ClaimEnvelopeStore(db),warrant_issuer=DelegatedWarrantIssuer(db))
-        employee=SignalEmailEmployee(poller=poller,worker_service=worker,preparer=preparer,authorizer=authorizer,runtime=runtime,adapter_registry=adapters,delegation_id=config.delegation_id,continuation_facts_provider=facts.continuation,envelope_facts_provider=facts.envelope_facts,now_fn=now_fn)
+        health_recorder=lambda **kw:_record_signal_health(db,config,**kw)
+        employee=SignalEmailEmployee(poller=poller,worker_service=worker,preparer=preparer,authorizer=authorizer,runtime=runtime,adapter_registry=adapters,delegation_id=config.delegation_id,continuation_facts_provider=facts.continuation,envelope_facts_provider=facts.envelope_facts,health_recorder=health_recorder,now_fn=now_fn)
         return SignalMailboxServiceAssembly(config,db,runtime,employee,coordinator,facts)
     except Exception:
         if registered and coordinator is not None:

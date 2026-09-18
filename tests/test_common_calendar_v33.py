@@ -14,6 +14,16 @@ class CommonCalendarV33Tests(unittest.TestCase):
     latitude = 40.4
     longitude = -105.1
 
+    def test_loveland_sunset_preserves_next_utc_day_rollover(self):
+        sunset = v33.sunset_utc(
+            dt.date(2026, 9, 18),
+            self.latitude,
+            self.longitude,
+        )
+        self.assertEqual(sunset.date(), dt.date(2026, 9, 19))
+        self.assertGreaterEqual(sunset.hour, 0)
+        self.assertLess(sunset.hour, 3)
+
     def test_ordinary_year_is_always_364_and_reconciliation_is_separate(self):
         opening = dt.date(2027, 3, 17)
         immediate = opening + dt.timedelta(days=364)

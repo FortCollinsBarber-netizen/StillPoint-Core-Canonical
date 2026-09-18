@@ -51,6 +51,7 @@ else
   "$VENV/bin/python" -m pip install --upgrade pip
   "$VENV/bin/python" -m pip install "$CORE"
   touch "$RELEASE/.ready"
+  chmod -R a-w "$RELEASE"
 fi
 
 VERSION="$("$PYTHON_BIN" - "$CORE" <<'PY'

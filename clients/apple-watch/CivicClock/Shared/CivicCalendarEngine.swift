@@ -28,6 +28,7 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = nil,
+        pilotProfile: PilotTemporalCalibration? = nil,
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
         var calendar = inputCalendar
@@ -54,7 +55,11 @@ enum CivicCalendarEngine {
                 nextProtectedBoundary: nil,
                 nextProtectedBoundaryLabel: nil,
                 commonCalendarLabel: "CALENDAR",
-                commonCalendarDetail: "FALLBACK RULE NOT ENACTED"
+                commonCalendarDetail: "FALLBACK RULE NOT ENACTED",
+                lunarLabel: nil,
+                seasonLabel: nil,
+                jubileeLabel: nil,
+                commonStandardTime: nil
             )
         }
 
@@ -83,12 +88,22 @@ enum CivicCalendarEngine {
             calendar: calendar
         )
 
+        let pilotState = pilotProfile.flatMap {
+            PilotTemporalEngine.state(
+                now: now,
+                previousBoundary: previous,
+                profile: $0,
+                calendar: calendar
+            )
+        }
+
         let annual = annualLabel(
             now: now,
             previousBoundary: previous,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: publishedCalendar,
+            pilotState: pilotState,
             calendar: calendar
         )
 
@@ -105,7 +120,11 @@ enum CivicCalendarEngine {
             nextProtectedBoundary: weekly.nextBoundary,
             nextProtectedBoundaryLabel: weekly.nextBoundaryLabel,
             commonCalendarLabel: annual.label,
-            commonCalendarDetail: annual.detail
+            commonCalendarDetail: annual.detail,
+            lunarLabel: pilotState?.lunarLabel,
+            seasonLabel: pilotState?.seasonLabel,
+            jubileeLabel: pilotState?.jubileeLabel,
+            commonStandardTime: pilotState?.commonStandardTime
         )
     }
 
@@ -175,9 +194,16 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar?,
+        pilotState: PilotTemporalState?,
         calendar: Calendar
     ) -> (label: String, detail: String) {
         guard let publishedCalendar else {
+            if let pilotState {
+                return (
+                    pilotState.commonCalendarLabel,
+                    pilotState.commonCalendarDetail
+                )
+            }
             return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
         }
 

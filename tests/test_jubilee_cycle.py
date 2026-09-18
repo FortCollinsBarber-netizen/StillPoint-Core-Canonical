@@ -1,6 +1,7 @@
 import datetime as dt
 
 from tools.generate_jubilee_cycle import (
+    boundary_dates_for_common_date,
     MONTH_LENGTHS,
     common_position,
     generate_cycle,
@@ -88,3 +89,22 @@ def test_common_position_week_and_quarter_math():
     assert pos["weekOfYear"] == 38
     assert pos["quarter"] == 3
     assert pos["weekday"] == "Friday"
+
+
+def test_common_to_civic_boundary_round_trip():
+    opens, closes = boundary_dates_for_common_date(
+        opening_civil_date=dt.date(2026, 1, 1),
+        month=9,
+        day=18,
+    )
+    assert opens == dt.date(2026, 9, 17)
+    assert closes == dt.date(2026, 9, 18)
+
+    position = position_from_boundary_date(
+        opening_civil_date=dt.date(2026, 1, 1),
+        active_boundary_civil_date=opens,
+        day001_weekday="Friday",
+    )
+    assert position["month"] == 9
+    assert position["day"] == 18
+    assert position["weekday"] == "Friday"

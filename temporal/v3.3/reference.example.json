@@ -5,7 +5,8 @@
     "label": "Private Loveland pilot reference",
     "latitude": null,
     "longitude": null,
-    "coordinatesPublic": false
+    "coordinatesPublic": false,
+    "custodyNonce": null
   },
   "duskProtocol": {
     "id": "apparent-sunset-0.8333",

@@ -1,14 +1,47 @@
 import Foundation
 
 enum SolarBoundaryCalculator {
-    // Standardized apparent sunset: Sun center approximately -0.8333 degrees.
+    // USNO-style apparent rise/set geometry:
+    // Sun center at zenith distance 90°50' (90.8333°), so the upper limb
+    // is tangent to a level, unobstructed horizon under average refraction.
     private static let zenith = 90.8333
+
+    static func sunrise(
+        on civilDate: Date,
+        latitude: Double,
+        longitude: Double,
+        calendar: Calendar = .current
+    ) -> Date? {
+        solarEvent(
+            on: civilDate,
+            latitude: latitude,
+            longitude: longitude,
+            rising: true,
+            calendar: calendar
+        )
+    }
 
     static func sunset(
         on civilDate: Date,
         latitude: Double,
         longitude: Double,
-        calendar inputCalendar: Calendar = .current
+        calendar: Calendar = .current
+    ) -> Date? {
+        solarEvent(
+            on: civilDate,
+            latitude: latitude,
+            longitude: longitude,
+            rising: false,
+            calendar: calendar
+        )
+    }
+
+    private static func solarEvent(
+        on civilDate: Date,
+        latitude: Double,
+        longitude: Double,
+        rising: Bool,
+        calendar inputCalendar: Calendar
     ) -> Date? {
         var calendar = inputCalendar
         let timeZone = calendar.timeZone
@@ -28,7 +61,8 @@ enum SolarBoundaryCalculator {
         else { return nil }
 
         let lngHour = longitude / 15.0
-        let t = Double(ordinal) + ((18.0 - lngHour) / 24.0)
+        let approximateHour = rising ? 6.0 : 18.0
+        let t = Double(ordinal) + ((approximateHour - lngHour) / 24.0)
 
         let meanAnomaly = (0.9856 * t) - 3.289
         var trueLongitude = meanAnomaly
@@ -55,10 +89,14 @@ enum SolarBoundaryCalculator {
             cosDeclination * cos(deg2rad(latitude))
         )
 
-        // No ordinary local sunset on this civil date.
+        // The standardized rise/set event does not occur on this civil date.
         guard cosHour >= -1.0, cosHour <= 1.0 else { return nil }
 
-        let hourAngle = rad2deg(acos(cosHour)) / 15.0
+        var hourAngleDegrees = rad2deg(acos(cosHour))
+        if rising {
+            hourAngleDegrees = 360.0 - hourAngleDegrees
+        }
+        let hourAngle = hourAngleDegrees / 15.0
         let localMeanTime = hourAngle + rightAscension - (0.06571 * t) - 6.622
         let universalHours = normalizedHours(localMeanTime - lngHour)
 
@@ -71,11 +109,9 @@ enum SolarBoundaryCalculator {
             day: day
         )) else { return nil }
 
-        // The classic NOAA-style algorithm returns a normalized UTC clock hour.
-        // Near the date line (and routinely in western longitudes), that hour can
-        // belong to the UTC day before or after the requested *local* civil date.
-        // Restore the date jurisdiction explicitly: the returned instant must
-        // render inside the requested local civil date.
+        // The algorithm yields a normalized UTC clock hour. Restore local-date
+        // jurisdiction explicitly so a Colorado evening/morning event cannot be
+        // shifted onto the wrong local civil date by UTC rollover.
         var candidate = utcMidnight.addingTimeInterval(universalHours * 3600.0)
 
         for _ in 0..<2 {

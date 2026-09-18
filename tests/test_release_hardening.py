@@ -80,6 +80,19 @@ class ReleaseHardeningTests(unittest.TestCase):
         self.assertNotIn('export XAI_API_KEY="',signal)
         self.assertIn("unset STILLPOINT_ICLOUD_APP_PASSWORD XAI_API_KEY",signal)
 
+    def test_ci_actions_are_pinned_to_immutable_commits(self):
+        workflow=(ROOT/".github/workflows/ci.yml").read_text()
+        self.assertIn(
+            "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            workflow,
+        )
+        self.assertIn(
+            "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+            workflow,
+        )
+        self.assertNotIn("actions/checkout@v4",workflow)
+        self.assertNotIn("actions/setup-python@v5",workflow)
+
     def test_signal_installer_is_not_bound_to_stale_patch_041_identity(self):
         script=(ROOT/"deploy/macos/install_signal_host.sh").read_text()
         self.assertNotIn("041-icloud-auth-boundary-correction",script)

@@ -74,8 +74,13 @@ Ground Zero fixes the pilot comparison geometry. It does not own local human tim
 
 A traveling watch may still show the lived day using the wearer's local apparent sunset. A published national or civic schedule, if later enacted, is generated once from its enacted reference point. These are different jobs.
 
+## Ratification gate
+
+The three unresolved constitutional inputs are isolated in `RATIFICATION_RECORD.md`. No generated calendar becomes canonical until those decisions are separately enacted and the promotion gates in that record pass.
+
 ## Files
 
+- `RATIFICATION_RECORD.md` — unratified decision surface for first opening, reference point P, and equinox evidence source.
 - `reference.example.json` — non-secret configuration shape.
 - `equinoxes.example.json` — ephemeris input shape.
 - `published_calendar.schema.json` — publication contract.

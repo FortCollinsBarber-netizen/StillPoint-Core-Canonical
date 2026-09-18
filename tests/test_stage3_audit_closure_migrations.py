@@ -22,7 +22,7 @@ def copy_migrations(destination: Path, *, through: int | None = None) -> None:
 
 
 class Stage3MigrationAuditClosureTests(unittest.TestCase):
-    def test_two_process_style_startup_serializes_schema22_upgrade(self):
+    def test_two_process_style_startup_serializes_current_upgrade(self):
         with tempfile.TemporaryDirectory() as d:
             tmp = Path(d)
             legacy_dir = tmp / "migrations21"
@@ -54,7 +54,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
 
             self.assertTrue(all(not thread.is_alive() for thread in threads))
             self.assertEqual(errors, [])
-            self.assertEqual(sorted(versions), [22, 22])
+            self.assertEqual(sorted(versions), [23, 23])
 
             final = CompanyDB(db_path, migrations_dir=ROOT / "migrations")
             rows = final.conn.execute(
@@ -62,7 +62,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
                 "GROUP BY version HAVING COUNT(*) != 1"
             ).fetchall()
             self.assertEqual(rows, [])
-            self.assertEqual(final.schema_version, 22)
+            self.assertEqual(final.schema_version, 23)
             final.close()
 
     def test_upgrade_labels_prior_history_backfill_and_new_migration_exact(self):
@@ -85,6 +85,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
             self.assertEqual(custody[1]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[21]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[22]["custody_source"], "applied_exact")
+            self.assertEqual(custody[23]["custody_source"], "applied_exact")
             expected = hashlib.sha256(
                 (ROOT / "migrations" / "022_stage3_audit_closure.sql").read_bytes()
             ).hexdigest()

@@ -1,0 +1,271 @@
+{
+  "conformanceContext": {
+    "commonStandardOffsetSeconds": -25200,
+    "commonYear": 2026,
+    "day001Weekday": "Friday",
+    "jubileeEpochCommonYear": 2026,
+    "jubileeEpochCycle": 1,
+    "latitude": 40.3978,
+    "legalCivilZone": "America/Denver",
+    "locationId": "LOVELAND_TEST",
+    "longitude": -105.0749,
+    "openingCivilDate": "2026-01-01"
+  },
+  "constants": {
+    "apparentHorizonZenithDegrees": 90.8333,
+    "baseYearDays": 364,
+    "gateSequence": [
+      4,
+      5,
+      6,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      1,
+      2,
+      3
+    ],
+    "monthLengths": [
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31
+    ],
+    "phaseLengths": [
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31
+    ],
+    "reconciliationDaysAllowed": [
+      0,
+      7
+    ],
+    "springGateOrdinalV33Candidate": 80
+  },
+  "goldenVectors": [
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 18,
+          "dayInWeek": 1,
+          "month": 9,
+          "ordinal": 260,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Friday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": false,
+        "namedDay": "Friday",
+        "nextProtectedBoundaryLabel": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "stillPoint": false
+      },
+      "id": "observation-zero",
+      "instantUTC": "2026-09-18T19:28:57Z"
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 19,
+          "dayInWeek": 2,
+          "month": 9,
+          "ordinal": 261,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Saturday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": false,
+        "namedDay": "Saturday",
+        "nextProtectedBoundaryLabel": "SABBATH ENDS \u00b7 LORD'S DAY BEGINS",
+        "sabbath": true,
+        "solarGate": 1,
+        "stillPoint": true
+      },
+      "id": "friday-after-sunset",
+      "instantUTC": "2026-09-19T01:04:27Z"
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "sabbath": false,
+        "solarGate": 1,
+        "stillPoint": true
+      },
+      "id": "saturday-after-sunset",
+      "instantUTC": "2026-09-20T01:02:46Z"
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "sabbath": false,
+        "solarGate": 1,
+        "stillPoint": true
+      },
+      "id": "sunday-before-sunrise",
+      "instantUTC": "2026-09-20T12:45:39Z"
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "LORD'S DAY ENDS \u00b7 SUNDAY SUNSET",
+        "sabbath": false,
+        "solarGate": 1,
+        "stillPoint": false
+      },
+      "id": "sunday-after-sunrise",
+      "instantUTC": "2026-09-20T12:45:41Z"
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 21,
+          "dayInWeek": 4,
+          "month": 9,
+          "ordinal": 263,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Monday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "jubilee": {
+          "cycle": 1,
+          "cycleYear": 1,
+          "isJubileeYear": false,
+          "isSabbaticalThreshold": false,
+          "sevenYearBlock": 1,
+          "yearWithinBlock": 1
+        },
+        "lordsDay": false,
+        "namedDay": "Monday",
+        "nextProtectedBoundaryLabel": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "stillPoint": false
+      },
+      "id": "sunday-after-sunset",
+      "instantUTC": "2026-09-21T01:01:05Z"
+    }
+  ],
+  "jurisdiction": {
+    "authorityNamespace": "stillpoint.temporal",
+    "calendarNamespace": "stillpoint.calendar_core",
+    "referenceStatus": "public-conformance-only-not-ground-zero"
+  },
+  "version": "stillpoint-calendar-core-contract-v1"
+}

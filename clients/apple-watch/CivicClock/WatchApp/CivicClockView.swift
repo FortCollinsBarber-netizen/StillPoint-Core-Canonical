@@ -25,6 +25,12 @@ struct CivicClockView: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 
+                    if let commonTime = snapshot.commonStandardTime {
+                        Text("COMMON \(commonTime)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+
                     Text(snapshot.namedDay)
                         .font(.caption2.weight(.bold))
                         .tracking(1.4)
@@ -56,6 +62,24 @@ struct CivicClockView: View {
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if let lunar = snapshot.lunarLabel {
+                        Text(lunar)
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let season = snapshot.seasonLabel {
+                        Text(season)
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    if let jubilee = snapshot.jubileeLabel {
+                        Text(jubilee)
+                            .font(.caption2.weight(.semibold))
+                            .multilineTextAlignment(.center)
                     }
 
                     if let protectedBoundary = snapshot.nextProtectedBoundary {
@@ -94,7 +118,7 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("CLOCK TRANSLATES · HORIZON BOUNDARY COUNTS")
+                    Text("CLOCK TRANSLATES · CALENDAR CORE GOVERNS")
                         .font(.system(size: 8, weight: .medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.tertiary)
@@ -120,7 +144,9 @@ struct CivicClockView: View {
             now: now,
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
-            publishedCalendar: PublishedCalendarLoader.load()
+            publishedCalendar: PublishedCalendarLoader.load(),
+            pilotProfile: PilotTemporalLoader.load(),
+            calendarCoreContract: CalendarCoreContractLoader.load()
         )
     }
 }

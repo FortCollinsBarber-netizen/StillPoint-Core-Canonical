@@ -32,7 +32,9 @@ struct CivicClockProvider: TimelineProvider {
                     now: date,
                     latitude: coordinate.latitude,
                     longitude: coordinate.longitude,
-                    publishedCalendar: PublishedCalendarLoader.load()
+                    publishedCalendar: PublishedCalendarLoader.load(),
+                    pilotProfile: PilotTemporalLoader.load(),
+                    calendarCoreContract: CalendarCoreContractLoader.load()
                 )
             }
 

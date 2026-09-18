@@ -1,0 +1,41 @@
+{
+  "version": "stillpoint-observances-v1-candidate",
+  "weekdayEpoch": {
+    "day001": "Friday",
+    "basis": "2026 pilot calibration and fixed-date anchors"
+  },
+  "biblicalFeastCycle": [
+    {"id":"passover","name":"Passover","rule":"fixed_date","month":1,"day":14,"weekday":"Thursday"},
+    {"id":"unleavened-bread-open","name":"Unleavened Bread Opening","rule":"fixed_date","month":1,"day":15,"weekday":"Friday"},
+    {"id":"firstfruits","name":"Firstfruits","rule":"derived_weekly","month":1,"day":17,"weekday":"Sunday","status":"candidate_interpretive_lock","derivation":"day after the weekly Sabbath within Unleavened Bread"},
+    {"id":"unleavened-bread-close","name":"Unleavened Bread Closing","rule":"fixed_date","month":1,"day":21,"weekday":"Thursday"},
+    {"id":"weeks","name":"Feast of Weeks / Pentecost","rule":"counted_from_firstfruits","month":3,"day":6,"weekday":"Sunday","status":"candidate_interpretive_lock","derivation":"50th day inclusive from candidate Firstfruits"},
+    {"id":"trumpets","name":"Feast of Trumpets","rule":"fixed_date","month":7,"day":1,"weekday":"Friday"},
+    {"id":"atonement","name":"Day of Atonement","rule":"fixed_date","month":7,"day":10,"weekday":"Sunday"},
+    {"id":"booths-open","name":"Feast of Booths Opening","rule":"fixed_date","month":7,"day":15,"weekday":"Friday"},
+    {"id":"booths-close","name":"Feast of Booths Seventh Day","rule":"fixed_date","month":7,"day":21,"weekday":"Thursday"},
+    {"id":"eighth-day","name":"Eighth Day","rule":"fixed_date","month":7,"day":22,"weekday":"Friday"}
+  ],
+  "civicAndFamilyCycle": [
+    {"id":"new-year","name":"Common New Year","rule":"fixed_date","month":1,"day":1,"weekday":"Friday"},
+    {"id":"mlk-day","name":"Martin Luther King Jr. Day","rule":"weekday_ordinal","month":1,"day":18,"weekday":"Monday","ordinal":"third"},
+    {"id":"presidents-day","name":"Washington's Birthday / Presidents Day","rule":"weekday_ordinal","month":2,"day":16,"weekday":"Monday","ordinal":"third"},
+    {"id":"mothers-day","name":"Mother's Day","rule":"weekday_ordinal","month":5,"day":8,"weekday":"Sunday","ordinal":"second"},
+    {"id":"memorial-day","name":"Memorial Day","rule":"weekday_ordinal","month":5,"day":30,"weekday":"Monday","ordinal":"last"},
+    {"id":"juneteenth","name":"Juneteenth","rule":"fixed_date","month":6,"day":19,"weekday":"Saturday"},
+    {"id":"fathers-day","name":"Father's Day","rule":"weekday_ordinal","month":6,"day":20,"weekday":"Sunday","ordinal":"third"},
+    {"id":"independence-day","name":"Independence Day","rule":"fixed_date","month":7,"day":4,"weekday":"Monday"},
+    {"id":"labor-day","name":"Labor Day","rule":"weekday_ordinal","month":9,"day":7,"weekday":"Monday","ordinal":"first"},
+    {"id":"columbus-indigenous-day","name":"Columbus Day / Indigenous Peoples' Day","rule":"weekday_ordinal","month":10,"day":11,"weekday":"Monday","ordinal":"second"},
+    {"id":"veterans-day","name":"Veterans Day","rule":"fixed_date","month":11,"day":11,"weekday":"Saturday"},
+    {"id":"thanksgiving","name":"Thanksgiving","rule":"weekday_ordinal","month":11,"day":26,"weekday":"Thursday","ordinal":"fourth"},
+    {"id":"december-10-anchor","name":"December 10 Anchor","rule":"fixed_date","month":12,"day":10,"weekday":"Thursday"},
+    {"id":"christmas","name":"Christmas","rule":"fixed_date","month":12,"day":25,"weekday":"Friday"}
+  ],
+  "jurisdictionNotes": [
+    "The registry fixes Common Calendar recurrence, not present U.S. legal holiday law.",
+    "Federal or religious legal effects require their own authority.",
+    "Firstfruits and Weeks are explicitly marked as candidate interpretive locks rather than silently attributed to all traditions.",
+    "Actual lunar phases remain a separate evidence layer and do not move fixed-date observances unless an observance is explicitly lunar-governed."
+  ]
+}

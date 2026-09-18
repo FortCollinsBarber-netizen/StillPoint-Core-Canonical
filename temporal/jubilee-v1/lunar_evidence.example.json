@@ -1,0 +1,11 @@
+{
+  "version": "stillpoint-lunar-evidence-v1",
+  "source": "U.S. Naval Observatory",
+  "sourceUrl": "https://aa.usno.navy.mil/calculated/moon/phases?year=2026",
+  "events": [
+    {"phase":"new","instantUTC":"2026-09-11T03:27:00Z"},
+    {"phase":"first_quarter","instantUTC":"2026-09-18T20:44:00Z"},
+    {"phase":"full","instantUTC":"2026-09-26T16:49:00Z"},
+    {"phase":"last_quarter","instantUTC":"2026-10-03T13:25:00Z"}
+  ]
+}

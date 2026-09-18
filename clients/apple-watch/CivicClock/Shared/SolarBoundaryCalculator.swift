@@ -1,15 +1,15 @@
 import Foundation
 
 enum SolarBoundaryCalculator {
-    // USNO-style apparent rise/set geometry:
-    // Sun center at zenith distance 90°50' (90.8333°), so the upper limb
-    // is tangent to a level, unobstructed horizon under average refraction.
-    private static let zenith = 90.8333
+    // Native fallback only. CI proves this value against the generated
+    // Calendar Core contract before the Watch build is allowed to pass.
+    static let defaultZenithDegrees = 90.8333
 
     static func sunrise(
         on civilDate: Date,
         latitude: Double,
         longitude: Double,
+        zenithDegrees: Double = defaultZenithDegrees,
         calendar: Calendar = .current
     ) -> Date? {
         solarEvent(
@@ -17,6 +17,7 @@ enum SolarBoundaryCalculator {
             latitude: latitude,
             longitude: longitude,
             rising: true,
+            zenithDegrees: zenithDegrees,
             calendar: calendar
         )
     }
@@ -25,6 +26,7 @@ enum SolarBoundaryCalculator {
         on civilDate: Date,
         latitude: Double,
         longitude: Double,
+        zenithDegrees: Double = defaultZenithDegrees,
         calendar: Calendar = .current
     ) -> Date? {
         solarEvent(
@@ -32,6 +34,7 @@ enum SolarBoundaryCalculator {
             latitude: latitude,
             longitude: longitude,
             rising: false,
+            zenithDegrees: zenithDegrees,
             calendar: calendar
         )
     }
@@ -41,6 +44,7 @@ enum SolarBoundaryCalculator {
         latitude: Double,
         longitude: Double,
         rising: Bool,
+        zenithDegrees: Double,
         calendar inputCalendar: Calendar
     ) -> Date? {
         var calendar = inputCalendar
@@ -83,13 +87,12 @@ enum SolarBoundaryCalculator {
         let cosDeclination = cos(asin(sinDeclination))
 
         let cosHour = (
-            cos(deg2rad(zenith))
+            cos(deg2rad(zenithDegrees))
             - sinDeclination * sin(deg2rad(latitude))
         ) / (
             cosDeclination * cos(deg2rad(latitude))
         )
 
-        // The standardized rise/set event does not occur on this civil date.
         guard cosHour >= -1.0, cosHour <= 1.0 else { return nil }
 
         var hourAngleDegrees = rad2deg(acos(cosHour))
@@ -109,9 +112,6 @@ enum SolarBoundaryCalculator {
             day: day
         )) else { return nil }
 
-        // The algorithm yields a normalized UTC clock hour. Restore local-date
-        // jurisdiction explicitly so a Colorado evening/morning event cannot be
-        // shifted onto the wrong local civil date by UTC rollover.
         var candidate = utcMidnight.addingTimeInterval(universalHours * 3600.0)
 
         for _ in 0..<2 {
@@ -133,6 +133,7 @@ enum SolarBoundaryCalculator {
         around now: Date,
         latitude: Double,
         longitude: Double,
+        zenithDegrees: Double = defaultZenithDegrees,
         calendar: Calendar = .current
     ) -> (previous: Date?, next: Date?) {
         let today = calendar.startOfDay(for: now)
@@ -143,6 +144,7 @@ enum SolarBoundaryCalculator {
             on: today,
             latitude: latitude,
             longitude: longitude,
+            zenithDegrees: zenithDegrees,
             calendar: calendar
         )
 
@@ -153,6 +155,7 @@ enum SolarBoundaryCalculator {
                     on: tomorrow,
                     latitude: latitude,
                     longitude: longitude,
+                    zenithDegrees: zenithDegrees,
                     calendar: calendar
                 )
             )
@@ -163,6 +166,7 @@ enum SolarBoundaryCalculator {
                 on: yesterday,
                 latitude: latitude,
                 longitude: longitude,
+                zenithDegrees: zenithDegrees,
                 calendar: calendar
             ),
             todaySunset

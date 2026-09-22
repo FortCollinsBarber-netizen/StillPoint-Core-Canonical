@@ -36,16 +36,29 @@ struct CalendarCoreSpec: Codable, Equatable {
 
     struct ReferenceRules: Codable, Equatable {
         struct Rule: Codable, Equatable {
-            let operator: String
+            let operation: String
             let status: String
+
+            enum CodingKeys: String, CodingKey {
+                case operation = "operator"
+                case status
+            }
         }
 
         struct V33Candidate: Codable, Equatable {
-            let operator: String
+            let operation: String
             let springGateOrdinal: Int
             let springGateMonth: Int
             let springGateDay: Int
             let status: String
+
+            enum CodingKeys: String, CodingKey {
+                case operation = "operator"
+                case springGateOrdinal
+                case springGateMonth
+                case springGateDay
+                case status
+            }
         }
 
         let v32: Rule
@@ -136,9 +149,9 @@ enum CalendarCoreSpecLoader {
             gates.phaseLengths.reduce(0, +) == calendar.baseYearDays,
             gates.gateSequence.count == gates.phaseLengths.count,
             gates.pairedGateCount > 0,
-            !spec.referenceRules.v32.operator.isEmpty,
+            !spec.referenceRules.v32.operation.isEmpty,
             !spec.referenceRules.v32.status.isEmpty,
-            !v33.operator.isEmpty,
+            !v33.operation.isEmpty,
             !v33.status.isEmpty,
             (1...calendar.baseYearDays).contains(v33.springGateOrdinal),
             (1...12).contains(v33.springGateMonth),

@@ -4,15 +4,21 @@
     "failurePolicy": "explicit-no-silent-fallback",
     "protocolId": "apparent-sunrise-set-0.8333"
   },
+  "canonicalCycle": {
+    "day001Weekday": "Thursday",
+    "firstOpeningCivilDate": "2026-01-01",
+    "firstYearLabel": 2026,
+    "totalDays": 18200,
+    "transition": "12-30->next-year-01-01",
+    "yearCount": 50
+  },
   "enactmentBoundary": {
-    "lawDoesNotSupplyValues": true,
+    "lawDoesNotSupplyValues": false,
     "requiredForFinitePublication": [
-      "firstOpening",
       "referencePoint",
-      "ephemerisEvidence",
       "publicationAuthority"
     ],
-    "status": "external-unresolved"
+    "status": "annual-cycle-ratified"
   },
   "gates": {
     "gateSequence": [
@@ -43,63 +49,553 @@
       30,
       30,
       31
-    ]
+    ],
+    "role": "enochic-seasonal-witness-layer"
   },
   "invariants": [
-    "continuous-time-never-gaps",
-    "ordinary-year-is-always-364",
-    "reconciliation-is-0-or-7-and-interannual",
-    "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
-    "week-sequence-is-never-broken",
-    "missing-required-evidence-fails-closed",
+    "common-year-is-exactly-364-days",
+    "common-year-is-exactly-52-seven-day-weeks",
+    "december-31-does-not-exist",
+    "day-364-transitions-directly-to-next-year-day-001",
+    "no-reconciliation-days",
+    "no-leap-day",
+    "astronomy-cannot-move-the-grid",
+    "lunar-observation-cannot-move-the-grid",
+    "recurring-observances-retain-weekday",
+    "fifty-year-map-is-18200-days",
     "publication-is-finite-and-does-not-self-ratify"
   ],
   "jurisdiction": {
+    "astronomyRole": "witness-only-no-grid-authority",
     "authorityNamespace": "stillpoint.temporal",
     "calendarNamespace": "stillpoint.calendar_core",
+    "lunarRole": "witness-only-no-grid-authority",
     "publicationAuthority": "external-finite-evidence-object"
   },
+  "observances": [
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-01-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 1,
+      "name": "Month 1 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-02-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 2,
+      "name": "Month 2 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-03-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 3,
+      "name": "Month 3 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-04-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 4,
+      "name": "Month 4 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-05-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 5,
+      "name": "Month 5 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-06-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 6,
+      "name": "Month 6 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-07-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 7,
+      "name": "Month 7 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-08-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 8,
+      "name": "Month 8 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-09-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 9,
+      "name": "Month 9 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-10-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 10,
+      "name": "Month 10 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-11-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 11,
+      "name": "Month 11 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-12-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 12,
+      "name": "Month 12 Opening",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 14,
+      "endDay": null,
+      "endMonth": null,
+      "id": "passover",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Passover",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:5",
+        "Numbers 28:16",
+        "Deuteronomy 16:1-8"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": 21,
+      "endMonth": 1,
+      "id": "unleavened-bread",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Feast of Unleavened Bread",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:6-8",
+        "Numbers 28:17-25",
+        "Deuteronomy 16:3-8"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "firstfruits",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Firstfruits",
+      "rule": "first-sunday-after-the-weekly-sabbath-following-unleavened-bread",
+      "sourceRefs": [
+        "Leviticus 23:10-16"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": null,
+      "endMonth": null,
+      "id": "weeks",
+      "jurisdiction": "sacred",
+      "month": 3,
+      "name": "Feast of Weeks / Pentecost",
+      "rule": "fiftieth-day-counted-from-firstfruits",
+      "sourceRefs": [
+        "Leviticus 23:15-21",
+        "Numbers 28:26-31",
+        "Deuteronomy 16:9-12",
+        "Jubilees 6; 15; 44"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "trumpets",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Trumpets",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:23-25",
+        "Numbers 29:1-6"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 10,
+      "endDay": null,
+      "endMonth": null,
+      "id": "atonement",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Day of Atonement",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:26-32",
+        "Numbers 29:7-11",
+        "Leviticus 25:9"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": 21,
+      "endMonth": 7,
+      "id": "booths",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Feast of Booths",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:33-43",
+        "Numbers 29:12-34",
+        "Deuteronomy 16:13-17"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 22,
+      "endDay": null,
+      "endMonth": null,
+      "id": "eighth-day",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Eighth Day Assembly",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:36,39",
+        "Numbers 29:35-38"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "new-year",
+      "jurisdiction": "civic",
+      "month": 1,
+      "name": "New Year's Day",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "StillPoint fixed civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 19,
+      "endDay": null,
+      "endMonth": null,
+      "id": "mlk-day",
+      "jurisdiction": "civic",
+      "month": 1,
+      "name": "Martin Luther King Jr. Day",
+      "rule": "third-monday-january",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 16,
+      "endDay": null,
+      "endMonth": null,
+      "id": "washington-birthday",
+      "jurisdiction": "civic",
+      "month": 2,
+      "name": "Washington's Birthday",
+      "rule": "third-monday-february",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 10,
+      "endDay": null,
+      "endMonth": null,
+      "id": "mothers-day",
+      "jurisdiction": "civic-family",
+      "month": 5,
+      "name": "Mother's Day",
+      "rule": "second-sunday-may",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "memorial-day",
+      "jurisdiction": "civic",
+      "month": 5,
+      "name": "Memorial Day",
+      "rule": "last-monday-may",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 19,
+      "endDay": null,
+      "endMonth": null,
+      "id": "juneteenth",
+      "jurisdiction": "civic",
+      "month": 6,
+      "name": "Juneteenth National Independence Day",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 21,
+      "endDay": null,
+      "endMonth": null,
+      "id": "fathers-day",
+      "jurisdiction": "civic-family",
+      "month": 6,
+      "name": "Father's Day",
+      "rule": "third-sunday-june",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 4,
+      "endDay": null,
+      "endMonth": null,
+      "id": "independence-day",
+      "jurisdiction": "civic",
+      "month": 7,
+      "name": "Independence Day",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 7,
+      "endDay": null,
+      "endMonth": null,
+      "id": "labor-day",
+      "jurisdiction": "civic",
+      "month": 9,
+      "name": "Labor Day",
+      "rule": "first-monday-september",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 12,
+      "endDay": null,
+      "endMonth": null,
+      "id": "columbus-day",
+      "jurisdiction": "civic",
+      "month": 10,
+      "name": "Columbus Day",
+      "rule": "second-monday-october",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 11,
+      "endDay": null,
+      "endMonth": null,
+      "id": "veterans-day",
+      "jurisdiction": "civic",
+      "month": 11,
+      "name": "Veterans Day",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 26,
+      "endDay": null,
+      "endMonth": null,
+      "id": "thanksgiving",
+      "jurisdiction": "civic",
+      "month": 11,
+      "name": "Thanksgiving Day",
+      "rule": "fourth-thursday-november",
+      "sourceRefs": [
+        "U.S. civic recurrence"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "christmas",
+      "jurisdiction": "civic",
+      "month": 12,
+      "name": "Christmas Day",
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "StillPoint fixed civic recurrence"
+      ]
+    }
+  ],
   "ordinaryCalendar": {
     "baseYearDays": 364,
+    "december31Exists": false,
+    "lastCommonDay": 30,
+    "lastCommonMonth": 12,
     "monthLengths": [
-      30,
+      31,
+      28,
+      31,
       30,
       31,
       30,
+      31,
+      31,
       30,
       31,
       30,
-      30,
-      31,
-      30,
-      30,
-      31
+      30
     ],
     "quarterDays": 91,
     "quarters": 4,
     "weekDays": 7
   },
   "reconciliation": {
-    "addressPattern": "Y_n/Y_n+1-R{day}",
+    "addressPattern": null,
     "allowedDays": [
-      0,
-      7
+      0
     ],
     "inheritsOrdinaryFields": false,
-    "namespace": "interannual"
+    "namespace": "prohibited"
   },
   "referenceRules": {
+    "operative": {
+      "operator": "Fixed364",
+      "status": "ratified"
+    },
     "v3.2": {
       "operator": "NearestLegal",
-      "status": "recovered-historical"
+      "status": "historical-non-operative"
     },
     "v3.3Candidate": {
       "operator": "NearestLegalSpringGate",
       "springGateDay": 20,
       "springGateMonth": 3,
       "springGateOrdinal": 80,
-      "status": "candidate-unratified"
+      "status": "historical-non-operative"
     }
   },
-  "version": "stillpoint-calendar-core-spec-v1"
+  "version": "stillpoint-calendar-core-spec-v2"
 }

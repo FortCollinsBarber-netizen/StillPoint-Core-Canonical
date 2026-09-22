@@ -44,7 +44,13 @@ class CommonCalendarV33Tests(unittest.TestCase):
         self.assertEqual(row["nextYearSpringGateCivilDate"], "2027-03-20")
         self.assertEqual(doc["snapOperator"], "NearestLegalSpringGate")
         self.assertEqual(doc["seasonalAnchor"]["ordinal"], 80)
+        self.assertEqual(doc["publicationVersion"], v33.PUBLICATION_VERSION)
+        self.assertEqual(doc["calendarCoreSpecVersion"], v33.SPEC_VERSION)
+        self.assertEqual(doc["authority"]["status"], "pilot")
+        self.assertEqual(doc["referenceRuleVersion"], "v3.3-candidate")
         v33.validate_output(doc)
+        envelope = v33.validate_publication_document(doc)
+        self.assertEqual(envelope.authority_status, "pilot")
 
     def test_delayed_reentry_is_separate_week_not_371_day_year(self):
         opening = dt.date(2026, 1, 1)
@@ -130,6 +136,29 @@ class CommonCalendarV33Tests(unittest.TestCase):
         first = dt.date.fromisoformat(doc["years"][0]["openingCivilDate"])
         second = dt.date.fromisoformat(doc["years"][1]["openingCivilDate"])
         self.assertEqual((second - first).days, 364)
+        v33.validate_output(doc)
+
+    def test_reference_point_id_is_not_structurally_hardcoded_to_ground_zero(self):
+        opening = dt.date(2026, 1, 1)
+        next1 = opening + dt.timedelta(days=364)
+        doc = v33.generate(
+            latitude=self.latitude,
+            longitude=self.longitude,
+            first_year_label=2026,
+            first_opening=opening,
+            count=1,
+            ephemerides={
+                2027: v33.sunset_utc(
+                    v33.spring_gate_date(next1), self.latitude, self.longitude
+                )
+            },
+            ephemeris_source="test",
+            ephemeris_sha256="3" * 64,
+            coordinate_custody_nonce=self.custody_nonce,
+            publish_coordinates=False,
+            reference_point_id="PUBLIC_TEST_POINT",
+        )
+        self.assertEqual(doc["referencePoint"]["id"], "PUBLIC_TEST_POINT")
         v33.validate_output(doc)
 
 

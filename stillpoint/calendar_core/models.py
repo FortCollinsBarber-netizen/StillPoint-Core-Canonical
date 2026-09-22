@@ -98,8 +98,11 @@ class DualStamp:
     instant_utc: datetime
     civil_timestamp: datetime
     common_standard_timestamp: datetime
+    continuous_k: int
+    state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
+    reconciliation_address: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -109,8 +112,11 @@ class CalendarSnapshot:
     common_standard_timestamp: datetime
     local_sunset_previous: datetime
     local_sunset_next: datetime
+    continuous_k: int
+    state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
+    reconciliation_address: Optional[str]
     named_day: str
     sabbath_active: bool
     lords_day_active: bool

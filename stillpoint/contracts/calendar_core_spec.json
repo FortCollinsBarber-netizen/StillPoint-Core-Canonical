@@ -1,0 +1,50 @@
+{
+  "boundary": {
+    "apparentHorizonZenithDegrees": 90.8333,
+    "failurePolicy": "explicit-no-silent-fallback",
+    "protocolId": "apparent-sunrise-set-0.8333"
+  },
+  "gates": {
+    "gateSequence": [4, 5, 6, 6, 5, 4, 3, 2, 1, 1, 2, 3],
+    "pairedGateCount": 6,
+    "phaseLengths": [30, 30, 31, 30, 30, 31, 30, 30, 31, 30, 30, 31]
+  },
+  "invariants": [
+    "continuous-time-never-gaps",
+    "ordinary-year-is-always-364",
+    "reconciliation-is-0-or-7-and-interannual",
+    "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
+    "week-sequence-is-never-broken",
+    "missing-required-evidence-fails-closed",
+    "publication-is-finite-and-does-not-self-ratify"
+  ],
+  "jurisdiction": {
+    "authorityNamespace": "stillpoint.temporal",
+    "calendarNamespace": "stillpoint.calendar_core",
+    "publicationAuthority": "external-finite-evidence-object"
+  },
+  "ordinaryCalendar": {
+    "baseYearDays": 364,
+    "monthLengths": [30, 30, 31, 30, 30, 31, 30, 30, 31, 30, 30, 31],
+    "quarterDays": 91,
+    "quarters": 4,
+    "weekDays": 7
+  },
+  "reconciliation": {
+    "addressPattern": "Y_n/Y_n+1-R{day}",
+    "allowedDays": [0, 7],
+    "inheritsOrdinaryFields": false,
+    "namespace": "interannual"
+  },
+  "referenceRules": {
+    "v3.2": {"operator": "NearestLegal", "status": "recovered-historical"},
+    "v3.3Candidate": {
+      "operator": "NearestLegalSpringGate",
+      "springGateDay": 20,
+      "springGateMonth": 3,
+      "springGateOrdinal": 80,
+      "status": "candidate-unratified"
+    }
+  },
+  "version": "stillpoint-calendar-core-spec-v1"
+}

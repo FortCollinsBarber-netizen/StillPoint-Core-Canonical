@@ -15,8 +15,8 @@ from .sunset import apparent_sunrise_utc, apparent_sunset_utc
 UTC = timezone.utc
 CONTRACT_VERSION = "stillpoint-calendar-core-contract-v1"
 
-# Public conformance point only. This is deliberately not the private Ground Zero
-# coordinate and confers no civic/national reference authority.
+# Compatibility bridge for stacked clients. New consumers should use the split
+# spec + finite publication + projection-vector artifacts.
 CONFORMANCE_POINT = GeoPoint(40.3978, -105.0749, "LOVELAND_TEST")
 CONFORMANCE_ZONE = "America/Denver"
 
@@ -37,6 +37,8 @@ def _expected(snapshot) -> dict[str, Any]:
     common = snapshot.common_date
     jubilee = snapshot.jubilee
     return {
+        "continuousK": snapshot.continuous_k,
+        "state": snapshot.state,
         "commonDate": None if common is None else {
             "year": common.year,
             "ordinal": common.ordinal,
@@ -47,6 +49,8 @@ def _expected(snapshot) -> dict[str, Any]:
             "dayInWeek": common.day_in_week,
             "weekday": common.weekday,
         },
+        "reconciliationDay": snapshot.reconciliation_day,
+        "reconciliationAddress": snapshot.reconciliation_address,
         "namedDay": snapshot.named_day,
         "sabbath": snapshot.sabbath_active,
         "lordsDay": snapshot.lords_day_active,
@@ -62,20 +66,18 @@ def _expected(snapshot) -> dict[str, Any]:
             "isJubileeYear": jubilee.is_jubilee_year,
         },
         "civilOffsetSeconds": _offset_seconds(snapshot.civil_timestamp),
-        "commonStandardOffsetSeconds": _offset_seconds(
-            snapshot.common_standard_timestamp
-        ),
+        "commonStandardOffsetSeconds": _offset_seconds(snapshot.common_standard_timestamp),
         "nextProtectedBoundaryLabel": snapshot.next_protected_boundary_label,
+        "provenance": {
+            "referenceRuleVersion": snapshot.reference_rule_version,
+            "referenceStationId": snapshot.reference_station_id,
+            "ephemerisId": snapshot.ephemeris_id,
+        },
     }
 
 
 def _vector(vector_id: str, instant: datetime, config: CalendarConfig) -> dict[str, Any]:
-    snapshot = get_calendar_snapshot(instant, config=config)
-    return {
-        "id": vector_id,
-        "instantUTC": _iso_seconds(instant),
-        "expected": _expected(snapshot),
-    }
+    return {"id": vector_id, "instantUTC": _iso_seconds(instant), "expected": _expected(get_calendar_snapshot(instant, config=config))}
 
 
 def build_calendar_core_contract() -> dict[str, Any]:
@@ -99,27 +101,11 @@ def build_calendar_core_contract() -> dict[str, Any]:
     sunday_sunset = apparent_sunset_utc(date(2026, 9, 20), CONFORMANCE_POINT)
 
     vectors = [
-        _vector(
-            "observation-zero",
-            datetime(2026, 9, 18, 19, 28, 57, tzinfo=UTC),
-            config,
-        ),
+        _vector("observation-zero", datetime(2026, 9, 18, 19, 28, 57, tzinfo=UTC), config),
         _vector("friday-after-sunset", friday_sunset + timedelta(seconds=1), config),
-        _vector(
-            "saturday-after-sunset",
-            saturday_sunset + timedelta(seconds=1),
-            config,
-        ),
-        _vector(
-            "sunday-before-sunrise",
-            sunday_sunrise - timedelta(seconds=1),
-            config,
-        ),
-        _vector(
-            "sunday-after-sunrise",
-            sunday_sunrise + timedelta(seconds=1),
-            config,
-        ),
+        _vector("saturday-after-sunset", saturday_sunset + timedelta(seconds=1), config),
+        _vector("sunday-before-sunrise", sunday_sunrise - timedelta(seconds=1), config),
+        _vector("sunday-after-sunrise", sunday_sunrise + timedelta(seconds=1), config),
         _vector("sunday-after-sunset", sunday_sunset + timedelta(seconds=1), config),
     ]
 
@@ -156,8 +142,4 @@ def build_calendar_core_contract() -> dict[str, Any]:
 
 
 def export_calendar_core_contract(path: Path) -> None:
-    document = build_calendar_core_contract()
-    path.write_text(
-        json.dumps(document, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    path.write_text(json.dumps(build_calendar_core_contract(), indent=2, sort_keys=True) + "\n", encoding="utf-8")

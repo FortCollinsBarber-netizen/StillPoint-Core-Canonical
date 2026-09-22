@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  core:
+  core-runtime:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,48 +18,24 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Install source package
         run: python -m pip install .
-
       - name: Unit, integration, and end-to-end tests
         run: python -m unittest discover -s tests -q
-
       - name: Action authority bypass audit
         run: python tools/audit_action_request_boundaries.py .
-
       - name: Specialist/company boundary audit
         run: python tools/audit_company_boundaries.py .
-
       - name: Frozen evaluator integrity
         run: python -c "from eval.frozen import verify_frozen_corpora; print(verify_frozen_corpora())"
-
       - name: Source checkout doctor
         env:
           STILLPOINT_ROOT: ${{ github.workspace }}
           STILLPOINT_PROVIDER: mock
         run: python -m stillpoint.cli doctor
-
-      - name: Build wheel
-        run: |
-          python -m pip wheel . --no-deps -w dist
-          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
-
-      - name: Runtime-only wheel smoke test
-        run: |
-          python -m venv /tmp/stillpoint-wheel-venv
-          /tmp/stillpoint-wheel-venv/bin/python -m pip install --upgrade pip
-          /tmp/stillpoint-wheel-venv/bin/python -m pip install dist/*.whl
-          tmpdir="$(mktemp -d)"
-          (
-            cd "$tmpdir"
-            STILLPOINT_ROOT="$tmpdir" STILLPOINT_PROVIDER=mock               "/tmp/stillpoint-wheel-venv/bin/stillpoint" doctor
-          )
-
       - name: Historical raw evaluator
         run: |
           set +e
@@ -67,12 +43,135 @@ jobs:
           rc=$?
           set -e
           test "$rc" -eq 0 -o "$rc" -eq 1
-
       - name: Calibrated provider-independent evaluator
         run: python eval/run_calibrated.py
-
       - name: Classified evaluator release gate
         run: python eval/release_gate.py
-
       - name: Deterministic source-tree release audit
         run: python tools/release_audit.py .
+
+  calendar-core-domain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Prove Calendar Core domain suite is actually discovered
+        run: python -m unittest discover -s tests/calendar_core -p 'test_*.py' -q
+
+  calendar-publication:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Prove finite v3.3 publication compiler
+        run: python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q
+
+  calendar-contract-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Regenerate Calendar Core spec and projection vectors
+        run: |
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --manifest-output /tmp/calendar_core_artifact_manifest.json
+          diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
+          diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
+
+  calendar-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel
+        run: |
+          python -m pip wheel . --no-deps -w dist
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+      - name: Install wheel outside checkout and exercise Calendar Core
+        run: |
+          python -m venv /tmp/stillpoint-calendar-wheel
+          /tmp/stillpoint-calendar-wheel/bin/python -m pip install --upgrade pip
+          /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl
+          tmpdir="$(mktemp -d)"
+          cd "$tmpdir"
+          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"
+
+
+  calendar-release-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Emit exact Calendar Core release-candidate identity
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+
+          head = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          tree = subprocess.check_output(
+              ["git", "rev-parse", "HEAD^{tree}"], text=True
+          ).strip()
+
+          custody_path = Path(
+              "stillpoint/contracts/calendar_core_artifact_manifest.json"
+          )
+          custody = json.loads(custody_path.read_text(encoding="utf-8"))
+          verified = []
+          for item in custody["artifacts"]:
+              payload = Path(item["path"]).read_bytes()
+              digest = hashlib.sha256(payload).hexdigest()
+              if digest != item["sha256"]:
+                  raise SystemExit(
+                      f"custody mismatch for {item['path']}: "
+                      f"{digest} != {item['sha256']}"
+                  )
+              verified.append(
+                  {
+                      "path": item["path"],
+                      "role": item["role"],
+                      "bytes": len(payload),
+                      "sha256": digest,
+                  }
+              )
+
+          identity = {
+              "version": "stillpoint-calendar-release-candidate-v1",
+              "authorityStatus": "engineering-evidence-only",
+              "commit": head,
+              "tree": tree,
+              "artifacts": verified,
+              "unresolvedCivicInputs": [
+                  "firstOpening",
+                  "referencePoint",
+                  "ephemerisEvidence",
+                  "publicationAuthority",
+              ],
+              "invariants": [
+                  "ordinary-year-is-364",
+                  "reconciliation-is-interannual-0-or-7",
+                  "week-is-unbroken",
+                  "law-publication-proof-client-are-separate",
+                  "ground-zero-is-pilot-not-national-authority",
+              ],
+          }
+          print("CALENDAR_CORE_RELEASE_CANDIDATE_IDENTITY")
+          print(json.dumps(identity, indent=2, sort_keys=True))
+          PY

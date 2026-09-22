@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stillpoint.example/schemas/calendar-snapshot-v1.json",
+  "$id": "https://stillpoint.example/schemas/calendar-snapshot-v2.json",
   "title": "StillPoint Calendar Snapshot",
   "type": "object",
   "required": [
@@ -9,32 +9,138 @@
     "common_standard_timestamp",
     "local_sunset_previous",
     "local_sunset_next",
+    "continuous_k",
+    "state",
     "named_day",
     "sabbath_active",
     "lords_day_active",
     "stillpoint_active",
-    "reference_rule_version"
+    "reference_rule_version",
+    "calendar_address"
   ],
   "properties": {
-    "instant_utc": {"type": "string", "format": "date-time"},
-    "civil_timestamp": {"type": "string", "format": "date-time"},
-    "common_standard_timestamp": {"type": "string", "format": "date-time"},
-    "local_sunset_previous": {"type": "string", "format": "date-time"},
-    "local_sunset_next": {"type": "string", "format": "date-time"},
-    "common_date": {"type": ["object", "null"]},
-    "reconciliation_day": {"type": ["integer", "null"], "minimum": 1, "maximum": 7},
-    "named_day": {"type": "string"},
-    "sabbath_active": {"type": "boolean"},
-    "lords_day_active": {"type": "boolean"},
-    "stillpoint_active": {"type": "boolean"},
-    "next_protected_boundary": {"type": ["string", "null"], "format": "date-time"},
-    "next_protected_boundary_label": {"type": ["string", "null"]},
-    "annual_phase": {"type": ["integer", "null"], "minimum": 1, "maximum": 12},
-    "solar_gate": {"type": ["integer", "null"], "minimum": 1, "maximum": 6},
-    "jubilee": {"type": ["object", "null"]},
-    "reference_rule_version": {"type": "string"},
-    "reference_station_id": {"type": ["string", "null"]},
-    "ephemeris_id": {"type": ["string", "null"]}
+    "instant_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "civil_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "common_standard_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "local_sunset_previous": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "local_sunset_next": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "continuous_k": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "state": {
+      "enum": [
+        "ORDINARY",
+        "RECONCILIATION",
+        "OUTSIDE_RANGE"
+      ]
+    },
+    "common_date": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "reconciliation_day": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 7
+    },
+    "reconciliation_address": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "named_day": {
+      "type": "string"
+    },
+    "sabbath_active": {
+      "type": "boolean"
+    },
+    "lords_day_active": {
+      "type": "boolean"
+    },
+    "stillpoint_active": {
+      "type": "boolean"
+    },
+    "next_protected_boundary": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "next_protected_boundary_label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "annual_phase": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 12
+    },
+    "solar_gate": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 6
+    },
+    "jubilee": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "reference_rule_version": {
+      "type": "string"
+    },
+    "reference_station_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ephemeris_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "calendar_address": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
   },
   "additionalProperties": false
-}
+}\n

@@ -31,5 +31,8 @@
   "ephemeris": {
     "source": "recognized-astronomical-ephemeris",
     "inputFile": "equinoxes.json"
-  }
+  },
+  "exampleStatus": "superseded-unratified-template",
+  "supersededBy": "temporal/civic-enactment-v1/enactment.json",
+  "notice": "This file remains only as a historical/template input example. It is not the enacted Civic reference instrument."
 }

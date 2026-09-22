@@ -1,0 +1,62 @@
+{
+  "spec_id": "stillpoint-temporal-core",
+  "status": "recovered-canonical-contract-v3.2",
+  "canonical_sources": [
+    "Unified_Temporal_Constitution_v3.0_FINAL_LOCKED.docx",
+    "StillPoint_Reconciliation_Equation_v3.2_Reference_Rule_LOCKED.docx",
+    "Unified_Temporal_Constitution_Plain_English.docx"
+  ],
+  "day": {
+    "boundary": "standardized_local_apparent_sunset",
+    "solar_center_altitude_degrees": -0.8333,
+    "lived_boundary_scope": "local",
+    "clock_role": "translation_layer"
+  },
+  "week": {
+    "length_boundaries": 7,
+    "primary_stillpoint": "Friday apparent sunset through Saturday apparent sunset",
+    "sunday_role": "renewal/re-entry",
+    "mercy_interval": "may extend civic protection from Friday dusk through Sunday dawn"
+  },
+  "base_year": {
+    "days": 364,
+    "weeks": 52,
+    "quarters": 4,
+    "days_per_quarter": 91,
+    "weeks_per_quarter": 13
+  },
+  "legal_year_lengths": [364, 371],
+  "enoch_phases": [
+    {"phase":1,"gate":4,"motion":"northward","days":30},
+    {"phase":2,"gate":5,"motion":"northward","days":30},
+    {"phase":3,"gate":6,"motion":"northward_to_turn","days":31},
+    {"phase":4,"gate":6,"motion":"southward_from_turn","days":30},
+    {"phase":5,"gate":5,"motion":"southward","days":30},
+    {"phase":6,"gate":4,"motion":"southward","days":31},
+    {"phase":7,"gate":3,"motion":"southward","days":30},
+    {"phase":8,"gate":2,"motion":"southward","days":30},
+    {"phase":9,"gate":1,"motion":"southward_to_turn","days":31},
+    {"phase":10,"gate":1,"motion":"northward_from_turn","days":30},
+    {"phase":11,"gate":2,"motion":"northward","days":30},
+    {"phase":12,"gate":3,"motion":"northward","days":31}
+  ],
+  "reference_rule": {
+    "id": "A,P,D;O",
+    "A": "astronomical March equinox",
+    "P": null,
+    "P_status": "open enactment question",
+    "D": "standardized apparent sunset; solar center about -0.8333 degrees",
+    "O": "NearestLegal",
+    "candidate_year_lengths": [364, 371],
+    "tie_breaker": 364
+  },
+  "forecast": {
+    "checksum_weeks": 11,
+    "checksum_years": 62,
+    "governing_schedule": false
+  },
+  "gate_interpretation": {
+    "paired_geometry_status": "ancient/source layer",
+    "east_emergence_west_release_status": "StillPoint synthesis"
+  }
+}

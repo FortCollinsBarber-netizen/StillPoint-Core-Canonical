@@ -1,0 +1,35 @@
+{
+  "version": "stillpoint-temporal-v3.3-candidate",
+  "publicationAuthority": {
+    "id": "UNRATIFIED_PILOT",
+    "status": "pilot"
+  },
+  "referencePoint": {
+    "id": "GROUND_ZERO",
+    "label": "Private Loveland pilot reference",
+    "latitude": null,
+    "longitude": null,
+    "coordinatesPublic": false,
+    "custodyNonce": null
+  },
+  "duskProtocol": {
+    "id": "apparent-sunset-0.8333",
+    "sunCenterAltitudeDegrees": -0.8333
+  },
+  "seasonalAnchor": {
+    "event": "march_equinox",
+    "commonMonth": 3,
+    "commonDay": 20,
+    "ordinal": 80
+  },
+  "snapOperator": "NearestLegalSpringGate",
+  "firstOpening": {
+    "yearLabel": 2027,
+    "civilDate": "YYYY-MM-DD",
+    "day001Weekday": "UNRATIFIED"
+  },
+  "ephemeris": {
+    "source": "recognized-astronomical-ephemeris",
+    "inputFile": "equinoxes.json"
+  }
+}

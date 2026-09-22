@@ -34,6 +34,17 @@ struct CivicClockView: View {
                             .font(.headline)
                     }
 
+                    if snapshot.isLordsDay {
+                        Text("LORD'S DAY")
+                            .font(.headline)
+                    }
+
+                    if snapshot.isStillPoint {
+                        Text("STILLPOINT")
+                            .font(.caption.weight(.bold))
+                            .tracking(1.2)
+                    }
+
                     Divider()
 
                     VStack(spacing: 2) {
@@ -47,7 +58,21 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    if let next = snapshot.nextBoundary {
+                    if let protectedBoundary = snapshot.nextProtectedBoundary {
+                        Divider()
+
+                        Text(snapshot.nextProtectedBoundaryLabel ?? "NEXT HORIZON BOUNDARY")
+                            .font(.caption2.weight(.bold))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+
+                        Text(protectedBoundary, style: .time)
+                            .font(.title3.monospacedDigit())
+
+                        Text(protectedBoundary, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else if let next = snapshot.nextBoundary {
                         Divider()
 
                         Text(snapshot.boundaryStatus)
@@ -63,13 +88,13 @@ struct CivicClockView: View {
                     }
 
                     if locationService.coordinate == nil {
-                        Text("LOCATION NEEDED FOR LOCAL SUNDOWN")
+                        Text("LOCATION NEEDED FOR LOCAL HORIZON BOUNDARIES")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("CLOCK TRANSLATES · SUN BOUNDARY COUNTS")
+                    Text("CLOCK TRANSLATES · HORIZON BOUNDARY COUNTS")
                         .font(.system(size: 8, weight: .medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.tertiary)

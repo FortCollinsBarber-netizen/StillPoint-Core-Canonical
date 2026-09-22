@@ -1,17 +1,11 @@
 import Foundation
 
-struct PublishedCivicYear: Codable, Equatable {
-    let year: Int
-    // Civil date whose local sunset opens this year, YYYY-MM-DD.
-    let openingCivilDate: String
-    // Mature StillPoint model: the ordinary year is 364 days.
-    // A transition may carry one seven-day Reconciliation interval.
-    let reconciliationDaysAfterCompletion: Int
-}
-
-struct PublishedCivicCalendar: Codable, Equatable {
-    let version: String
-    let years: [PublishedCivicYear]
+private struct WeeklyProtectedTimeState {
+    let isSabbath: Bool
+    let isLordsDay: Bool
+    let isStillPoint: Bool
+    let nextBoundary: Date?
+    let nextBoundaryLabel: String?
 }
 
 enum CivicCalendarEngine {
@@ -20,16 +14,36 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = nil,
+        calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load(),
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
         var calendar = inputCalendar
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
+        guard let spec = calendarCoreSpec else {
+            return CivicClockSnapshot(
+                generatedAt: now,
+                namedDay: "COMMON DAY",
+                weekdayNumber: 0,
+                isSabbath: false,
+                isLordsDay: false,
+                isStillPoint: false,
+                previousBoundary: nil,
+                nextBoundary: nil,
+                boundaryStatus: "CORE SPEC UNAVAILABLE",
+                nextProtectedBoundary: nil,
+                nextProtectedBoundaryLabel: nil,
+                commonCalendarLabel: "CALENDAR",
+                commonCalendarDetail: "CORE SPEC UNAVAILABLE"
+            )
+        }
+
         let pair = SolarBoundaryCalculator.previousAndNextSunset(
             around: now,
             latitude: latitude,
             longitude: longitude,
-            calendar: calendar
+            calendar: calendar,
+            spec: spec
         )
 
         guard let previous = pair.previous, let next = pair.next else {
@@ -38,16 +52,18 @@ enum CivicCalendarEngine {
                 namedDay: "COMMON DAY",
                 weekdayNumber: 0,
                 isSabbath: false,
+                isLordsDay: false,
+                isStillPoint: false,
                 previousBoundary: pair.previous,
                 nextBoundary: pair.next,
                 boundaryStatus: "SUN BOUNDARY UNAVAILABLE",
+                nextProtectedBoundary: nil,
+                nextProtectedBoundaryLabel: nil,
                 commonCalendarLabel: "CALENDAR",
                 commonCalendarDetail: "FALLBACK RULE NOT ENACTED"
             )
         }
 
-        // A named weekday begins at the previous evening.
-        // Example: Friday sunset opens Saturday / Sabbath.
         let namedCivilDate = calendar.date(
             byAdding: .day,
             value: 1,
@@ -59,7 +75,17 @@ enum CivicCalendarEngine {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = calendar.timeZone
         let weekdayName = formatter.weekdaySymbols[weekday - 1]
-        let isSabbath = weekday == 7 // Saturday in Gregorian weekday numbering.
+
+        let weekly = weeklyProtectedTimeState(
+            now: now,
+            namedCivilDate: namedCivilDate,
+            weekday: weekday,
+            latitude: latitude,
+            longitude: longitude,
+            nextSunset: next,
+            spec: spec,
+            calendar: calendar
+        )
 
         let annual = annualLabel(
             now: now,
@@ -67,6 +93,7 @@ enum CivicCalendarEngine {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: publishedCalendar,
+            spec: spec,
             calendar: calendar
         )
 
@@ -74,12 +101,75 @@ enum CivicCalendarEngine {
             generatedAt: now,
             namedDay: weekdayName.uppercased(),
             weekdayNumber: weekday,
-            isSabbath: isSabbath,
+            isSabbath: weekly.isSabbath,
+            isLordsDay: weekly.isLordsDay,
+            isStillPoint: weekly.isStillPoint,
             previousBoundary: previous,
             nextBoundary: next,
             boundaryStatus: "NEXT SUNDOWN",
+            nextProtectedBoundary: weekly.nextBoundary,
+            nextProtectedBoundaryLabel: weekly.nextBoundaryLabel,
             commonCalendarLabel: annual.label,
             commonCalendarDetail: annual.detail
+        )
+    }
+
+    private static func weeklyProtectedTimeState(
+        now: Date,
+        namedCivilDate: Date,
+        weekday: Int,
+        latitude: Double,
+        longitude: Double,
+        nextSunset: Date,
+        spec: CalendarCoreSpec,
+        calendar: Calendar
+    ) -> WeeklyProtectedTimeState {
+        if weekday == 7 {
+            return WeeklyProtectedTimeState(
+                isSabbath: true,
+                isLordsDay: false,
+                isStillPoint: true,
+                nextBoundary: nextSunset,
+                nextBoundaryLabel: "SABBATH ENDS · LORD'S DAY BEGINS"
+            )
+        }
+
+        if weekday == 1 {
+            let sunday = calendar.startOfDay(for: namedCivilDate)
+            let sunrise = SolarBoundaryCalculator.sunrise(
+                on: sunday,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar,
+                spec: spec
+            )
+
+            if let sunrise, now < sunrise {
+                return WeeklyProtectedTimeState(
+                    isSabbath: false,
+                    isLordsDay: true,
+                    isStillPoint: true,
+                    nextBoundary: sunrise,
+                    nextBoundaryLabel:
+                        "STILLPOINT RELEASE · SUNDAY SUNRISE"
+                )
+            }
+
+            return WeeklyProtectedTimeState(
+                isSabbath: false,
+                isLordsDay: true,
+                isStillPoint: false,
+                nextBoundary: nextSunset,
+                nextBoundaryLabel: "LORD'S DAY ENDS · SUNDAY SUNSET"
+            )
+        }
+
+        return WeeklyProtectedTimeState(
+            isSabbath: false,
+            isLordsDay: false,
+            isStillPoint: false,
+            nextBoundary: nil,
+            nextBoundaryLabel: nil
         )
     }
 
@@ -89,11 +179,20 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar?,
+        spec: CalendarCoreSpec,
         calendar: Calendar
     ) -> (label: String, detail: String) {
         guard let publishedCalendar else {
             return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
         }
+
+        guard publishedCalendar.isValidatedForProjection else {
+            return ("COMMON CALENDAR", "PUBLICATION NOT AUTHORIZED")
+        }
+
+        let baseYearDays = spec.ordinaryCalendar.baseYearDays
+        let quarterDays = spec.ordinaryCalendar.quarterDays
+        let allowedReconciliation = Set(spec.reconciliation.allowedDays)
 
         let formatter = DateFormatter()
         formatter.calendar = calendar
@@ -108,10 +207,9 @@ enum CivicCalendarEngine {
         for index in sorted.indices {
             let current = sorted[index]
 
-            // Fail closed if a published row tries to invent a non-week correction.
-            guard current.reconciliationDaysAfterCompletion == 0
-                    || current.reconciliationDaysAfterCompletion == 7
-            else { continue }
+            guard allowedReconciliation.contains(
+                current.reconciliationDaysAfterCompletion
+            ) else { continue }
 
             guard
                 let openingDay = formatter.date(from: current.openingCivilDate),
@@ -119,7 +217,8 @@ enum CivicCalendarEngine {
                     on: openingDay,
                     latitude: latitude,
                     longitude: longitude,
-                    calendar: calendar
+                    calendar: calendar,
+                    spec: spec
                 )
             else { continue }
 
@@ -132,50 +231,52 @@ enum CivicCalendarEngine {
                 to: currentBoundaryDay
             ).day else { continue }
 
-            let legalLength = 364 + current.reconciliationDaysAfterCompletion
+            let legalSpan =
+                baseYearDays + current.reconciliationDaysAfterCompletion
+            guard boundaryOffset >= 0, boundaryOffset < legalSpan else {
+                continue
+            }
 
-            // A published year's authority expires at its declared final dusk.
-            guard boundaryOffset >= 0, boundaryOffset < legalLength else { continue }
-
-            // If the next row exists, it must agree with the current row's
-            // declared 364/371-boundary length. Inconsistent tables fail closed.
             if sorted.indices.contains(index + 1) {
                 let next = sorted[index + 1]
                 guard
-                    let nextOpeningDay = formatter.date(from: next.openingCivilDate),
+                    let nextOpeningDay = formatter.date(
+                        from: next.openingCivilDate
+                    ),
                     let publishedSpan = calendar.dateComponents(
                         [.day],
                         from: openingBoundaryDay,
                         to: calendar.startOfDay(for: nextOpeningDay)
                     ).day,
-                    publishedSpan == legalLength,
+                    publishedSpan == legalSpan,
                     let nextOpening = SolarBoundaryCalculator.sunset(
                         on: nextOpeningDay,
                         latitude: latitude,
                         longitude: longitude,
-                        calendar: calendar
+                        calendar: calendar,
+                        spec: spec
                     ),
                     now < nextOpening
                 else { continue }
             }
 
-            let yearShape = legalLength == 371 ? "53W" : "52W"
-
-            if boundaryOffset >= 364 {
-                let reconciliationDay = boundaryOffset - 364 + 1
+            if boundaryOffset >= baseYearDays {
+                let reconciliationDay =
+                    boundaryOffset - baseYearDays + 1
                 return (
                     "RECONCILIATION",
-                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE · \(yearShape)"
+                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
                 )
             }
 
             let day = boundaryOffset + 1
-            let week = ((day - 1) / 7) + 1
-            let dayInWeek = ((day - 1) % 7) + 1
-            let season = ((day - 1) / 91) + 1
+            let week = ((day - 1) / spec.ordinaryCalendar.weekDays) + 1
+            let dayInWeek =
+                ((day - 1) % spec.ordinaryCalendar.weekDays) + 1
+            let season = ((day - 1) / quarterDays) + 1
             return (
                 "YEAR \(current.year) · DAY \(String(format: "%03d", day))",
-                "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek) · \(yearShape)"
+                "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek)"
             )
         }
 

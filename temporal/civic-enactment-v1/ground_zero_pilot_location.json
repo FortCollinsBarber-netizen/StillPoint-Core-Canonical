@@ -4,7 +4,13 @@
   "status": "pilot",
   "authorityScope": "civic-national-reference",
   "streetAddress": "3462 Hewitt, Loveland, CO 80538",
-  "coordinates": null,
+  "coordinates": {
+    "latitude": 40.43695,
+    "longitude": -105.12467,
+    "source": "public-property-record-geocoding",
+    "custodyNonce": "GROUND_ZERO_CIVIC_REFERENCE_V1_20260922",
+    "custodyDigest": "1cbf672bcb9b2c7548c05df9967db6062197cad0a9bc0295de92dc906f28b4f4"
+  },
   "calendarCoreFreeze": {
     "commit": "9c35130daecd6d74063d2ef9140e2b3348e049ad",
     "tree": "c0f0e4a2071b9b65e8b9a5ac38b436b2da032c02"
@@ -25,7 +31,9 @@
   "notes": [
     "Ground Zero is the selected Civic national reference point.",
     "The current operating phase remains pilot.",
-    "This record fixes the reference-point choice but does not itself grant publication authority, choose the first enacted opening, or choose ephemeris authority.",
+    "Coordinates are explicitly committed for reproducible civic publication geometry.",
+    "This location record does not itself grant publication authority, choose the first enacted opening, or choose ephemeris authority.",
+    "Those remaining acts are enacted separately in enactment.json.",
     "Calendar Core remains frozen at the recorded engineering completion identity."
   ]
 }

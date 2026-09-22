@@ -120,7 +120,7 @@ struct CivicClockView: View {
             now: now,
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
-            publishedCalendar: PublishedCalendarLoader.load()
+            publishedCalendar: CivicPublicationAuthority.loadPublishedCalendar()
         )
     }
 }

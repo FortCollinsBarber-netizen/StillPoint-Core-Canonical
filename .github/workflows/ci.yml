@@ -82,9 +82,11 @@ jobs:
       - run: python -m pip install .
       - name: Regenerate Calendar Core spec and projection vectors
         run: |
-          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          echo "=== CALENDAR CORE ARTIFACT MANIFEST ==="
+          cat /tmp/calendar_core_artifact_manifest.json
 
   calendar-package:
     runs-on: ubuntu-latest

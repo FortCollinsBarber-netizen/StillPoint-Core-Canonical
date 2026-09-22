@@ -12,6 +12,12 @@ from .address import (
     format_reconciliation_address,
     parse_calendar_address,
 )
+from .artifact_manifest import (
+    ARTIFACT_MANIFEST_VERSION,
+    build_calendar_core_artifact_manifest,
+    canonical_export_bytes,
+    export_calendar_core_artifact_manifest,
+)
 from .astronomy import (
     AstronomyEvidence,
     AstronomyEvidenceError,
@@ -94,6 +100,10 @@ __all__ = [
     "format_ordinary_address",
     "format_reconciliation_address",
     "parse_calendar_address",
+    "ARTIFACT_MANIFEST_VERSION",
+    "build_calendar_core_artifact_manifest",
+    "canonical_export_bytes",
+    "export_calendar_core_artifact_manifest",
     "AstronomyEvidence",
     "AstronomyEvidenceError",
     "AstronomyProvider",

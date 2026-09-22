@@ -87,6 +87,7 @@ def validate_publication_rows(rows: Sequence[dict[str, Any]]) -> PublicationRang
 
     parsed: list[tuple[date, int, int]] = []
     seen_years: set[int] = set()
+
     for row in rows:
         try:
             year = int(row["year"])
@@ -110,6 +111,7 @@ def validate_publication_rows(rows: Sequence[dict[str, Any]]) -> PublicationRang
                 "INVALID_RECONCILIATION",
                 "reconciliation must be exactly 0 or 7 days",
             )
+
         parsed.append((opening, reconciliation, year))
 
     if parsed != sorted(parsed, key=lambda item: item[0]):
@@ -151,6 +153,11 @@ def validate_publication_document(
     expected_spec_version: str = SPEC_VERSION,
     authorized_authority_ids: Collection[str] | None = None,
     require_authority_status: str | None = None,
+    expected_reference_rule_version: str | None = None,
+    expected_reference_station_id: str | None = None,
+    expected_ephemeris_id: str | None = None,
+    expected_ephemeris_sha256: str | None = None,
+    superseded_publication_digests: Collection[str] | None = None,
     at_opening: date | None = None,
 ) -> PublicationEnvelope:
     if not isinstance(document, dict):
@@ -165,12 +172,22 @@ def validate_publication_document(
             "INVALID_PUBLICATION_DIGEST",
             "publicationDigest must be a SHA-256 hex digest",
         )
+
     expected_digest = publication_digest(document)
     if supplied_digest.lower() != expected_digest:
         raise PublicationValidationError(
             "PUBLICATION_DIGEST_MISMATCH",
             "publication content does not match publicationDigest",
         )
+
+    normalized_digest = supplied_digest.lower()
+    if superseded_publication_digests is not None:
+        superseded = {value.lower() for value in superseded_publication_digests}
+        if normalized_digest in superseded:
+            raise PublicationValidationError(
+                "PUBLICATION_SUPERSEDED",
+                "publication remains historical evidence but no longer has operative authority",
+            )
 
     publication_version = _nonempty_string(
         document,
@@ -200,6 +217,7 @@ def validate_publication_document(
             "MISSING_PUBLICATION_AUTHORITY",
             "publication.authority must be an object",
         )
+
     authority_id = _nonempty_string(
         authority,
         "id",
@@ -210,11 +228,13 @@ def validate_publication_document(
         "status",
         code="MISSING_PUBLICATION_AUTHORITY",
     )
+
     if authority_status not in ALLOWED_AUTHORITY_STATUSES:
         raise PublicationValidationError(
             "INVALID_AUTHORITY_STATUS",
             f"authority status must be one of {ALLOWED_AUTHORITY_STATUSES}",
         )
+
     if (
         authorized_authority_ids is not None
         and authority_id not in set(authorized_authority_ids)
@@ -223,6 +243,7 @@ def validate_publication_document(
             "UNAUTHORIZED_PUBLICATION_AUTHORITY",
             f"authority {authority_id} is not authorized for this projection",
         )
+
     if (
         require_authority_status is not None
         and authority_status != require_authority_status
@@ -237,6 +258,14 @@ def validate_publication_document(
         "referenceRuleVersion",
         code="MISSING_REFERENCE_RULE_VERSION",
     )
+    if (
+        expected_reference_rule_version is not None
+        and reference_rule_version != expected_reference_rule_version
+    ):
+        raise PublicationValidationError(
+            "REFERENCE_RULE_MISMATCH",
+            f"publication uses {reference_rule_version}; expected {expected_reference_rule_version}",
+        )
 
     reference_point = document.get("referencePoint")
     if not isinstance(reference_point, dict):
@@ -244,11 +273,20 @@ def validate_publication_document(
             "MISSING_REFERENCE_POINT",
             "publication.referencePoint must be an object",
         )
+
     reference_station_id = _nonempty_string(
         reference_point,
         "id",
         code="MISSING_REFERENCE_POINT",
     )
+    if (
+        expected_reference_station_id is not None
+        and reference_station_id != expected_reference_station_id
+    ):
+        raise PublicationValidationError(
+            "REFERENCE_POINT_MISMATCH",
+            f"publication uses reference {reference_station_id}; expected {expected_reference_station_id}",
+        )
 
     ephemeris = document.get("ephemerisEvidence")
     if not isinstance(ephemeris, dict):
@@ -256,11 +294,18 @@ def validate_publication_document(
             "MISSING_EPHEMERIS_EVIDENCE",
             "publication.ephemerisEvidence must be an object",
         )
+
     ephemeris_id = _nonempty_string(
         ephemeris,
         "source",
         code="MISSING_EPHEMERIS_EVIDENCE",
     )
+    if expected_ephemeris_id is not None and ephemeris_id != expected_ephemeris_id:
+        raise PublicationValidationError(
+            "EPHEMERIS_SOURCE_MISMATCH",
+            f"publication uses ephemeris {ephemeris_id}; expected {expected_ephemeris_id}",
+        )
+
     ephemeris_sha256 = _nonempty_string(
         ephemeris,
         "sha256",
@@ -271,6 +316,14 @@ def validate_publication_document(
             "INVALID_EPHEMERIS_DIGEST",
             "ephemerisEvidence.sha256 must be a SHA-256 hex digest",
         )
+    if (
+        expected_ephemeris_sha256 is not None
+        and ephemeris_sha256.lower() != expected_ephemeris_sha256.lower()
+    ):
+        raise PublicationValidationError(
+            "EPHEMERIS_DIGEST_MISMATCH",
+            "publication ephemeris digest does not match required evidence",
+        )
 
     rows = document.get("years")
     if not isinstance(rows, list):
@@ -278,17 +331,20 @@ def validate_publication_document(
             "INVALID_PUBLICATION_ROWS",
             "publication.years must be an array",
         )
+
     publication_range = validate_publication_rows(rows)
 
-    if at_opening is not None and not (
-        publication_range.first_opening
-        <= at_opening
-        < publication_range.expires_at_opening
-    ):
-        raise PublicationValidationError(
-            "OUTSIDE_PUBLISHED_RANGE",
-            "requested opening falls outside the finite publication range",
-        )
+    if at_opening is not None:
+        if at_opening < publication_range.first_opening:
+            raise PublicationValidationError(
+                "PUBLICATION_NOT_YET_EFFECTIVE",
+                "requested opening predates this publication's finite authority",
+            )
+        if at_opening >= publication_range.expires_at_opening:
+            raise PublicationValidationError(
+                "PUBLICATION_EXPIRED",
+                "publication remains historical evidence but its operative range has ended",
+            )
 
     return PublicationEnvelope(
         publication_version=publication_version,
@@ -300,5 +356,5 @@ def validate_publication_document(
         ephemeris_id=ephemeris_id,
         ephemeris_sha256=ephemeris_sha256.lower(),
         publication_range=publication_range,
-        publication_digest=supplied_digest.lower(),
+        publication_digest=normalized_digest,
     )

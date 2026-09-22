@@ -1,22 +1,20 @@
 import Foundation
 
 enum SolarBoundaryCalculator {
-    // USNO-style apparent rise/set geometry:
-    // Sun center at zenith distance 90°50' (90.8333°), so the upper limb
-    // is tangent to a level, unobstructed horizon under average refraction.
-    private static let zenith = 90.8333
-
     static func sunrise(
         on civilDate: Date,
         latitude: Double,
         longitude: Double,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        spec: CalendarCoreSpec? = CalendarCoreSpecLoader.load()
     ) -> Date? {
-        solarEvent(
+        guard let spec else { return nil }
+        return solarEvent(
             on: civilDate,
             latitude: latitude,
             longitude: longitude,
             rising: true,
+            zenithDegrees: spec.boundary.apparentHorizonZenithDegrees,
             calendar: calendar
         )
     }
@@ -25,13 +23,16 @@ enum SolarBoundaryCalculator {
         on civilDate: Date,
         latitude: Double,
         longitude: Double,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        spec: CalendarCoreSpec? = CalendarCoreSpecLoader.load()
     ) -> Date? {
-        solarEvent(
+        guard let spec else { return nil }
+        return solarEvent(
             on: civilDate,
             latitude: latitude,
             longitude: longitude,
             rising: false,
+            zenithDegrees: spec.boundary.apparentHorizonZenithDegrees,
             calendar: calendar
         )
     }
@@ -41,6 +42,7 @@ enum SolarBoundaryCalculator {
         latitude: Double,
         longitude: Double,
         rising: Bool,
+        zenithDegrees: Double,
         calendar inputCalendar: Calendar
     ) -> Date? {
         var calendar = inputCalendar
@@ -57,7 +59,11 @@ enum SolarBoundaryCalculator {
                 month: month,
                 day: day
             )),
-            let ordinal = calendar.ordinality(of: .day, in: .year, for: localMidnight)
+            let ordinal = calendar.ordinality(
+                of: .day,
+                in: .year,
+                for: localMidnight
+            )
         else { return nil }
 
         let lngHour = longitude / 15.0
@@ -71,7 +77,9 @@ enum SolarBoundaryCalculator {
             + 282.634
         trueLongitude = normalizedDegrees(trueLongitude)
 
-        var rightAscension = rad2deg(atan(0.91764 * tan(deg2rad(trueLongitude))))
+        var rightAscension = rad2deg(
+            atan(0.91764 * tan(deg2rad(trueLongitude)))
+        )
         rightAscension = normalizedDegrees(rightAscension)
 
         let lQuadrant = floor(trueLongitude / 90.0) * 90.0
@@ -83,13 +91,12 @@ enum SolarBoundaryCalculator {
         let cosDeclination = cos(asin(sinDeclination))
 
         let cosHour = (
-            cos(deg2rad(zenith))
+            cos(deg2rad(zenithDegrees))
             - sinDeclination * sin(deg2rad(latitude))
         ) / (
             cosDeclination * cos(deg2rad(latitude))
         )
 
-        // The standardized rise/set event does not occur on this civil date.
         guard cosHour >= -1.0, cosHour <= 1.0 else { return nil }
 
         var hourAngleDegrees = rad2deg(acos(cosHour))
@@ -97,7 +104,8 @@ enum SolarBoundaryCalculator {
             hourAngleDegrees = 360.0 - hourAngleDegrees
         }
         let hourAngle = hourAngleDegrees / 15.0
-        let localMeanTime = hourAngle + rightAscension - (0.06571 * t) - 6.622
+        let localMeanTime =
+            hourAngle + rightAscension - (0.06571 * t) - 6.622
         let universalHours = normalizedHours(localMeanTime - lngHour)
 
         var utc = Calendar(identifier: .gregorian)
@@ -109,10 +117,9 @@ enum SolarBoundaryCalculator {
             day: day
         )) else { return nil }
 
-        // The algorithm yields a normalized UTC clock hour. Restore local-date
-        // jurisdiction explicitly so a Colorado evening/morning event cannot be
-        // shifted onto the wrong local civil date by UTC rollover.
-        var candidate = utcMidnight.addingTimeInterval(universalHours * 3600.0)
+        var candidate = utcMidnight.addingTimeInterval(
+            universalHours * 3600.0
+        )
 
         for _ in 0..<2 {
             if calendar.isDate(candidate, inSameDayAs: localMidnight) {
@@ -126,24 +133,38 @@ enum SolarBoundaryCalculator {
             }
         }
 
-        return calendar.isDate(candidate, inSameDayAs: localMidnight) ? candidate : nil
+        return calendar.isDate(candidate, inSameDayAs: localMidnight)
+            ? candidate
+            : nil
     }
 
     static func previousAndNextSunset(
         around now: Date,
         latitude: Double,
         longitude: Double,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        spec: CalendarCoreSpec? = CalendarCoreSpecLoader.load()
     ) -> (previous: Date?, next: Date?) {
+        guard let spec else { return (nil, nil) }
+
         let today = calendar.startOfDay(for: now)
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today)!
+        let yesterday = calendar.date(
+            byAdding: .day,
+            value: -1,
+            to: today
+        )!
+        let tomorrow = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: today
+        )!
 
         let todaySunset = sunset(
             on: today,
             latitude: latitude,
             longitude: longitude,
-            calendar: calendar
+            calendar: calendar,
+            spec: spec
         )
 
         if let todaySunset, now >= todaySunset {
@@ -153,7 +174,8 @@ enum SolarBoundaryCalculator {
                     on: tomorrow,
                     latitude: latitude,
                     longitude: longitude,
-                    calendar: calendar
+                    calendar: calendar,
+                    spec: spec
                 )
             )
         }
@@ -163,7 +185,8 @@ enum SolarBoundaryCalculator {
                 on: yesterday,
                 latitude: latitude,
                 longitude: longitude,
-                calendar: calendar
+                calendar: calendar,
+                spec: spec
             ),
             todaySunset
         )

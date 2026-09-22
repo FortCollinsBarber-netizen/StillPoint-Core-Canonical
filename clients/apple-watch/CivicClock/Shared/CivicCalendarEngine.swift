@@ -2,10 +2,7 @@ import Foundation
 
 struct PublishedCivicYear: Codable, Equatable {
     let year: Int
-    // Civil date whose local sunset opens this year, YYYY-MM-DD.
     let openingCivilDate: String
-    // Mature StillPoint model: the ordinary year is 364 days.
-    // A transition may carry one seven-day Reconciliation interval.
     let reconciliationDaysAfterCompletion: Int
 }
 
@@ -28,16 +25,36 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = nil,
+        calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load(),
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
         var calendar = inputCalendar
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
+        guard let spec = calendarCoreSpec else {
+            return CivicClockSnapshot(
+                generatedAt: now,
+                namedDay: "COMMON DAY",
+                weekdayNumber: 0,
+                isSabbath: false,
+                isLordsDay: false,
+                isStillPoint: false,
+                previousBoundary: nil,
+                nextBoundary: nil,
+                boundaryStatus: "CORE SPEC UNAVAILABLE",
+                nextProtectedBoundary: nil,
+                nextProtectedBoundaryLabel: nil,
+                commonCalendarLabel: "CALENDAR",
+                commonCalendarDetail: "CORE SPEC UNAVAILABLE"
+            )
+        }
+
         let pair = SolarBoundaryCalculator.previousAndNextSunset(
             around: now,
             latitude: latitude,
             longitude: longitude,
-            calendar: calendar
+            calendar: calendar,
+            spec: spec
         )
 
         guard let previous = pair.previous, let next = pair.next else {
@@ -58,9 +75,6 @@ enum CivicCalendarEngine {
             )
         }
 
-        // A named weekday begins at the previous evening.
-        // Friday sunset opens Saturday / Sabbath.
-        // Saturday sunset opens Sunday / Lord's Day.
         let namedCivilDate = calendar.date(
             byAdding: .day,
             value: 1,
@@ -80,6 +94,7 @@ enum CivicCalendarEngine {
             latitude: latitude,
             longitude: longitude,
             nextSunset: next,
+            spec: spec,
             calendar: calendar
         )
 
@@ -89,6 +104,7 @@ enum CivicCalendarEngine {
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: publishedCalendar,
+            spec: spec,
             calendar: calendar
         )
 
@@ -116,11 +132,10 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         nextSunset: Date,
+        spec: CalendarCoreSpec,
         calendar: Calendar
     ) -> WeeklyProtectedTimeState {
-        // Gregorian Calendar weekday numbering: Sunday=1 ... Saturday=7.
         if weekday == 7 {
-            // Friday sunset -> Saturday sunset.
             return WeeklyProtectedTimeState(
                 isSabbath: true,
                 isLordsDay: false,
@@ -131,14 +146,13 @@ enum CivicCalendarEngine {
         }
 
         if weekday == 1 {
-            // Saturday sunset -> Sunday sunset is Lord's Day.
-            // StillPoint closes earlier, exactly at Sunday apparent sunrise.
             let sunday = calendar.startOfDay(for: namedCivilDate)
             let sunrise = SolarBoundaryCalculator.sunrise(
                 on: sunday,
                 latitude: latitude,
                 longitude: longitude,
-                calendar: calendar
+                calendar: calendar,
+                spec: spec
             )
 
             if let sunrise, now < sunrise {
@@ -147,7 +161,8 @@ enum CivicCalendarEngine {
                     isLordsDay: true,
                     isStillPoint: true,
                     nextBoundary: sunrise,
-                    nextBoundaryLabel: "STILLPOINT RELEASE · SUNDAY SUNRISE"
+                    nextBoundaryLabel:
+                        "STILLPOINT RELEASE · SUNDAY SUNRISE"
                 )
             }
 
@@ -175,11 +190,16 @@ enum CivicCalendarEngine {
         latitude: Double,
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar?,
+        spec: CalendarCoreSpec,
         calendar: Calendar
     ) -> (label: String, detail: String) {
         guard let publishedCalendar else {
             return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
         }
+
+        let baseYearDays = spec.ordinaryCalendar.baseYearDays
+        let quarterDays = spec.ordinaryCalendar.quarterDays
+        let allowedReconciliation = Set(spec.reconciliation.allowedDays)
 
         let formatter = DateFormatter()
         formatter.calendar = calendar
@@ -194,9 +214,9 @@ enum CivicCalendarEngine {
         for index in sorted.indices {
             let current = sorted[index]
 
-            guard current.reconciliationDaysAfterCompletion == 0
-                    || current.reconciliationDaysAfterCompletion == 7
-            else { continue }
+            guard allowedReconciliation.contains(
+                current.reconciliationDaysAfterCompletion
+            ) else { continue }
 
             guard
                 let openingDay = formatter.date(from: current.openingCivilDate),
@@ -204,7 +224,8 @@ enum CivicCalendarEngine {
                     on: openingDay,
                     latitude: latitude,
                     longitude: longitude,
-                    calendar: calendar
+                    calendar: calendar,
+                    spec: spec
                 )
             else { continue }
 
@@ -217,32 +238,38 @@ enum CivicCalendarEngine {
                 to: currentBoundaryDay
             ).day else { continue }
 
-            let legalLength = 364 + current.reconciliationDaysAfterCompletion
-
-            guard boundaryOffset >= 0, boundaryOffset < legalLength else { continue }
+            let legalSpan =
+                baseYearDays + current.reconciliationDaysAfterCompletion
+            guard boundaryOffset >= 0, boundaryOffset < legalSpan else {
+                continue
+            }
 
             if sorted.indices.contains(index + 1) {
                 let next = sorted[index + 1]
                 guard
-                    let nextOpeningDay = formatter.date(from: next.openingCivilDate),
+                    let nextOpeningDay = formatter.date(
+                        from: next.openingCivilDate
+                    ),
                     let publishedSpan = calendar.dateComponents(
                         [.day],
                         from: openingBoundaryDay,
                         to: calendar.startOfDay(for: nextOpeningDay)
                     ).day,
-                    publishedSpan == legalLength,
+                    publishedSpan == legalSpan,
                     let nextOpening = SolarBoundaryCalculator.sunset(
                         on: nextOpeningDay,
                         latitude: latitude,
                         longitude: longitude,
-                        calendar: calendar
+                        calendar: calendar,
+                        spec: spec
                     ),
                     now < nextOpening
                 else { continue }
             }
 
-            if boundaryOffset >= 364 {
-                let reconciliationDay = boundaryOffset - 364 + 1
+            if boundaryOffset >= baseYearDays {
+                let reconciliationDay =
+                    boundaryOffset - baseYearDays + 1
                 return (
                     "RECONCILIATION",
                     "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
@@ -250,9 +277,10 @@ enum CivicCalendarEngine {
             }
 
             let day = boundaryOffset + 1
-            let week = ((day - 1) / 7) + 1
-            let dayInWeek = ((day - 1) % 7) + 1
-            let season = ((day - 1) / 91) + 1
+            let week = ((day - 1) / spec.ordinaryCalendar.weekDays) + 1
+            let dayInWeek =
+                ((day - 1) % spec.ordinaryCalendar.weekDays) + 1
+            let season = ((day - 1) / quarterDays) + 1
             return (
                 "YEAR \(current.year) · DAY \(String(format: "%03d", day))",
                 "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek)"

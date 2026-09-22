@@ -1,6 +1,45 @@
 import XCTest
 @testable import CivicClockWatch
 
+private struct CalendarProjectionVectorDocument: Decodable {
+    struct Fixture: Decodable {
+        let latitude: Double
+        let longitude: Double
+        let legalCivilZone: String
+        let commonYear: Int
+        let openingCivilDate: String
+    }
+
+    struct Vector: Decodable {
+        struct Expected: Decodable {
+            struct CommonDate: Decodable {
+                let ordinal: Int
+                let quarter: Int
+                let week: Int
+                let dayInWeek: Int
+            }
+
+            let commonDate: CommonDate?
+            let namedDay: String
+            let sabbath: Bool
+            let lordsDay: Bool
+            let stillPoint: Bool
+            let state: String
+            let reconciliationDay: Int?
+            let nextProtectedBoundaryLabel: String?
+        }
+
+        let id: String
+        let instantUTC: String
+        let reconciliationDaysAfterCompletion: Int
+        let expected: Expected
+    }
+
+    let authorityStatus: String
+    let fixture: Fixture
+    let vectors: [Vector]
+}
+
 final class CivicCalendarTests: XCTestCase {
     private var denverCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -283,4 +322,99 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertTrue(snapshot.commonCalendarLabel.contains("YEAR 7"))
     }
+    func testNativeProjectionConsumesGeneratedCalendarCoreSpecAndVectors() throws {
+        let resourceRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Resources")
+
+        let spec = try XCTUnwrap(CalendarCoreSpecLoader.load(
+            url: resourceRoot.appendingPathComponent("calendar_core_spec.json")
+        ))
+        let vectorData = try Data(contentsOf:
+            resourceRoot.appendingPathComponent("calendar_projection_vectors.json")
+        )
+        let document = try JSONDecoder().decode(
+            CalendarProjectionVectorDocument.self,
+            from: vectorData
+        )
+
+        XCTAssertEqual(document.authorityStatus, "conformance-only")
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(
+            identifier: document.fixture.legalCivilZone
+        ))
+        let parser = ISO8601DateFormatter()
+
+        for vector in document.vectors {
+            let now = try XCTUnwrap(
+                parser.date(from: vector.instantUTC),
+                "Could not parse \(vector.id)"
+            )
+            let published = PublishedCivicCalendar(
+                version: "conformance-only",
+                years: [
+                    PublishedCivicYear(
+                        year: document.fixture.commonYear,
+                        openingCivilDate: document.fixture.openingCivilDate,
+                        reconciliationDaysAfterCompletion:
+                            vector.reconciliationDaysAfterCompletion
+                    )
+                ]
+            )
+
+            let snapshot = CivicCalendarEngine.snapshot(
+                now: now,
+                latitude: document.fixture.latitude,
+                longitude: document.fixture.longitude,
+                publishedCalendar: published,
+                calendarCoreSpec: spec,
+                calendar: calendar
+            )
+            let expected = vector.expected
+
+            XCTAssertEqual(snapshot.namedDay, expected.namedDay.uppercased(), vector.id)
+            XCTAssertEqual(snapshot.isSabbath, expected.sabbath, vector.id)
+            XCTAssertEqual(snapshot.isLordsDay, expected.lordsDay, vector.id)
+            XCTAssertEqual(snapshot.isStillPoint, expected.stillPoint, vector.id)
+            XCTAssertEqual(
+                snapshot.nextProtectedBoundaryLabel,
+                expected.nextProtectedBoundaryLabel,
+                vector.id
+            )
+
+            if let common = expected.commonDate {
+                XCTAssertTrue(
+                    snapshot.commonCalendarLabel.contains(
+                        "DAY \(String(format: "%03d", common.ordinal))"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains("S\(common.quarter)"),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains(
+                        "W\(String(format: "%02d", common.week))"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarDetail.contains("D\(common.dayInWeek)"),
+                    vector.id
+                )
+            } else if expected.state == "RECONCILIATION" {
+                XCTAssertEqual(snapshot.commonCalendarLabel, "RECONCILIATION", vector.id)
+                if let rDay = expected.reconciliationDay {
+                    XCTAssertTrue(
+                        snapshot.commonCalendarDetail.contains("R\(rDay)"),
+                        vector.id
+                    )
+                }
+            }
+        }
+    }
+
 }

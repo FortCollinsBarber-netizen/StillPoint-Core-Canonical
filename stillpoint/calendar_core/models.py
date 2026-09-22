@@ -128,11 +128,12 @@ class DualStamp:
     instant_utc: datetime
     civil_timestamp: datetime
     common_standard_timestamp: datetime
-    continuous_k: int
+    continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
     reconciliation_address: Optional[str]
+    calendar_address: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -142,7 +143,7 @@ class CalendarSnapshot:
     common_standard_timestamp: datetime
     local_sunset_previous: datetime
     local_sunset_next: datetime
-    continuous_k: int
+    continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
@@ -159,3 +160,4 @@ class CalendarSnapshot:
     reference_rule_version: str
     reference_station_id: Optional[str]
     ephemeris_id: Optional[str]
+    calendar_address: Optional[str] = None

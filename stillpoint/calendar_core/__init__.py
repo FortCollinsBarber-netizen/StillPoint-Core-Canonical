@@ -6,7 +6,7 @@ authority. A finite calendar publication is an evidence object; importing this
 package does not ratify one.
 """
 
-from .astronomy import (
+from .address import (\n    CalendarAddress,\n    format_ordinary_address,\n    format_reconciliation_address,\n    parse_calendar_address,\n)\nfrom .astronomy import (
     AstronomyEvidence,
     AstronomyEvidenceError,
     AstronomyProvider,
@@ -51,7 +51,7 @@ from .week import protected_time_state
 __all__ = [
     "MONTH_LENGTHS", "GATE_SEQUENCE", "PHASE_LENGTHS", "SPRING_GATE_ORDINAL",
     "SPEC_VERSION", "PROJECTION_VECTOR_VERSION", "PUBLICATION_VERSION",
-    "ALLOWED_AUTHORITY_STATUSES", "ALLOWED_RECONCILIATION_DAYS",
+    "ALLOWED_AUTHORITY_STATUSES", "ALLOWED_RECONCILIATION_DAYS",\n    "CalendarAddress", "format_ordinary_address",\n    "format_reconciliation_address", "parse_calendar_address",
     "AstronomyEvidence", "AstronomyEvidenceError", "AstronomyProvider",
     "MappingAstronomyProvider", "CalendarConfig", "CalendarSnapshot",
     "CalendarSpecValidationError", "CommonDate", "DuskProtocol", "DualStamp",

@@ -45,7 +45,7 @@ enum SolarBoundaryCalculator {
         zenithDegrees: Double,
         calendar inputCalendar: Calendar
     ) -> Date? {
-        var calendar = inputCalendar
+        let calendar = inputCalendar
         let timeZone = calendar.timeZone
         let local = calendar.dateComponents([.year, .month, .day], from: civilDate)
 

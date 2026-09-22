@@ -21,8 +21,9 @@ class CalendarConfig:
     day001_weekday: str
     common_standard_offset_seconds: int
     reconciliation_days_after_completion: int = 0
+    year_count: int = 50
     continuous_k_at_opening: int = 0
-    reference_rule_version: str = "v3.3-candidate"
+    reference_rule_version: str = "fixed-364-v1"
     reference_station_id: Optional[str] = None
     ephemeris_id: Optional[str] = None
     jubilee_epoch_common_year: Optional[int] = None
@@ -47,6 +48,7 @@ def get_calendar_snapshot(
             config.common_standard_offset_seconds,
         continuous_k_at_opening=
             config.continuous_k_at_opening,
+        year_count=config.year_count,
     )
 
     pair = bracket_sunset(
@@ -69,8 +71,13 @@ def get_calendar_snapshot(
         else None
     )
 
+    projected_year = (
+        dual.common_date.year
+        if dual.common_date is not None
+        else config.common_year
+    )
     jubilee = jubilee_state(
-        common_year=config.common_year,
+        common_year=projected_year,
         epoch_common_year=
             config.jubilee_epoch_common_year,
         epoch_cycle=config.jubilee_epoch_cycle,
@@ -86,10 +93,8 @@ def get_calendar_snapshot(
         continuous_k=dual.continuous_k,
         state=dual.state,
         common_date=dual.common_date,
-        reconciliation_day=
-            dual.reconciliation_day,
-        reconciliation_address=
-            dual.reconciliation_address,
+        reconciliation_day=None,
+        reconciliation_address=None,
         named_day=weekly.named_day,
         sabbath_active=weekly.is_sabbath,
         lords_day_active=

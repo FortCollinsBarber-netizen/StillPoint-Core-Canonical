@@ -70,7 +70,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
                   "nextYearSpringGateCivilDate": "2027-03-20"
                 }
               ],
-              "publicationDigest": "(publicationDigest)"
+              "publicationDigest": "\(publicationDigest)"
             }
             """.utf8
         )

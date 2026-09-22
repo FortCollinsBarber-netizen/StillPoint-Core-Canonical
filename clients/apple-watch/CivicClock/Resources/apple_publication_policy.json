@@ -1,0 +1,11 @@
+{
+  "version": "stillpoint-apple-publication-policy-v1",
+  "authorityID": "STILLPOINT_CIVIC_PILOT_AUTHORITY_V1",
+  "authorityStatus": "pilot",
+  "referencePointID": "GROUND_ZERO",
+  "referenceRuleVersion": "v3.3-candidate",
+  "ephemerisSource": "USNO_AA_SEASONS_API",
+  "ephemerisSHA256": "c1081954d6c8fd23d63ca57b06d2318d11501832590a137eff592983ed96a790",
+  "publicationDigest": "44beb06f964d0b88bb74fbea317745d26f7ff2f25661fcbb6bb8eba7d20ccb77",
+  "resourceSHA256": "f8c0dca305456d674968a9ba46c61b19a9ef721bd141c314ecbb2508da5b433f"
+}

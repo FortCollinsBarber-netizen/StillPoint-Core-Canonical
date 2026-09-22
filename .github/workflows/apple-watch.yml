@@ -9,8 +9,10 @@ on:
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
+      - "temporal/civic-enactment-v1/**"
       - "tools/export_calendar_core_artifacts.py"
       - "tools/generate_common_calendar_v33.py"
+      - "tools/verify_civic_enactment.py"
       - ".github/workflows/apple-watch.yml"
   pull_request:
     paths:
@@ -20,8 +22,10 @@ on:
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
+      - "temporal/civic-enactment-v1/**"
       - "tools/export_calendar_core_artifacts.py"
       - "tools/generate_common_calendar_v33.py"
+      - "tools/verify_civic_enactment.py"
       - ".github/workflows/apple-watch.yml"
 
 permissions:
@@ -52,9 +56,11 @@ jobs:
           diff -u /tmp/calendar_core_spec.json clients/apple-watch/CivicClock/Resources/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json clients/apple-watch/CivicClock/Resources/calendar_projection_vectors.json
 
-      - name: Prove no unratified operative calendar publication is bundled
+      - name: Verify enacted civic publication and bundle parity
         run: |
-          test ! -e clients/apple-watch/CivicClock/Resources/published_calendar.json
+          python tools/verify_civic_enactment.py
+          diff -u temporal/civic-enactment-v1/published_calendar.json clients/apple-watch/CivicClock/Resources/published_calendar.json
+          diff -u temporal/civic-enactment-v1/apple_publication_policy.json clients/apple-watch/CivicClock/Resources/apple_publication_policy.json
 
       - name: Test native Watch projection against shared artifacts
         working-directory: clients/apple-watch/CivicClock

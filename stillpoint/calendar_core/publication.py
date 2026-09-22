@@ -9,7 +9,7 @@ from typing import Any, Collection, Sequence
 from .spec import SPEC_VERSION
 
 BASE_YEAR_DAYS = 364
-ALLOWED_RECONCILIATION_DAYS = (0, 7)
+ALLOWED_RECONCILIATION_DAYS = (0,)
 PUBLICATION_VERSION = "stillpoint-calendar-publication-v1"
 ALLOWED_AUTHORITY_STATUSES = ("pilot", "enacted")
 
@@ -109,7 +109,7 @@ def validate_publication_rows(rows: Sequence[dict[str, Any]]) -> PublicationRang
         if reconciliation not in ALLOWED_RECONCILIATION_DAYS:
             raise PublicationValidationError(
                 "INVALID_RECONCILIATION",
-                "reconciliation must be exactly 0 or 7 days",
+                "reconciliation is prohibited; value must be exactly 0",
             )
 
         parsed.append((opening, reconciliation, year))
@@ -142,7 +142,7 @@ def validate_publication_rows(rows: Sequence[dict[str, Any]]) -> PublicationRang
     return PublicationRange(
         first_opening=parsed[0][0],
         expires_at_opening=last_opening
-        + timedelta(days=BASE_YEAR_DAYS + last_reconciliation),
+        + timedelta(days=BASE_YEAR_DAYS),
         year_count=len(parsed),
     )
 

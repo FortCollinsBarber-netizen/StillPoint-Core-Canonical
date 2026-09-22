@@ -85,9 +85,9 @@ enum CalendarCoreSpecLoader {
             reconciliation.namespace == "interannual",
             reconciliation.inheritsOrdinaryFields == false,
             reconciliation.allowedDays.contains(0),
-            reconciliation.allowedDays.allSatisfy {
+            reconciliation.allowedDays.allSatisfy({
                 $0 >= 0 && $0 % calendar.weekDays == 0
-            },
+            }),
             gates.phaseLengths.reduce(0, +) == calendar.baseYearDays,
             gates.gateSequence.count == gates.phaseLengths.count,
             gates.pairedGateCount > 0

@@ -6,6 +6,12 @@ authority. A finite calendar publication is an evidence object; importing this
 package does not ratify one.
 """
 
+from .astronomy import (
+    AstronomyEvidence,
+    AstronomyEvidenceError,
+    AstronomyProvider,
+    MappingAstronomyProvider,
+)
 from .calendar import MONTH_LENGTHS, boundary_dates_for_common_date, common_date, month_day_from_ordinal, ordinal_day
 from .dual_stamp import project_dual_stamp
 from .gates import GATE_SEQUENCE, PHASE_LENGTHS, phase_for_base_day
@@ -25,7 +31,13 @@ from .publication import (
     validate_publication_rows,
 )
 from .reconciliation import audit_reconciliation_schedule, forecast_reconciliation_weeks
-from .reference_rule import SPRING_GATE_ORDINAL, select_v32_nearest_legal, select_v33_nearest_spring_gate
+from .reference_rule import (
+    SPRING_GATE_ORDINAL,
+    select_v32_nearest_legal,
+    select_v33_nearest_spring_gate,
+    select_v33_nearest_spring_gate_from_evidence,
+    select_v33_nearest_spring_gate_from_provider,
+)
 from .service import CalendarConfig, get_calendar_snapshot
 from .spec import (
     SPEC_VERSION,
@@ -40,17 +52,22 @@ __all__ = [
     "MONTH_LENGTHS", "GATE_SEQUENCE", "PHASE_LENGTHS", "SPRING_GATE_ORDINAL",
     "SPEC_VERSION", "PROJECTION_VECTOR_VERSION", "PUBLICATION_VERSION",
     "ALLOWED_AUTHORITY_STATUSES", "ALLOWED_RECONCILIATION_DAYS",
-    "CalendarConfig", "CalendarSnapshot", "CalendarSpecValidationError",
-    "CommonDate", "DuskProtocol", "DualStamp", "EnochPhase", "GeoPoint",
-    "JubileeState", "PublicationEnvelope", "PublicationRange",
-    "PublicationValidationError", "ReconciliationDecision", "WeeklyProtectedState",
-    "apparent_sunrise_utc", "apparent_sunset_utc", "audit_reconciliation_schedule",
-    "boundary_dates_for_common_date", "bracket_sunset", "build_calendar_core_spec",
-    "build_calendar_projection_vectors", "canonical_publication_bytes", "common_date",
-    "forecast_reconciliation_weeks", "get_calendar_snapshot", "jubilee_state",
-    "month_day_from_ordinal", "ordinal_day", "phase_for_base_day",
-    "project_dual_stamp", "protected_time_state", "publication_digest",
-    "select_v32_nearest_legal", "select_v33_nearest_spring_gate",
+    "AstronomyEvidence", "AstronomyEvidenceError", "AstronomyProvider",
+    "MappingAstronomyProvider", "CalendarConfig", "CalendarSnapshot",
+    "CalendarSpecValidationError", "CommonDate", "DuskProtocol", "DualStamp",
+    "EnochPhase", "GeoPoint", "JubileeState", "PublicationEnvelope",
+    "PublicationRange", "PublicationValidationError", "ReconciliationDecision",
+    "WeeklyProtectedState", "apparent_sunrise_utc", "apparent_sunset_utc",
+    "audit_reconciliation_schedule", "boundary_dates_for_common_date",
+    "bracket_sunset", "build_calendar_core_spec",
+    "build_calendar_projection_vectors", "canonical_publication_bytes",
+    "common_date", "forecast_reconciliation_weeks", "get_calendar_snapshot",
+    "jubilee_state", "month_day_from_ordinal", "ordinal_day",
+    "phase_for_base_day", "project_dual_stamp", "protected_time_state",
+    "publication_digest", "select_v32_nearest_legal",
+    "select_v33_nearest_spring_gate",
+    "select_v33_nearest_spring_gate_from_evidence",
+    "select_v33_nearest_spring_gate_from_provider",
     "validate_calendar_core_spec", "validate_publication_document",
     "validate_publication_rows",
 ]

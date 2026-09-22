@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stillpoint.example/schemas/calendar-projection-vectors-v1.json",
+  "title": "StillPoint Calendar Projection Vectors v1",
+  "type": "object",
+  "required": ["version", "specVersion", "referenceStatus", "conformanceContext", "vectors"],
+  "properties": {
+    "version": {"const": "stillpoint-calendar-projection-vectors-v1"},
+    "specVersion": {"const": "stillpoint-calendar-core-spec-v1"},
+    "referenceStatus": {"const": "public-conformance-only-not-ground-zero"},
+    "conformanceContext": {"type": "object"},
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "instantUTC", "expected"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "instantUTC": {"type": "string", "format": "date-time"},
+          "expected": {
+            "type": "object",
+            "required": [
+              "continuousK",
+              "state",
+              "ordinaryAddress",
+              "reconciliationAddress",
+              "reconciliationDay",
+              "commonDate",
+              "namedDay",
+              "sabbath",
+              "lordsDay",
+              "stillPoint",
+              "annualPhase",
+              "solarGate"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stillpoint.example/schemas/calendar-core-spec-v1.json",
+  "title": "StillPoint Calendar Core Spec v1",
+  "type": "object",
+  "required": [
+    "version",
+    "status",
+    "engineeringInvariant",
+    "jurisdiction",
+    "namespaces",
+    "ordinaryYear",
+    "weeklyProtectedTime",
+    "boundaryConvention",
+    "supportedPublicationRules",
+    "prohibitions"
+  ],
+  "properties": {
+    "version": {"const": "stillpoint-calendar-core-spec-v1"},
+    "status": {"const": "stable-domain-spec"},
+    "engineeringInvariant": {"type": "string", "minLength": 1},
+    "jurisdiction": {"type": "object"},
+    "namespaces": {"type": "object"},
+    "ordinaryYear": {
+      "type": "object",
+      "required": ["days", "weeks", "monthLengths", "quarterDays", "phaseLengths", "gateSequence"],
+      "properties": {
+        "days": {"const": 364},
+        "weeks": {"const": 52},
+        "monthLengths": {"const": [30,30,31,30,30,31,30,30,31,30,30,31]},
+        "quarterDays": {"const": 91},
+        "phaseLengths": {"const": [30,30,31,30,30,31,30,30,31,30,30,31]},
+        "gateSequence": {"const": [4,5,6,6,5,4,3,2,1,1,2,3]}
+      },
+      "additionalProperties": false
+    },
+    "weeklyProtectedTime": {"type": "object"},
+    "boundaryConvention": {"type": "object"},
+    "supportedPublicationRules": {"type": "object"},
+    "prohibitions": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

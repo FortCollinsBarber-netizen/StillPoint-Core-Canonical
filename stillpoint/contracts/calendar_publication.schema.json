@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stillpoint.example/schemas/calendar-publication-v1.json",
+  "title": "StillPoint Calendar Publication v1",
+  "type": "object",
+  "required": [
+    "version",
+    "publicationId",
+    "authority",
+    "rule",
+    "referencePoint",
+    "evidence",
+    "epoch",
+    "effectiveRange",
+    "years",
+    "publicationDigest"
+  ],
+  "properties": {
+    "version": {"const": "stillpoint-calendar-publication-v1"},
+    "publicationId": {"type": "string", "minLength": 1},
+    "authority": {
+      "type": "object",
+      "required": ["status", "authorityId"],
+      "properties": {
+        "status": {"enum": ["CONFORMANCE", "PILOT", "RATIFIED"]},
+        "authorityId": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "required": ["version", "operator", "springGateOrdinal"],
+      "properties": {
+        "version": {"const": "v3.3-candidate"},
+        "operator": {"const": "NearestLegalSpringGate"},
+        "springGateOrdinal": {"const": 80}
+      },
+      "additionalProperties": false
+    },
+    "referencePoint": {
+      "type": "object",
+      "required": ["id", "geometryDigest"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "geometryDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["sourceId", "sha256"],
+      "properties": {
+        "sourceId": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "epoch": {
+      "type": "object",
+      "required": [
+        "firstYearLabel",
+        "firstOpeningCivilDate",
+        "firstOpeningContinuousK",
+        "day001Weekday"
+      ]
+    },
+    "effectiveRange": {
+      "type": "object",
+      "required": [
+        "firstOpeningCivilDate",
+        "finalExclusiveOpeningCivilDate",
+        "yearCount"
+      ]
+    },
+    "years": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "year",
+          "openingCivilDate",
+          "openingContinuousK",
+          "ordinaryDays",
+          "reconciliationDaysAfterCompletion",
+          "nextOpeningCivilDate",
+          "nextOpeningContinuousK",
+          "governingMarchEquinoxUTC",
+          "immediateSpringGateCivilDate",
+          "delayedSpringGateCivilDate",
+          "immediateErrorSeconds",
+          "delayedErrorSeconds"
+        ],
+        "properties": {
+          "ordinaryDays": {"const": 364},
+          "reconciliationDaysAfterCompletion": {"enum": [0, 7]}
+        }
+      }
+    },
+    "publicationDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

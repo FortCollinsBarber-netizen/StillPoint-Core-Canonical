@@ -1,0 +1,63 @@
+{
+  "authority": {
+    "authorityId": "TEST_ONLY",
+    "status": "CONFORMANCE"
+  },
+  "effectiveRange": {
+    "finalExclusiveOpeningCivilDate": "2027-12-30",
+    "firstOpeningCivilDate": "2026-01-01",
+    "yearCount": 2
+  },
+  "epoch": {
+    "day001Weekday": "Friday",
+    "firstOpeningCivilDate": "2026-01-01",
+    "firstOpeningContinuousK": 0,
+    "firstYearLabel": 2026
+  },
+  "evidence": {
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sourceId": "TEST_EPHEMERIS"
+  },
+  "publicationDigest": "69fd863951505cc46fa99efa15620a518af974259e0cb6c0fd49a10e6150c726",
+  "publicationId": "CONFORMANCE-2026-2Y",
+  "referencePoint": {
+    "geometryDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "id": "REFERENCE_TEST"
+  },
+  "rule": {
+    "operator": "NearestLegalSpringGate",
+    "springGateOrdinal": 80,
+    "version": "v3.3-candidate"
+  },
+  "version": "stillpoint-calendar-publication-v1",
+  "years": [
+    {
+      "delayedErrorSeconds": 605237.291922,
+      "delayedSpringGateCivilDate": "2027-03-27",
+      "governingMarchEquinoxUTC": "2027-03-21T01:12:23.105690Z",
+      "immediateErrorSeconds": 0,
+      "immediateSpringGateCivilDate": "2027-03-20",
+      "nextOpeningCivilDate": "2026-12-31",
+      "nextOpeningContinuousK": 364,
+      "openingCivilDate": "2026-01-01",
+      "openingContinuousK": 0,
+      "ordinaryDays": 364,
+      "reconciliationDaysAfterCompletion": 0,
+      "year": 2026
+    },
+    {
+      "delayedErrorSeconds": 605238.103793,
+      "delayedSpringGateCivilDate": "2028-03-25",
+      "governingMarchEquinoxUTC": "2028-03-19T01:11:20.131251Z",
+      "immediateErrorSeconds": 0,
+      "immediateSpringGateCivilDate": "2028-03-18",
+      "nextOpeningCivilDate": "2027-12-30",
+      "nextOpeningContinuousK": 728,
+      "openingCivilDate": "2026-12-31",
+      "openingContinuousK": 364,
+      "ordinaryDays": 364,
+      "reconciliationDaysAfterCompletion": 0,
+      "year": 2027
+    }
+  ]
+}

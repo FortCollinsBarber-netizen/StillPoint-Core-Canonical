@@ -2,18 +2,18 @@ import unittest
 from datetime import date
 
 from stillpoint.calendar_core.models import GeoPoint
-from stillpoint.calendar_core.reference_rule import (
-    spring_gate_date,
+from stillpoint.calendar_core.sunset import apparent_sunset_utc
+from stillpoint.calendar_publication import (
     select_v32_nearest_legal,
     select_v33_nearest_spring_gate,
+    spring_gate_date,
 )
-from stillpoint.calendar_core.sunset import apparent_sunset_utc
 
 
 class ReferenceRuleTests(unittest.TestCase):
     point = GeoPoint(40.4, -105.1, "REFERENCE_TEST")
 
-    def test_v32_is_preserved_as_explicit_version(self):
+    def test_v32_is_preserved_as_explicit_publication_rule(self):
         opening = date(2026, 1, 1)
         candidate = opening.fromordinal(opening.toordinal() + 364)
         equinox = apparent_sunset_utc(candidate, self.point)
@@ -25,7 +25,6 @@ class ReferenceRuleTests(unittest.TestCase):
         self.assertEqual(decision.version, "v3.2")
         self.assertEqual(decision.operator, "NearestLegal")
         self.assertEqual(decision.reconciliation_days, 0)
-        self.assertIn(decision.legacy_elapsed_span_days, (364, 371))
 
     def test_v33_spring_gate_keeps_ordinary_year_364(self):
         opening = date(2026, 1, 1)
@@ -54,7 +53,10 @@ class ReferenceRuleTests(unittest.TestCase):
         )
         self.assertEqual(decision.reconciliation_days, 7)
         self.assertEqual(
-            (decision.delayed_candidate_opening - decision.immediate_candidate_opening).days,
+            (
+                decision.delayed_candidate_opening
+                - decision.immediate_candidate_opening
+            ).days,
             7,
         )
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
+
+TemporalState = Literal["ORDINARY", "RECONCILIATION", "OUTSIDE_RANGE"]
 
 
 @dataclass(frozen=True)
@@ -79,12 +81,14 @@ class ReconciliationDecision:
 
     @property
     def legacy_elapsed_span_days(self) -> int:
-        """Elapsed opening-to-opening span. Not a v3.3 ordinary-year length."""
+        """Elapsed opening-to-opening span; never an ordinary-year primitive."""
         return 364 + self.reconciliation_days
 
 
 @dataclass(frozen=True)
 class JubileeState:
+    """Compatibility model. Jubilee behavior belongs to calendar_witness."""
+
     cycle: int
     cycle_year: int
     seven_year_block: Optional[int]
@@ -98,8 +102,12 @@ class DualStamp:
     instant_utc: datetime
     civil_timestamp: datetime
     common_standard_timestamp: datetime
+    continuous_k: Optional[int]
+    state: TemporalState
     common_date: Optional[CommonDate]
+    ordinary_address: Optional[str]
     reconciliation_day: Optional[int]
+    reconciliation_address: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -109,8 +117,12 @@ class CalendarSnapshot:
     common_standard_timestamp: datetime
     local_sunset_previous: datetime
     local_sunset_next: datetime
+    continuous_k: Optional[int]
+    state: TemporalState
     common_date: Optional[CommonDate]
+    ordinary_address: Optional[str]
     reconciliation_day: Optional[int]
+    reconciliation_address: Optional[str]
     named_day: str
     sabbath_active: bool
     lords_day_active: bool
@@ -119,7 +131,3 @@ class CalendarSnapshot:
     next_protected_boundary_label: Optional[str]
     annual_phase: Optional[int]
     solar_gate: Optional[int]
-    jubilee: Optional[JubileeState]
-    reference_rule_version: str
-    reference_station_id: Optional[str]
-    ephemeris_id: Optional[str]

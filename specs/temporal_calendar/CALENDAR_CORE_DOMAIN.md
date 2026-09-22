@@ -1,79 +1,74 @@
-# StillPoint Calendar Core — Executable Domain Contract
+# StillPoint Calendar Core — Platform-Neutral Domain
 
-stillpoint.calendar_core is the platform-neutral calendar and clock engine.
+`stillpoint.calendar_core` is the pure calendar geometry and address engine.
 
-It is deliberately separate from stillpoint.temporal. The latter already owns
-StillPoint temporal-authority and continuing-evidence semantics. The calendar
-engine describes time; the authority engine governs what descriptions may
-authorize. Neither namespace silently inherits the other's powers.
+It is deliberately separate from:
 
-## Public surface
+- `stillpoint.calendar_publication`, which binds explicit authority inputs to
+  evidence and compiles finite civic coordinates;
+- `stillpoint.calendar_witness`, which owns Jubilee and later lunar/season/
+  feast witness layers;
+- `stillpoint.temporal`, which owns continuing-evidence, warrant, expiration,
+  correction, and external-action authority.
 
-- apparent_sunrise_utc / apparent_sunset_utc
-- bracket_sunset
-- phase_for_base_day
-- protected_time_state
-- select_v32_nearest_legal
-- select_v33_nearest_spring_gate
-- project_dual_stamp
-- jubilee_state
-- get_calendar_snapshot
+## Engineering invariant
 
-## Weekly rule
+The week governs sequence. The ordinary calendar governs address. The Sun
+governs seasonal correction. The Moon and seasons provide evidence. Publication
+gives finite civic coordinates. Jubilee governs a larger release count. None of
+them owns the others.
 
-Sabbath:
-Friday apparent sunset through Saturday apparent sunset.
+## Core namespaces
 
-Lord's Day:
-Saturday apparent sunset through Sunday apparent sunset.
+### Continuous
 
-StillPoint:
-Friday apparent sunset through Sunday apparent sunrise.
+`K = 0,1,2,...` over adopted dusk boundaries. Sequence does not gap.
 
-The intervals are half-open at their closing boundary.
+### Ordinary annual
 
-## Annual custody
+`Y_n-001 ... Y_n-364`.
 
-Recovered v3.2 remains callable under its own version.
+Month, quarter, phase, gate, and ordinary day-of-year exist only here.
 
-The current v3.3 successor candidate uses:
-364 ordinary days, then 0 or 7 interannual Reconciliation days, then the next
-ordinary year. Its current candidate Spring Gate is Common Month 3 Day 20,
-ordinal 80.
+### Reconciliation
 
-## Six paired gates
+`Y_n/Y_(n+1)-R1 ... R7`.
 
-The recovered gate sequence is:
-4,5,6,6,5,4,3,2,1,1,2,3
+Reconciliation may contain exactly zero or seven dusk boundaries. It is not
+Days 365–371 and receives no ordinary month, quarter, phase, gate, or
+day-of-year.
 
-The twelve phase lengths are:
-30,30,31,30,30,31,30,30,31,30,30,31
+A projection after the supplied annual/reconciliation range returns
+`OUTSIDE_RANGE`: continuous sequence may remain knowable while annual address
+authority has expired.
 
-Any old twelve-unrelated-gate representation is lineage, not executable law.
+## Stable geometry
 
-## Authority boundary
+- 364 ordinary days = 52 complete weeks = 4 x 91 days.
+- month/phase lengths: 30,30,31 repeated four times.
+- gate sequence: 4,5,6,6,5,4,3,2,1,1,2,3.
+- apparent horizon baseline: Sun-center altitude about -0.8333 degrees.
+- no silent boundary fallback.
 
-Calendar Core calculates and returns state. It does not send messages, publish,
-spend, contract, delete, silence third-party applications, or otherwise perform
-external actions. Those actions remain downstream of StillPoint authority
-gates.
+## Weekly protected-time geometry
 
-## Golden pilot vector
+- Sabbath: Friday apparent sunset -> Saturday apparent sunset.
+- Lord's Day: Saturday apparent sunset -> Sunday apparent sunset.
+- StillPoint: Friday apparent sunset -> Sunday apparent sunrise.
 
-Observation Zero is a calibration instant, not Day 1.
+Intervals are half-open at their closing boundary.
 
-With:
-- opening civil date 2026-01-01;
-- Friday as Day-001 weekday;
-- America/Denver as legal civil zone;
-- permanent Common Clock offset UTC-07;
+## Artifact boundary
 
-the instant 2026-09-18T19:28:57Z maps to:
-- Common Year 2026;
-- Day 260;
-- Month 9 Day 18;
-- Quarter 3;
-- Week 38;
-- Friday;
-- legal civil offset UTC-06;
-- Common standard offset UTC-07.
+Stable law exports as `calendar_core_spec.json`.
+
+Public/pilot enactment is not part of that artifact. A finite
+`calendar_publication.json` is compiled by `stillpoint.calendar_publication`
+from explicit authority inputs plus evidence custody.
+
+Cross-platform conformance data exports separately as
+`calendar_projection_vectors.json`. Observation Zero and the public Loveland
+test point are proof fixtures, not law and not Ground Zero.
+
+The former aggregate Calendar Core contract remains compatibility-only until
+stacked Apple work is migrated.

@@ -8,56 +8,96 @@ from stillpoint.calendar_core.contract import (
     build_calendar_core_contract,
     export_calendar_core_contract,
 )
+from stillpoint.calendar_core.spec import (
+    ENGINEERING_INVARIANT,
+    SPEC_VERSION,
+    build_calendar_core_spec,
+    export_calendar_core_spec,
+)
+from stillpoint.calendar_core.vectors import (
+    VECTORS_VERSION,
+    build_calendar_projection_vectors,
+    export_calendar_projection_vectors,
+)
 
 
-class CalendarCoreContractTests(unittest.TestCase):
-    def test_contract_constants_and_observation_zero(self):
-        doc = build_calendar_core_contract()
-        self.assertEqual(doc["version"], CONTRACT_VERSION)
-        self.assertEqual(doc["constants"]["baseYearDays"], 364)
+class CalendarArtifactTests(unittest.TestCase):
+    def test_stable_spec_contains_law_not_pilot_or_evidence(self):
+        doc = build_calendar_core_spec()
+        self.assertEqual(doc["version"], SPEC_VERSION)
+        self.assertEqual(doc["ordinaryYear"]["days"], 364)
         self.assertEqual(
-            doc["constants"]["gateSequence"],
+            doc["ordinaryYear"]["gateSequence"],
             [4, 5, 6, 6, 5, 4, 3, 2, 1, 1, 2, 3],
         )
-        self.assertEqual(doc["constants"]["reconciliationDaysAllowed"], [0, 7])
+        self.assertEqual(doc["namespaces"]["reconciliation"]["allowedDays"], [0, 7])
+        self.assertEqual(doc["engineeringInvariant"], ENGINEERING_INVARIANT)
+        serialized = json.dumps(doc)
+        self.assertNotIn("LOVELAND_TEST", serialized)
+        self.assertNotIn("jubileeEpoch", serialized)
+        self.assertNotIn("ephemerisId", serialized)
 
-        observation = next(
-            row for row in doc["goldenVectors"]
-            if row["id"] == "observation-zero"
+    def test_projection_vectors_are_separate_from_law(self):
+        doc = build_calendar_projection_vectors()
+        self.assertEqual(doc["version"], VECTORS_VERSION)
+        self.assertEqual(doc["specVersion"], SPEC_VERSION)
+        self.assertEqual(
+            doc["referenceStatus"],
+            "public-conformance-only-not-ground-zero",
         )
-        common = observation["expected"]["commonDate"]
-        self.assertEqual(common["ordinal"], 260)
-        self.assertEqual((common["month"], common["day"]), (9, 18))
-        self.assertEqual(common["weekday"], "Friday")
-        self.assertEqual(observation["expected"]["annualPhase"], 9)
-        self.assertEqual(observation["expected"]["solarGate"], 1)
+        by_id = {row["id"]: row for row in doc["vectors"]}
 
-    def test_weekly_transition_vectors(self):
+        observation = by_id["observation-zero"]["expected"]
+        self.assertEqual(observation["continuousK"], 259)
+        self.assertEqual(observation["state"], "ORDINARY")
+        self.assertEqual(observation["ordinaryAddress"], "Y_2026-260")
+        self.assertEqual(observation["commonDate"]["ordinal"], 260)
+
+        r3 = by_id["reconciliation-r3"]["expected"]
+        self.assertEqual(r3["state"], "RECONCILIATION")
+        self.assertEqual(r3["reconciliationDay"], 3)
+        self.assertEqual(r3["reconciliationAddress"], "Y_2026/Y_2027-R3")
+        self.assertIsNone(r3["commonDate"])
+        self.assertIsNone(r3["annualPhase"])
+        self.assertIsNone(r3["solarGate"])
+
+        outside = by_id["outside-publication-range"]["expected"]
+        self.assertEqual(outside["state"], "OUTSIDE_RANGE")
+        self.assertIsNone(outside["ordinaryAddress"])
+        self.assertIsNone(outside["reconciliationAddress"])
+
+    def test_legacy_aggregate_is_explicitly_deprecated(self):
         doc = build_calendar_core_contract()
-        by_id = {row["id"]: row["expected"] for row in doc["goldenVectors"]}
+        self.assertEqual(doc["version"], CONTRACT_VERSION)
+        self.assertTrue(doc["deprecated"])
+        self.assertEqual(
+            doc["replacementArtifacts"],
+            [
+                "calendar_core_spec.json",
+                "calendar_publication.json",
+                "calendar_projection_vectors.json",
+            ],
+        )
 
-        self.assertTrue(by_id["friday-after-sunset"]["sabbath"])
-        self.assertTrue(by_id["friday-after-sunset"]["stillPoint"])
-
-        self.assertTrue(by_id["saturday-after-sunset"]["lordsDay"])
-        self.assertTrue(by_id["saturday-after-sunset"]["stillPoint"])
-
-        self.assertTrue(by_id["sunday-before-sunrise"]["stillPoint"])
-        self.assertFalse(by_id["sunday-after-sunrise"]["stillPoint"])
-        self.assertTrue(by_id["sunday-after-sunrise"]["lordsDay"])
-
-        self.assertFalse(by_id["sunday-after-sunset"]["lordsDay"])
-
-    def test_export_is_deterministic_json(self):
+    def test_exports_are_deterministic_json(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "contract.json"
-            export_calendar_core_contract(path)
-            first = path.read_bytes()
-            export_calendar_core_contract(path)
-            second = path.read_bytes()
-            self.assertEqual(first, second)
-            parsed = json.loads(first)
-            self.assertEqual(parsed["version"], CONTRACT_VERSION)
+            root = Path(tmp)
+            targets = [
+                (root / "spec.json", export_calendar_core_spec, SPEC_VERSION),
+                (
+                    root / "vectors.json",
+                    export_calendar_projection_vectors,
+                    VECTORS_VERSION,
+                ),
+                (root / "legacy.json", export_calendar_core_contract, CONTRACT_VERSION),
+            ]
+            for path, exporter, expected_version in targets:
+                exporter(path)
+                first = path.read_bytes()
+                exporter(path)
+                second = path.read_bytes()
+                self.assertEqual(first, second)
+                self.assertEqual(json.loads(first)["version"], expected_version)
 
 
 if __name__ == "__main__":

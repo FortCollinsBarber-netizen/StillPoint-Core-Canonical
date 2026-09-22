@@ -1,0 +1,1 @@
+# Calendar publication compiler tests.

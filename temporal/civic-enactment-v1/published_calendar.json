@@ -1,0 +1,49 @@
+{
+  "publicationVersion": "stillpoint-calendar-publication-v1",
+  "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v1",
+  "version": "stillpoint-temporal-v3.3",
+  "authority": {
+    "id": "STILLPOINT_CIVIC_PILOT_AUTHORITY_V1",
+    "status": "pilot"
+  },
+  "referenceRuleVersion": "v3.3-candidate",
+  "referencePoint": {
+    "id": "GROUND_ZERO",
+    "latitude": 40.43695,
+    "longitude": -105.12467,
+    "coordinateCustodyDigest": "1cbf672bcb9b2c7548c05df9967db6062197cad0a9bc0295de92dc906f28b4f4"
+  },
+  "duskProtocol": {
+    "id": "apparent-sunset-0.8333",
+    "sunCenterAltitudeDegrees": -0.8333
+  },
+  "seasonalAnchor": {
+    "event": "march_equinox",
+    "commonMonth": 3,
+    "commonDay": 20,
+    "ordinal": 80
+  },
+  "snapOperator": "NearestLegalSpringGate",
+  "ephemerisEvidence": {
+    "source": "USNO_AA_SEASONS_API",
+    "sha256": "c1081954d6c8fd23d63ca57b06d2318d11501832590a137eff592983ed96a790"
+  },
+  "years": [
+    {
+      "year": 2026,
+      "openingCivilDate": "2026-01-01",
+      "reconciliationDaysAfterCompletion": 0,
+      "reconciliationReasonCode": "IMMEDIATE_CLOSER_OR_TIE",
+      "governingMarchEquinoxYear": 2027,
+      "governingMarchEquinoxUTC": "2027-03-20T20:25:00Z",
+      "immediateCandidateOpeningCivilDate": "2026-12-31",
+      "delayedCandidateOpeningCivilDate": "2027-01-07",
+      "immediateSpringGateCivilDate": "2027-03-20",
+      "delayedSpringGateCivilDate": "2027-03-27",
+      "immediateErrorSeconds": 17249.185704,
+      "delayedErrorSeconds": 622487.215445,
+      "nextYearSpringGateCivilDate": "2027-03-20"
+    }
+  ],
+  "publicationDigest": "44beb06f964d0b88bb74fbea317745d26f7ff2f25661fcbb6bb8eba7d20ccb77"
+}

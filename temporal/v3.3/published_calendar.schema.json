@@ -46,7 +46,10 @@
     },
     "referencePoint": {
       "type": "object",
-      "required": ["id", "coordinateCustodyDigest"],
+      "required": [
+        "id",
+        "coordinateCustodyDigest"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -71,7 +74,10 @@
     },
     "duskProtocol": {
       "type": "object",
-      "required": ["id", "sunCenterAltitudeDegrees"],
+      "required": [
+        "id",
+        "sunCenterAltitudeDegrees"
+      ],
       "properties": {
         "id": {
           "const": "apparent-sunset-0.8333"
@@ -84,7 +90,12 @@
     },
     "seasonalAnchor": {
       "type": "object",
-      "required": ["event", "commonMonth", "commonDay", "ordinal"],
+      "required": [
+        "event",
+        "commonMonth",
+        "commonDay",
+        "ordinal"
+      ],
       "properties": {
         "event": {
           "const": "march_equinox"
@@ -106,7 +117,10 @@
     },
     "ephemerisEvidence": {
       "type": "object",
-      "required": ["source", "sha256"],
+      "required": [
+        "source",
+        "sha256"
+      ],
       "properties": {
         "source": {
           "type": "string",
@@ -128,7 +142,15 @@
           "year",
           "openingCivilDate",
           "reconciliationDaysAfterCompletion",
+          "reconciliationReasonCode",
+          "governingMarchEquinoxYear",
           "governingMarchEquinoxUTC",
+          "immediateCandidateOpeningCivilDate",
+          "delayedCandidateOpeningCivilDate",
+          "immediateSpringGateCivilDate",
+          "delayedSpringGateCivilDate",
+          "immediateErrorSeconds",
+          "delayedErrorSeconds",
           "nextYearSpringGateCivilDate"
         ],
         "properties": {
@@ -142,9 +164,42 @@
           "reconciliationDaysAfterCompletion": {
             "enum": [0, 7]
           },
+          "reconciliationReasonCode": {
+            "enum": [
+              "IMMEDIATE_CLOSER_OR_TIE",
+              "RECONCILIATION_WEEK_CLOSER"
+            ]
+          },
+          "governingMarchEquinoxYear": {
+            "type": "integer"
+          },
           "governingMarchEquinoxUTC": {
             "type": "string",
             "format": "date-time"
+          },
+          "immediateCandidateOpeningCivilDate": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "delayedCandidateOpeningCivilDate": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "immediateSpringGateCivilDate": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "delayedSpringGateCivilDate": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "immediateErrorSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "delayedErrorSeconds": {
+            "type": "number",
+            "minimum": 0
           },
           "nextYearSpringGateCivilDate": {
             "type": "string",

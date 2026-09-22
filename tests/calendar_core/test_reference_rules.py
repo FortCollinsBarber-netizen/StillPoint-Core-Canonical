@@ -67,6 +67,7 @@ class ReferenceRuleTests(unittest.TestCase):
         decision = select_v33_nearest_spring_gate_from_evidence(
             current_opening=opening,
             evidence=evidence,
+            expected_evidence_year=2027,
             reference_point=self.point,
         )
         self.assertEqual(
@@ -111,6 +112,7 @@ class ReferenceRuleTests(unittest.TestCase):
         decision = select_v33_nearest_spring_gate_from_evidence(
             current_opening=opening,
             evidence=evidence,
+            expected_evidence_year=2027,
             reference_point=self.point,
         )
         self.assertEqual(
@@ -136,7 +138,7 @@ class ReferenceRuleTests(unittest.TestCase):
             364,
         )
 
-    def test_provider_is_evidence_only_and_deterministic(self):
+    def test_provider_requires_explicit_evidence_year(self):
         opening = date(2026, 1, 1)
         gate = spring_gate_date(
             opening + timedelta(days=364)
@@ -151,6 +153,7 @@ class ReferenceRuleTests(unittest.TestCase):
         )
         decision = select_v33_nearest_spring_gate_from_provider(
             current_opening=opening,
+            evidence_year=2027,
             provider=provider,
             reference_point=self.point,
         )
@@ -171,6 +174,7 @@ class ReferenceRuleTests(unittest.TestCase):
         with self.assertRaises(AstronomyEvidenceError) as raised:
             select_v33_nearest_spring_gate_from_provider(
                 current_opening=date(2026, 1, 1),
+                evidence_year=2027,
                 provider=provider,
                 reference_point=self.point,
             )
@@ -184,7 +188,13 @@ class ReferenceRuleTests(unittest.TestCase):
             AstronomyEvidence(
                 event="march_equinox",
                 year=2027,
-                instant_utc=datetime(2027, 3, 20, 12, 0),
+                instant_utc=datetime(
+                    2027,
+                    3,
+                    20,
+                    12,
+                    0,
+                ),
                 source_id="TEST_EPHEMERIS",
                 evidence_sha256="a" * 64,
             )
@@ -231,12 +241,37 @@ class ReferenceRuleTests(unittest.TestCase):
             select_v33_nearest_spring_gate_from_evidence(
                 current_opening=opening,
                 evidence=evidence,
+                expected_evidence_year=2027,
                 reference_point=self.point,
             )
         self.assertEqual(
             raised.exception.code,
             "ASTRONOMY_EVIDENCE_YEAR_MISMATCH",
         )
+
+    def test_common_year_label_does_not_choose_evidence_year(self):
+        opening = date(2026, 1, 1)
+        gate = spring_gate_date(
+            opening + timedelta(days=364)
+        )
+        evidence = self._evidence(
+            year=2027,
+            instant=apparent_sunset_utc(gate, self.point),
+        )
+        provider = MappingAstronomyProvider(
+            provider_id="TEST_EPHEMERIS",
+            evidence_by_year={2027: evidence},
+        )
+
+        # The provider takes an explicitly named astronomical year; no Common
+        # Calendar year label participates in this call.
+        decision = select_v33_nearest_spring_gate_from_provider(
+            current_opening=opening,
+            evidence_year=2027,
+            provider=provider,
+            reference_point=self.point,
+        )
+        self.assertEqual(decision.evidence_year, 2027)
 
     def test_direct_compatibility_entrypoint_remains_named(self):
         opening = date(2026, 1, 1)
@@ -262,15 +297,21 @@ class ReferenceRuleTests(unittest.TestCase):
 
     def test_v33_invariants_across_many_years(self):
         opening = date(2020, 1, 1)
-        for year in range(2020, 2070):
+        for index in range(50):
             immediate = opening + timedelta(days=364)
             delayed = immediate + timedelta(days=7)
 
-            # Alternate evidence near the immediate and delayed Spring Gates.
-            target_opening = immediate if year % 2 == 0 else delayed
-            target_gate = spring_gate_date(target_opening)
+            target_opening = (
+                immediate
+                if index % 2 == 0
+                else delayed
+            )
+            target_gate = spring_gate_date(
+                target_opening
+            )
+            evidence_year = target_gate.year
             evidence = self._evidence(
-                year=opening.year + 1,
+                year=evidence_year,
                 instant=apparent_sunset_utc(
                     target_gate,
                     self.point,
@@ -279,6 +320,7 @@ class ReferenceRuleTests(unittest.TestCase):
             decision = select_v33_nearest_spring_gate_from_evidence(
                 current_opening=opening,
                 evidence=evidence,
+                expected_evidence_year=evidence_year,
                 reference_point=self.point,
             )
 
@@ -305,7 +347,9 @@ class ReferenceRuleTests(unittest.TestCase):
                 0,
             )
 
-            opening = decision.selected_candidate_opening
+            opening = (
+                decision.selected_candidate_opening
+            )
 
 
 if __name__ == "__main__":

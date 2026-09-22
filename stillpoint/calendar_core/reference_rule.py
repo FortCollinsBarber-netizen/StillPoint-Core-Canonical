@@ -81,7 +81,6 @@ def _decision(
 def _legacy_evidence(
     *,
     instant: datetime,
-    year: int,
     source_id: str,
 ) -> AstronomyEvidence:
     if instant.tzinfo is None:
@@ -89,11 +88,12 @@ def _legacy_evidence(
             "NAIVE_ASTRONOMICAL_INSTANT",
             "astronomical anchor must be timezone-aware",
         )
-    # Direct-call compatibility remains explicit and deliberately cannot claim
-    # external custody. New publication code should use an AstronomyProvider.
+
+    # Direct-call compatibility cannot claim external custody. New publication
+    # code should use AstronomyEvidence / AstronomyProvider explicitly.
     return AstronomyEvidence(
         event="march_equinox",
-        year=year,
+        year=instant.year,
         instant_utc=instant,
         source_id=source_id,
         evidence_sha256="0" * 64,
@@ -109,7 +109,6 @@ def select_v32_nearest_legal(
     """Preserve recovered v3.2 semantics as an explicit historical engine."""
     evidence = _legacy_evidence(
         instant=next_march_equinox,
-        year=current_opening.year + 1,
         source_id="DIRECT_CALL_UNCUSTODIED",
     )
     immediate = current_opening + timedelta(days=BASE_YEAR_DAYS)
@@ -144,10 +143,9 @@ def select_v33_nearest_spring_gate(
     reference_point: GeoPoint,
     spring_gate_ordinal: int = SPRING_GATE_ORDINAL,
 ) -> ReconciliationDecision:
-    """Compatibility entry point for explicit direct astronomical evidence."""
+    """Compatibility entry point for direct astronomical evidence."""
     evidence = _legacy_evidence(
         instant=next_march_equinox,
-        year=current_opening.year + 1,
         source_id="DIRECT_CALL_UNCUSTODIED",
     )
     return select_v33_nearest_spring_gate_from_evidence(
@@ -164,13 +162,16 @@ def select_v33_nearest_spring_gate_from_evidence(
     evidence: AstronomyEvidence,
     reference_point: GeoPoint,
     spring_gate_ordinal: int = SPRING_GATE_ORDINAL,
+    expected_evidence_year: int | None = None,
 ) -> ReconciliationDecision:
     """364-day year plus explicit 0/7 interannual Reconciliation."""
-    expected_year = current_opening.year + 1
-    if evidence.year != expected_year:
+    if (
+        expected_evidence_year is not None
+        and evidence.year != expected_evidence_year
+    ):
         raise AstronomyEvidenceError(
             "ASTRONOMY_EVIDENCE_YEAR_MISMATCH",
-            f"evidence is for {evidence.year}; expected {expected_year}",
+            f"evidence is for {evidence.year}; expected {expected_evidence_year}",
         )
 
     immediate = current_opening + timedelta(days=BASE_YEAR_DAYS)
@@ -198,16 +199,17 @@ def select_v33_nearest_spring_gate_from_evidence(
 def select_v33_nearest_spring_gate_from_provider(
     *,
     current_opening: date,
+    evidence_year: int,
     provider: AstronomyProvider,
     reference_point: GeoPoint,
     spring_gate_ordinal: int = SPRING_GATE_ORDINAL,
 ) -> ReconciliationDecision:
-    """Resolve one bounded evidence event, then apply the v3.3 operator."""
-    expected_year = current_opening.year + 1
-    evidence = provider.march_equinox(expected_year)
+    """Resolve one explicit evidence year, then apply the v3.3 operator."""
+    evidence = provider.march_equinox(evidence_year)
     return select_v33_nearest_spring_gate_from_evidence(
         current_opening=current_opening,
         evidence=evidence,
         reference_point=reference_point,
         spring_gate_ordinal=spring_gate_ordinal,
+        expected_evidence_year=evidence_year,
     )

@@ -1,1 +1,107 @@
-name: StillPoint Core CI\n\non:\n  push:\n  pull_request:\n\npermissions:\n  contents: read\n\njobs:\n  core-runtime:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        python-version: ["3.11", "3.13"]\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4\n        with:\n          fetch-depth: 0\n          fetch-tags: true\n      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5\n        with:\n          python-version: ${{ matrix.python-version }}\n      - name: Install source package\n        run: python -m pip install .\n      - name: Unit, integration, and end-to-end tests\n        run: python -m unittest discover -s tests -q\n      - name: Action authority bypass audit\n        run: python tools/audit_action_request_boundaries.py .\n      - name: Specialist/company boundary audit\n        run: python tools/audit_company_boundaries.py .\n      - name: Frozen evaluator integrity\n        run: python -c "from eval.frozen import verify_frozen_corpora; print(verify_frozen_corpora())"\n      - name: Source checkout doctor\n        env:\n          STILLPOINT_ROOT: ${{ github.workspace }}\n          STILLPOINT_PROVIDER: mock\n        run: python -m stillpoint.cli doctor\n      - name: Historical raw evaluator\n        run: |\n          set +e\n          python eval/run_eval.py\n          rc=$?\n          set -e\n          test "$rc" -eq 0 -o "$rc" -eq 1\n      - name: Calibrated provider-independent evaluator\n        run: python eval/run_calibrated.py\n      - name: Classified evaluator release gate\n        run: python eval/release_gate.py\n      - name: Deterministic source-tree release audit\n        run: python tools/release_audit.py .\n\n  calendar-core-domain:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4\n      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5\n        with:\n          python-version: "3.11"\n      - run: python -m pip install .\n      - name: Prove Calendar Core domain suite is actually discovered\n        run: python -m unittest discover -s tests/calendar_core -p 'test_*.py' -q\n\n  calendar-publication:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4\n      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5\n        with:\n          python-version: "3.11"\n      - run: python -m pip install .\n      - name: Prove finite v3.3 publication compiler\n        run: python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q\n\n  calendar-contract-integrity:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4\n      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5\n        with:\n          python-version: "3.11"\n      - run: python -m pip install .\n      - name: Regenerate Calendar Core spec and projection vectors\n        run: |\n          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json\n          diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json\n          diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json\n\n  calendar-package:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4\n      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5\n        with:\n          python-version: "3.11"\n      - name: Build wheel\n        run: |\n          python -m pip wheel . --no-deps -w dist\n          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"\n      - name: Install wheel outside checkout and exercise Calendar Core\n        run: |\n          python -m venv /tmp/stillpoint-calendar-wheel\n          /tmp/stillpoint-calendar-wheel/bin/python -m pip install --upgrade pip\n          /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl\n          tmpdir="$(mktemp -d)"\n          cd "$tmpdir"\n          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"\n
+name: StillPoint Core CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core-runtime:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install source package
+        run: python -m pip install .
+      - name: Unit, integration, and end-to-end tests
+        run: python -m unittest discover -s tests -q
+      - name: Action authority bypass audit
+        run: python tools/audit_action_request_boundaries.py .
+      - name: Specialist/company boundary audit
+        run: python tools/audit_company_boundaries.py .
+      - name: Frozen evaluator integrity
+        run: python -c "from eval.frozen import verify_frozen_corpora; print(verify_frozen_corpora())"
+      - name: Source checkout doctor
+        env:
+          STILLPOINT_ROOT: ${{ github.workspace }}
+          STILLPOINT_PROVIDER: mock
+        run: python -m stillpoint.cli doctor
+      - name: Historical raw evaluator
+        run: |
+          set +e
+          python eval/run_eval.py
+          rc=$?
+          set -e
+          test "$rc" -eq 0 -o "$rc" -eq 1
+      - name: Calibrated provider-independent evaluator
+        run: python eval/run_calibrated.py
+      - name: Classified evaluator release gate
+        run: python eval/release_gate.py
+      - name: Deterministic source-tree release audit
+        run: python tools/release_audit.py .
+
+  calendar-core-domain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Prove Calendar Core domain suite is actually discovered
+        run: python -m unittest discover -s tests/calendar_core -p 'test_*.py' -q
+
+  calendar-publication:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Prove finite v3.3 publication compiler
+        run: python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q
+
+  calendar-contract-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install .
+      - name: Regenerate Calendar Core spec and projection vectors
+        run: |
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json
+          diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
+          diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+
+  calendar-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36f4a3cb964a0873 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel
+        run: |
+          python -m pip wheel . --no-deps -w dist
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+      - name: Install wheel outside checkout and exercise Calendar Core
+        run: |
+          python -m venv /tmp/stillpoint-calendar-wheel
+          /tmp/stillpoint-calendar-wheel/bin/python -m pip install --upgrade pip
+          /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl
+          tmpdir="$(mktemp -d)"
+          cd "$tmpdir"
+          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"

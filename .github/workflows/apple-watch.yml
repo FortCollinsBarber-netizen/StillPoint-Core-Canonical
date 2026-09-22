@@ -44,9 +44,11 @@ jobs:
         run: |
           python tools/export_calendar_core_artifacts.py \
             --spec-output /tmp/calendar_core_spec.json \
-            --vectors-output /tmp/calendar_projection_vectors.json
+            --vectors-output /tmp/calendar_projection_vectors.json \
+            --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json clients/apple-watch/CivicClock/Resources/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json clients/apple-watch/CivicClock/Resources/calendar_projection_vectors.json
 

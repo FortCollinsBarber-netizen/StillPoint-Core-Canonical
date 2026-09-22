@@ -1,9 +1,28 @@
 {
   "authorityStatus": "conformance-only",
   "failureCases": [
-    {"expectedFailure": "INVALID_RECONCILIATION", "id": "invalid-reconciliation", "input": {"reconciliationDaysAfterCompletion": 1}, "kind": "publication"},
-    {"expectedFailure": "OUTSIDE_PUBLISHED_RANGE", "id": "outside-publication-range", "instantUTC": "2028-01-01T12:00:00Z", "kind": "projection"},
-    {"expectedFailure": "UNSUPPORTED_SPEC_VERSION", "id": "unsupported-spec-version", "input": {"version": "unsupported-calendar-spec"}, "kind": "spec"}
+    {
+      "expectedFailure": "INVALID_RECONCILIATION",
+      "id": "invalid-reconciliation",
+      "input": {
+        "reconciliationDaysAfterCompletion": 1
+      },
+      "kind": "publication"
+    },
+    {
+      "expectedFailure": "OUTSIDE_PUBLISHED_RANGE",
+      "id": "outside-publication-range",
+      "instantUTC": "2028-01-01T12:00:00Z",
+      "kind": "projection"
+    },
+    {
+      "expectedFailure": "UNSUPPORTED_SPEC_VERSION",
+      "id": "unsupported-spec-version",
+      "input": {
+        "version": "unsupported-calendar-spec"
+      },
+      "kind": "spec"
+    }
   ],
   "fixture": {
     "commonStandardOffsetSeconds": -25200,
@@ -17,13 +36,207 @@
     "openingCivilDate": "2026-01-01"
   },
   "vectors": [
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":18,"dayInWeek":1,"month":9,"ordinal":260,"quarter":3,"week":38,"weekday":"Friday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":259,"lordsDay":false,"namedDay":"Friday","nextProtectedBoundaryLabel":null,"reconciliationAddress":null,"reconciliationDay":null,"sabbath":false,"solarGate":1,"state":"ORDINARY","stillPoint":false},"id":"observation-zero","instantUTC":"2026-09-18T19:28:57Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":19,"dayInWeek":2,"month":9,"ordinal":261,"quarter":3,"week":38,"weekday":"Saturday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":260,"lordsDay":false,"namedDay":"Saturday","nextProtectedBoundaryLabel":"SABBATH ENDS · LORD'S DAY BEGINS","reconciliationAddress":null,"reconciliationDay":null,"sabbath":true,"solarGate":1,"state":"ORDINARY","stillPoint":true},"id":"friday-after-sunset","instantUTC":"2026-09-19T01:04:27Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":20,"dayInWeek":3,"month":9,"ordinal":262,"quarter":3,"week":38,"weekday":"Sunday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":261,"lordsDay":true,"namedDay":"Sunday","nextProtectedBoundaryLabel":"STILLPOINT RELEASE · SUNDAY SUNRISE","reconciliationAddress":null,"reconciliationDay":null,"sabbath":false,"solarGate":1,"state":"ORDINARY","stillPoint":true},"id":"saturday-after-sunset","instantUTC":"2026-09-20T01:02:46Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":20,"dayInWeek":3,"month":9,"ordinal":262,"quarter":3,"week":38,"weekday":"Sunday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":261,"lordsDay":true,"namedDay":"Sunday","nextProtectedBoundaryLabel":"STILLPOINT RELEASE · SUNDAY SUNRISE","reconciliationAddress":null,"reconciliationDay":null,"sabbath":false,"solarGate":1,"state":"ORDINARY","stillPoint":true},"id":"sunday-before-sunrise","instantUTC":"2026-09-20T12:45:39Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":20,"dayInWeek":3,"month":9,"ordinal":262,"quarter":3,"week":38,"weekday":"Sunday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":261,"lordsDay":true,"namedDay":"Sunday","nextProtectedBoundaryLabel":"LORD'S DAY ENDS · SUNDAY SUNSET","reconciliationAddress":null,"reconciliationDay":null,"sabbath":false,"solarGate":1,"state":"ORDINARY","stillPoint":false},"id":"sunday-after-sunrise","instantUTC":"2026-09-20T12:45:41Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":9,"civilOffsetSeconds":-21600,"commonDate":{"day":21,"dayInWeek":4,"month":9,"ordinal":263,"quarter":3,"week":38,"weekday":"Monday","year":2026},"commonStandardOffsetSeconds":-25200,"continuousK":262,"lordsDay":false,"namedDay":"Monday","nextProtectedBoundaryLabel":null,"reconciliationAddress":null,"reconciliationDay":null,"sabbath":false,"solarGate":1,"state":"ORDINARY","stillPoint":false},"id":"sunday-after-sunset","instantUTC":"2026-09-21T01:01:05Z","reconciliationDaysAfterCompletion":0},
-    {"expected":{"annualPhase":null,"civilOffsetSeconds":-25200,"commonDate":null,"commonStandardOffsetSeconds":-25200,"continuousK":366,"lordsDay":true,"namedDay":"Sunday","nextProtectedBoundaryLabel":"STILLPOINT RELEASE · SUNDAY SUNRISE","reconciliationAddress":"Y_2026/Y_2027-R3","reconciliationDay":3,"sabbath":false,"solarGate":null,"state":"RECONCILIATION","stillPoint":true},"id":"reconciliation-r3","instantUTC":"2027-01-02T23:45:32Z","reconciliationDaysAfterCompletion":7}
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 18,
+          "dayInWeek": 1,
+          "month": 9,
+          "ordinal": 260,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Friday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 259,
+        "lordsDay": false,
+        "namedDay": "Friday",
+        "nextProtectedBoundaryLabel": null,
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": false
+      },
+      "id": "observation-zero",
+      "instantUTC": "2026-09-18T19:28:57Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 19,
+          "dayInWeek": 2,
+          "month": 9,
+          "ordinal": 261,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Saturday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 260,
+        "lordsDay": false,
+        "namedDay": "Saturday",
+        "nextProtectedBoundaryLabel": "SABBATH ENDS \u00b7 LORD'S DAY BEGINS",
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": true,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": true
+      },
+      "id": "friday-after-sunset",
+      "instantUTC": "2026-09-19T01:04:27Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 261,
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": true
+      },
+      "id": "saturday-after-sunset",
+      "instantUTC": "2026-09-20T01:02:46Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 261,
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": true
+      },
+      "id": "sunday-before-sunrise",
+      "instantUTC": "2026-09-20T12:45:39Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 20,
+          "dayInWeek": 3,
+          "month": 9,
+          "ordinal": 262,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Sunday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 261,
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "LORD'S DAY ENDS \u00b7 SUNDAY SUNSET",
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": false
+      },
+      "id": "sunday-after-sunrise",
+      "instantUTC": "2026-09-20T12:45:41Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": 9,
+        "civilOffsetSeconds": -21600,
+        "commonDate": {
+          "day": 21,
+          "dayInWeek": 4,
+          "month": 9,
+          "ordinal": 263,
+          "quarter": 3,
+          "week": 38,
+          "weekday": "Monday",
+          "year": 2026
+        },
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 262,
+        "lordsDay": false,
+        "namedDay": "Monday",
+        "nextProtectedBoundaryLabel": null,
+        "reconciliationAddress": null,
+        "reconciliationDay": null,
+        "sabbath": false,
+        "solarGate": 1,
+        "state": "ORDINARY",
+        "stillPoint": false
+      },
+      "id": "sunday-after-sunset",
+      "instantUTC": "2026-09-21T01:01:05Z",
+      "reconciliationDaysAfterCompletion": 0
+    },
+    {
+      "expected": {
+        "annualPhase": null,
+        "civilOffsetSeconds": -25200,
+        "commonDate": null,
+        "commonStandardOffsetSeconds": -25200,
+        "continuousK": 366,
+        "lordsDay": true,
+        "namedDay": "Sunday",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "reconciliationAddress": "Y_2026/Y_2027-R3",
+        "reconciliationDay": 3,
+        "sabbath": false,
+        "solarGate": null,
+        "state": "RECONCILIATION",
+        "stillPoint": true
+      },
+      "id": "reconciliation-r3",
+      "instantUTC": "2027-01-02T23:45:32Z",
+      "reconciliationDaysAfterCompletion": 7
+    }
   ],
   "version": "stillpoint-calendar-projection-vectors-v1"
 }

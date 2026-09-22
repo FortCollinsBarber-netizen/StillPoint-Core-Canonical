@@ -260,7 +260,7 @@ enum PublishedCalendarLoader {
             envelope.publicationDigest.lowercased()
                 == policy.publicationDigest?.lowercased(),
             isSHA256(envelope.publicationDigest),
-            envelope.snapOperator == v33.operator,
+            envelope.snapOperator == v33.operation,
             envelope.seasonalAnchor.event == "march_equinox",
             envelope.seasonalAnchor.commonMonth == v33.springGateMonth,
             envelope.seasonalAnchor.commonDay == v33.springGateDay,

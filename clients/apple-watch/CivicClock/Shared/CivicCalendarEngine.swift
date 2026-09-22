@@ -1,16 +1,5 @@
 import Foundation
 
-struct PublishedCivicYear: Codable, Equatable {
-    let year: Int
-    let openingCivilDate: String
-    let reconciliationDaysAfterCompletion: Int
-}
-
-struct PublishedCivicCalendar: Codable, Equatable {
-    let version: String
-    let years: [PublishedCivicYear]
-}
-
 private struct WeeklyProtectedTimeState {
     let isSabbath: Bool
     let isLordsDay: Bool
@@ -195,6 +184,10 @@ enum CivicCalendarEngine {
     ) -> (label: String, detail: String) {
         guard let publishedCalendar else {
             return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
+        }
+
+        guard publishedCalendar.isValidatedForProjection else {
+            return ("COMMON CALENDAR", "PUBLICATION NOT AUTHORIZED")
         }
 
         let baseYearDays = spec.ordinaryCalendar.baseYearDays

@@ -82,9 +82,10 @@ jobs:
       - run: python -m pip install .
       - name: Regenerate Calendar Core spec and projection vectors
         run: |
-          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
 
   calendar-package:
     runs-on: ubuntu-latest
@@ -105,3 +106,72 @@ jobs:
           tmpdir="$(mktemp -d)"
           cd "$tmpdir"
           /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"
+
+
+  calendar-release-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Emit exact Calendar Core release-candidate identity
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+
+          head = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          tree = subprocess.check_output(
+              ["git", "rev-parse", "HEAD^{tree}"], text=True
+          ).strip()
+
+          custody_path = Path(
+              "stillpoint/contracts/calendar_core_artifact_manifest.json"
+          )
+          custody = json.loads(custody_path.read_text(encoding="utf-8"))
+          verified = []
+          for item in custody["artifacts"]:
+              payload = Path(item["path"]).read_bytes()
+              digest = hashlib.sha256(payload).hexdigest()
+              if digest != item["sha256"]:
+                  raise SystemExit(
+                      f"custody mismatch for {item['path']}: "
+                      f"{digest} != {item['sha256']}"
+                  )
+              verified.append(
+                  {
+                      "path": item["path"],
+                      "role": item["role"],
+                      "bytes": len(payload),
+                      "sha256": digest,
+                  }
+              )
+
+          identity = {
+              "version": "stillpoint-calendar-release-candidate-v1",
+              "authorityStatus": "engineering-evidence-only",
+              "commit": head,
+              "tree": tree,
+              "artifacts": verified,
+              "unresolvedCivicInputs": [
+                  "firstOpening",
+                  "referencePoint",
+                  "ephemerisEvidence",
+                  "publicationAuthority",
+              ],
+              "invariants": [
+                  "ordinary-year-is-364",
+                  "reconciliation-is-interannual-0-or-7",
+                  "week-is-unbroken",
+                  "law-publication-proof-client-are-separate",
+                  "ground-zero-is-pilot-not-national-authority",
+              ],
+          }
+          print("CALENDAR_CORE_RELEASE_CANDIDATE_IDENTITY")
+          print(json.dumps(identity, indent=2, sort_keys=True))
+          PY

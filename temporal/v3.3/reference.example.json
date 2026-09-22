@@ -1,5 +1,9 @@
 {
   "version": "stillpoint-temporal-v3.3-candidate",
+  "publicationAuthority": {
+    "id": "UNRATIFIED_PILOT",
+    "status": "pilot"
+  },
   "referencePoint": {
     "id": "GROUND_ZERO",
     "label": "Private Loveland pilot reference",

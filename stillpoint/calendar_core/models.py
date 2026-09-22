@@ -76,11 +76,41 @@ class ReconciliationDecision:
     immediate_error_seconds: float
     delayed_error_seconds: float
     operator: str
+    reason_code: str = "UNSPECIFIED"
+    evidence_source_id: Optional[str] = None
+    evidence_sha256: Optional[str] = None
+    evidence_event: Optional[str] = None
+    evidence_year: Optional[int] = None
+    evidence_instant_utc: Optional[datetime] = None
 
     @property
     def legacy_elapsed_span_days(self) -> int:
         """Elapsed opening-to-opening span. Not a v3.3 ordinary-year length."""
         return 364 + self.reconciliation_days
+
+    @property
+    def selected_candidate_opening(self) -> date:
+        return (
+            self.immediate_candidate_opening
+            if self.reconciliation_days == 0
+            else self.delayed_candidate_opening
+        )
+
+    @property
+    def selected_target_date(self) -> date:
+        return (
+            self.immediate_target_date
+            if self.reconciliation_days == 0
+            else self.delayed_target_date
+        )
+
+    @property
+    def selected_error_seconds(self) -> float:
+        return (
+            self.immediate_error_seconds
+            if self.reconciliation_days == 0
+            else self.delayed_error_seconds
+        )
 
 
 @dataclass(frozen=True)
@@ -98,11 +128,12 @@ class DualStamp:
     instant_utc: datetime
     civil_timestamp: datetime
     common_standard_timestamp: datetime
-    continuous_k: int
+    continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
     reconciliation_address: Optional[str]
+    calendar_address: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -112,7 +143,7 @@ class CalendarSnapshot:
     common_standard_timestamp: datetime
     local_sunset_previous: datetime
     local_sunset_next: datetime
-    continuous_k: int
+    continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
     reconciliation_day: Optional[int]
@@ -129,3 +160,4 @@ class CalendarSnapshot:
     reference_rule_version: str
     reference_station_id: Optional[str]
     ephemeris_id: Optional[str]
+    calendar_address: Optional[str] = None

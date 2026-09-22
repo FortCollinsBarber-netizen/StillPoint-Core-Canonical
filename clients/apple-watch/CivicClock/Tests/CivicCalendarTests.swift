@@ -194,8 +194,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testAnnualDayChangesAtSunsetNotMidnight() throws {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar(
-            version: "test",
+        let published = PublishedCivicCalendar.conformanceFixture(
             years: [
                 PublishedCivicYear(
                     year: 7,
@@ -236,8 +235,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar(
-            version: "test",
+        let published = PublishedCivicCalendar.conformanceFixture(
             years: [
                 PublishedCivicYear(
                     year: 7,
@@ -264,8 +262,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() {
         let calendar = denverCalendar
-        let inconsistent = PublishedCivicCalendar(
-            version: "test",
+        let inconsistent = PublishedCivicCalendar.conformanceFixture(
             years: [
                 PublishedCivicYear(
                     year: 7,
@@ -297,8 +294,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testExampleAnnualDayMathIsBoundedTo364() {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar(
-            version: "test",
+        let published = PublishedCivicCalendar.conformanceFixture(
             years: [
                 PublishedCivicYear(
                     year: 7,
@@ -352,8 +348,7 @@ final class CivicCalendarTests: XCTestCase {
                 parser.date(from: vector.instantUTC),
                 "Could not parse \(vector.id)"
             )
-            let published = PublishedCivicCalendar(
-                version: "conformance-only",
+            let published = PublishedCivicCalendar.conformanceFixture(
                 years: [
                     PublishedCivicYear(
                         year: document.fixture.commonYear,

@@ -7,6 +7,12 @@ struct CalendarCoreSpec: Codable, Equatable {
         let protocolId: String
     }
 
+    struct EnactmentBoundary: Codable, Equatable {
+        let lawDoesNotSupplyValues: Bool
+        let requiredForFinitePublication: [String]
+        let status: String
+    }
+
     struct OrdinaryCalendar: Codable, Equatable {
         let baseYearDays: Int
         let monthLengths: [Int]
@@ -28,11 +34,36 @@ struct CalendarCoreSpec: Codable, Equatable {
         let phaseLengths: [Int]
     }
 
+    struct ReferenceRules: Codable, Equatable {
+        struct Rule: Codable, Equatable {
+            let operator: String
+            let status: String
+        }
+
+        struct V33Candidate: Codable, Equatable {
+            let operator: String
+            let springGateOrdinal: Int
+            let springGateMonth: Int
+            let springGateDay: Int
+            let status: String
+        }
+
+        let v32: Rule
+        let v33Candidate: V33Candidate
+
+        enum CodingKeys: String, CodingKey {
+            case v32 = "v3.2"
+            case v33Candidate = "v3.3Candidate"
+        }
+    }
+
     let version: String
     let boundary: Boundary
+    let enactmentBoundary: EnactmentBoundary
     let ordinaryCalendar: OrdinaryCalendar
     let reconciliation: Reconciliation
     let gates: Gates
+    let referenceRules: ReferenceRules
 }
 
 enum CalendarCoreSpecLoader {
@@ -61,9 +92,13 @@ enum CalendarCoreSpecLoader {
     static func load(url: URL) -> CalendarCoreSpec? {
         guard
             let data = try? Data(contentsOf: url),
-            let spec = try? JSONDecoder().decode(CalendarCoreSpec.self, from: data),
+            let spec = try? JSONDecoder().decode(
+                CalendarCoreSpec.self,
+                from: data
+            ),
             validate(spec)
         else { return nil }
+
         return spec
     }
 
@@ -71,10 +106,20 @@ enum CalendarCoreSpecLoader {
         let calendar = spec.ordinaryCalendar
         let reconciliation = spec.reconciliation
         let gates = spec.gates
+        let enactment = spec.enactmentBoundary
+        let v33 = spec.referenceRules.v33Candidate
 
         guard
             spec.version == supportedVersion,
             spec.boundary.apparentHorizonZenithDegrees.isFinite,
+            enactment.status == "external-unresolved",
+            enactment.lawDoesNotSupplyValues,
+            Set(enactment.requiredForFinitePublication) == Set([
+                "firstOpening",
+                "referencePoint",
+                "ephemerisEvidence",
+                "publicationAuthority"
+            ]),
             calendar.baseYearDays > 0,
             calendar.weekDays > 0,
             calendar.quarterDays > 0,
@@ -90,7 +135,14 @@ enum CalendarCoreSpecLoader {
             }),
             gates.phaseLengths.reduce(0, +) == calendar.baseYearDays,
             gates.gateSequence.count == gates.phaseLengths.count,
-            gates.pairedGateCount > 0
+            gates.pairedGateCount > 0,
+            !spec.referenceRules.v32.operator.isEmpty,
+            !spec.referenceRules.v32.status.isEmpty,
+            !v33.operator.isEmpty,
+            !v33.status.isEmpty,
+            (1...calendar.baseYearDays).contains(v33.springGateOrdinal),
+            (1...12).contains(v33.springGateMonth),
+            v33.springGateDay > 0
         else { return false }
 
         return true

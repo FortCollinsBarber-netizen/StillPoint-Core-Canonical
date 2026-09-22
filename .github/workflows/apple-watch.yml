@@ -52,6 +52,10 @@ jobs:
           diff -u /tmp/calendar_core_spec.json clients/apple-watch/CivicClock/Resources/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json clients/apple-watch/CivicClock/Resources/calendar_projection_vectors.json
 
+      - name: Prove no unratified operative calendar publication is bundled
+        run: |
+          test ! -e clients/apple-watch/CivicClock/Resources/published_calendar.json
+
       - name: Test native Watch projection against shared artifacts
         working-directory: clients/apple-watch/CivicClock
         run: swift test

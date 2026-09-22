@@ -32,8 +32,17 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .appointments import (
+    AppointedTime,
+    AppointedTimeOccurrence,
+    project_appointed_time,
+)
 from .gates import GATE_SEQUENCE, PHASE_LENGTHS, phase_for_base_day
-from .jubilee import jubilee_state
+from .jubilee import (
+    JubileeReleaseGate,
+    jubilee_release_gate,
+    jubilee_state,
+)
 from .models import (
     CalendarSnapshot,
     CommonDate,
@@ -85,6 +94,12 @@ from .sunset import (
     bracket_sunset,
 )
 from .week import protected_time_state
+from .witness import (
+    LunarWitness,
+    SeasonGateWitness,
+    WitnessValidationError,
+    as_march_equinox_evidence,
+)
 
 __all__ = [
     "MONTH_LENGTHS",
@@ -97,6 +112,8 @@ __all__ = [
     "ALLOWED_AUTHORITY_STATUSES",
     "ALLOWED_RECONCILIATION_DAYS",
     "CalendarAddress",
+    "AppointedTime",
+    "AppointedTimeOccurrence",
     "format_ordinary_address",
     "format_reconciliation_address",
     "parse_calendar_address",
@@ -117,6 +134,10 @@ __all__ = [
     "EnochPhase",
     "GeoPoint",
     "JubileeState",
+    "JubileeReleaseGate",
+    "LunarWitness",
+    "SeasonGateWitness",
+    "WitnessValidationError",
     "PublicationEnvelope",
     "PublicationRange",
     "PublicationValidationError",
@@ -138,6 +159,9 @@ __all__ = [
     "ordinal_day",
     "phase_for_base_day",
     "project_dual_stamp",
+    "project_appointed_time",
+    "jubilee_release_gate",
+    "as_march_equinox_evidence",
     "protected_time_state",
     "publication_digest",
     "select_v32_nearest_legal",

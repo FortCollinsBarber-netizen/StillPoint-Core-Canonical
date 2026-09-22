@@ -4,6 +4,16 @@
     "failurePolicy": "explicit-no-silent-fallback",
     "protocolId": "apparent-sunrise-set-0.8333"
   },
+  "enactmentBoundary": {
+    "lawDoesNotSupplyValues": true,
+    "requiredForFinitePublication": [
+      "firstOpening",
+      "referencePoint",
+      "ephemerisEvidence",
+      "publicationAuthority"
+    ],
+    "status": "external-unresolved"
+  },
   "gates": {
     "gateSequence": [
       4,

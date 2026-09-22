@@ -27,7 +27,12 @@ from .publication import (
 from .reconciliation import audit_reconciliation_schedule, forecast_reconciliation_weeks
 from .reference_rule import SPRING_GATE_ORDINAL, select_v32_nearest_legal, select_v33_nearest_spring_gate
 from .service import CalendarConfig, get_calendar_snapshot
-from .spec import SPEC_VERSION, build_calendar_core_spec
+from .spec import (
+    SPEC_VERSION,
+    CalendarSpecValidationError,
+    build_calendar_core_spec,
+    validate_calendar_core_spec,
+)
 from .sunset import apparent_sunrise_utc, apparent_sunset_utc, bracket_sunset
 from .week import protected_time_state
 
@@ -35,8 +40,9 @@ __all__ = [
     "MONTH_LENGTHS", "GATE_SEQUENCE", "PHASE_LENGTHS", "SPRING_GATE_ORDINAL",
     "SPEC_VERSION", "PROJECTION_VECTOR_VERSION", "PUBLICATION_VERSION",
     "ALLOWED_AUTHORITY_STATUSES", "ALLOWED_RECONCILIATION_DAYS",
-    "CalendarConfig", "CalendarSnapshot", "CommonDate", "DuskProtocol", "DualStamp",
-    "EnochPhase", "GeoPoint", "JubileeState", "PublicationEnvelope", "PublicationRange",
+    "CalendarConfig", "CalendarSnapshot", "CalendarSpecValidationError",
+    "CommonDate", "DuskProtocol", "DualStamp", "EnochPhase", "GeoPoint",
+    "JubileeState", "PublicationEnvelope", "PublicationRange",
     "PublicationValidationError", "ReconciliationDecision", "WeeklyProtectedState",
     "apparent_sunrise_utc", "apparent_sunset_utc", "audit_reconciliation_schedule",
     "boundary_dates_for_common_date", "bracket_sunset", "build_calendar_core_spec",
@@ -45,5 +51,6 @@ __all__ = [
     "month_day_from_ordinal", "ordinal_day", "phase_for_base_day",
     "project_dual_stamp", "protected_time_state", "publication_digest",
     "select_v32_nearest_legal", "select_v33_nearest_spring_gate",
-    "validate_publication_document", "validate_publication_rows",
+    "validate_calendar_core_spec", "validate_publication_document",
+    "validate_publication_rows",
 ]

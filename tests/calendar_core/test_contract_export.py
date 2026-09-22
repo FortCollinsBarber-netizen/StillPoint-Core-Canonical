@@ -66,6 +66,22 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertIsNone(outside["ordinaryAddress"])
         self.assertIsNone(outside["reconciliationAddress"])
 
+    def test_checked_in_spec_and_vectors_are_generated_artifacts(self):
+        root = Path(__file__).resolve().parents[2]
+        checked_spec = json.loads(
+            (root / "stillpoint/contracts/calendar_core_spec.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        checked_vectors = json.loads(
+            (
+                root
+                / "stillpoint/contracts/calendar_projection_vectors.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(checked_spec, build_calendar_core_spec())
+        self.assertEqual(checked_vectors, build_calendar_projection_vectors())
+
     def test_legacy_aggregate_is_explicitly_deprecated(self):
         doc = build_calendar_core_contract()
         self.assertEqual(doc["version"], CONTRACT_VERSION)

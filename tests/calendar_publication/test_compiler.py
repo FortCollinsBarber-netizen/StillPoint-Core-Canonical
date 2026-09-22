@@ -1,6 +1,8 @@
 import copy
+import json
 import unittest
 from datetime import date, timedelta
+from pathlib import Path
 
 from stillpoint.calendar_core.models import GeoPoint
 from stillpoint.calendar_core.sunset import apparent_sunset_utc
@@ -56,6 +58,17 @@ class CalendarPublicationTests(unittest.TestCase):
                 row["nextOpeningContinuousK"] - row["openingContinuousK"],
                 364 + row["reconciliationDaysAfterCompletion"],
             )
+
+    def test_checked_in_publication_is_only_a_conformance_fixture(self):
+        root = Path(__file__).resolve().parents[2]
+        fixture = json.loads(
+            (
+                root / "tests/fixtures/calendar/calendar_publication.json"
+            ).read_text(encoding="utf-8")
+        )
+        self.assertEqual(fixture["authority"]["status"], "CONFORMANCE")
+        self.assertEqual(fixture["authority"]["authorityId"], "TEST_ONLY")
+        validate_calendar_publication(fixture)
 
     def test_evidence_cannot_compile_without_explicit_authority(self):
         with self.assertRaises(ValueError):

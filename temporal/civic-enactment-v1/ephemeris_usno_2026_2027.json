@@ -1,0 +1,24 @@
+{
+  "version": "stillpoint-ephemeris-evidence-v1",
+  "source": "USNO_AA_SEASONS_API",
+  "sourceAuthority": "U.S. Naval Observatory Astronomical Applications Department",
+  "sourceService": "Earth's Seasons",
+  "sourceURLTemplate": "https://aa.usno.navy.mil/api/seasons?year=YEAR",
+  "retrievedDate": "2026-09-22",
+  "timeScale": "UTC",
+  "marchEquinoxes": [
+    {
+      "year": 2026,
+      "instantUTC": "2026-03-20T14:46:00Z"
+    },
+    {
+      "year": 2027,
+      "instantUTC": "2027-03-20T20:25:00Z"
+    }
+  ],
+  "custody": {
+    "method": "verbatim-normalized-json-from-official-source",
+    "reviewPolicy": "re-fetch-and-rehash-before-each-renewal",
+    "secondaryDisputeCheck": "JPL Horizons"
+  }
+}

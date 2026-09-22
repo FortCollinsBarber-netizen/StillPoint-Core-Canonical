@@ -1,0 +1,70 @@
+{
+  "version": "stillpoint-civic-enactment-v1",
+  "status": "pilot-enacted",
+  "calendarCoreFreeze": {
+    "commit": "9c35130daecd6d74063d2ef9140e2b3348e049ad",
+    "tree": "c0f0e4a2071b9b65e8b9a5ac38b436b2da032c02",
+    "lawSHA256": "84827168daf527240180fb739ccfcc5d3fff028d5394e705aa213195f6bda830",
+    "projectionProofSHA256": "89264787f5bd0aa326d198305a3e71056b0952e4055bcd1bccd6d7d4651e3176"
+  },
+  "acts": {
+    "firstOpening": {
+      "selected": true,
+      "commonYearLabel": 2026,
+      "civilDate": "2026-01-01",
+      "boundary": "local-apparent-sunset",
+      "openingUTC": "2026-01-01T23:44:45.142156Z",
+      "day001Weekday": "Friday"
+    },
+    "referencePoint": {
+      "selected": true,
+      "id": "GROUND_ZERO",
+      "role": "civic-national-reference",
+      "operatingPhase": "pilot",
+      "latitude": 40.43695,
+      "longitude": -105.12467,
+      "coordinateCustodyNonce": "GROUND_ZERO_CIVIC_REFERENCE_V1_20260922",
+      "coordinateCustodyDigest": "1cbf672bcb9b2c7548c05df9967db6062197cad0a9bc0295de92dc906f28b4f4"
+    },
+    "ephemerisAuthority": {
+      "selected": true,
+      "id": "USNO_AA_SEASONS_API",
+      "authorityName": "U.S. Naval Observatory Astronomical Applications Department",
+      "service": "Earth's Seasons",
+      "admissibleEvent": "march_equinox",
+      "timeScale": "UTC",
+      "primarySourceURLTemplate": "https://aa.usno.navy.mil/api/seasons?year=YEAR",
+      "secondaryDisputeCheck": "JPL Horizons",
+      "custodyFile": "ephemeris_usno_2026_2027.json",
+      "custodySHA256": "c1081954d6c8fd23d63ca57b06d2318d11501832590a137eff592983ed96a790",
+      "renewalRule": "re-fetch-and-rehash-before-each-publication"
+    },
+    "publicationAuthority": {
+      "selected": true,
+      "id": "STILLPOINT_CIVIC_PILOT_AUTHORITY_V1",
+      "status": "pilot",
+      "humanRatifier": "Robert Emmanuel LaDay",
+      "scope": "issue finite Common Calendar publications bound to this enactment",
+      "firstPublicationYearCount": 1,
+      "renewalRule": "issue a successor publication before the current publication expires",
+      "supersessionRule": "newly ratified publication digest supersedes prior operative digest; prior artifact remains historical evidence"
+    }
+  },
+  "signaturePolicy": {
+    "mode": "digest-bound-explicit-authority",
+    "asymmetricSignatureRequired": false,
+    "rationale": "The Apple bundle is authorized by exact authority, ephemeris, publication, and resource SHA-256 policy. Detached public-key signing is deferred to a separately versioned remote-distribution protocol so the frozen consumer contract is not silently changed."
+  },
+  "firstPublication": {
+    "path": "published_calendar.json",
+    "publicationDigest": "44beb06f964d0b88bb74fbea317745d26f7ff2f25661fcbb6bb8eba7d20ccb77",
+    "resourceSHA256": "f8c0dca305456d674968a9ba46c61b19a9ef721bd141c314ecbb2508da5b433f",
+    "effectiveAt": "2026-01-01 local apparent sunset",
+    "expiresAt": "2026-12-31 local apparent sunset",
+    "reconciliationDaysAfter2026": 0
+  },
+  "amendmentRule": {
+    "calendarCoreChange": "must reopen corresponding Calendar Core acceptance lane and earn a new candidate identity",
+    "civicActChange": "must issue a successor civic enactment instrument and publication; Core remains unchanged"
+  }
+}

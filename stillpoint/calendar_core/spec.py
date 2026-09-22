@@ -5,17 +5,22 @@ from pathlib import Path
 from typing import Any
 
 from .calendar import MONTH_LENGTHS
+from .canonical_map import (
+    DAY001_WEEKDAY,
+    FIRST_OPENING_CIVIL_DATE,
+    FIRST_YEAR_LABEL,
+    YEAR_COUNT,
+)
 from .gates import GATE_SEQUENCE, PHASE_LENGTHS
 from .models import DuskProtocol
-from .reference_rule import SPRING_GATE_ORDINAL
+from .observances import ALL_OBSERVANCES
 
-SPEC_VERSION = "stillpoint-calendar-core-spec-v1"
+SPEC_VERSION = "stillpoint-calendar-core-spec-v2"
 
 PROHIBITED_ENACTMENT_KEYS = frozenset(
     {
         "authority",
         "ephemerisEvidence",
-        "firstOpening",
         "jubileeEpoch",
         "openingCivilDate",
         "pilotCalibration",
@@ -32,6 +37,24 @@ class CalendarSpecValidationError(ValueError):
         self.code = code
 
 
+def _observance_document() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": item.id,
+            "name": item.name,
+            "jurisdiction": item.jurisdiction,
+            "month": item.month,
+            "day": item.day,
+            "endMonth": item.end_month,
+            "endDay": item.end_day,
+            "assembly": item.assembly,
+            "rule": item.rule,
+            "sourceRefs": list(item.source_refs),
+        }
+        for item in ALL_OBSERVANCES
+    ]
+
+
 def build_calendar_core_spec() -> dict[str, Any]:
     protocol = DuskProtocol()
     return {
@@ -40,16 +63,16 @@ def build_calendar_core_spec() -> dict[str, Any]:
             "calendarNamespace": "stillpoint.calendar_core",
             "authorityNamespace": "stillpoint.temporal",
             "publicationAuthority": "external-finite-evidence-object",
+            "astronomyRole": "witness-only-no-grid-authority",
+            "lunarRole": "witness-only-no-grid-authority",
         },
         "enactmentBoundary": {
-            "status": "external-unresolved",
+            "status": "annual-cycle-ratified",
+            "lawDoesNotSupplyValues": False,
             "requiredForFinitePublication": [
-                "firstOpening",
                 "referencePoint",
-                "ephemerisEvidence",
                 "publicationAuthority",
             ],
-            "lawDoesNotSupplyValues": True,
         },
         "boundary": {
             "protocolId": protocol.id,
@@ -62,38 +85,59 @@ def build_calendar_core_spec() -> dict[str, Any]:
             "monthLengths": list(MONTH_LENGTHS),
             "quarterDays": 91,
             "quarters": 4,
+            "lastCommonMonth": 12,
+            "lastCommonDay": 30,
+            "december31Exists": False,
+        },
+        "canonicalCycle": {
+            "firstYearLabel": FIRST_YEAR_LABEL,
+            "firstOpeningCivilDate": FIRST_OPENING_CIVIL_DATE.isoformat(),
+            "day001Weekday": DAY001_WEEKDAY,
+            "yearCount": YEAR_COUNT,
+            "totalDays": 364 * YEAR_COUNT,
+            "transition": "12-30->next-year-01-01",
         },
         "reconciliation": {
-            "allowedDays": [0, 7],
-            "namespace": "interannual",
-            "addressPattern": "Y_n/Y_n+1-R{day}",
+            "allowedDays": [0],
+            "namespace": "prohibited",
+            "addressPattern": None,
             "inheritsOrdinaryFields": False,
         },
         "gates": {
             "phaseLengths": list(PHASE_LENGTHS),
             "gateSequence": list(GATE_SEQUENCE),
             "pairedGateCount": 6,
+            "role": "enochic-seasonal-witness-layer",
         },
         "referenceRules": {
             "v3.2": {
                 "operator": "NearestLegal",
-                "status": "recovered-historical",
+                "status": "historical-non-operative",
             },
             "v3.3Candidate": {
                 "operator": "NearestLegalSpringGate",
-                "springGateOrdinal": SPRING_GATE_ORDINAL,
+                "springGateOrdinal": 80,
                 "springGateMonth": 3,
                 "springGateDay": 20,
-                "status": "candidate-unratified",
+                "status": "historical-non-operative",
+            },
+            "operative": {
+                "operator": "Fixed364",
+                "status": "ratified",
             },
         },
+        "observances": _observance_document(),
         "invariants": [
-            "continuous-time-never-gaps",
-            "ordinary-year-is-always-364",
-            "reconciliation-is-0-or-7-and-interannual",
-            "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
-            "week-sequence-is-never-broken",
-            "missing-required-evidence-fails-closed",
+            "common-year-is-exactly-364-days",
+            "common-year-is-exactly-52-seven-day-weeks",
+            "december-31-does-not-exist",
+            "day-364-transitions-directly-to-next-year-day-001",
+            "no-reconciliation-days",
+            "no-leap-day",
+            "astronomy-cannot-move-the-grid",
+            "lunar-observation-cannot-move-the-grid",
+            "recurring-observances-retain-weekday",
+            "fifty-year-map-is-18200-days",
             "publication-is-finite-and-does-not-self-ratify",
         ],
     }

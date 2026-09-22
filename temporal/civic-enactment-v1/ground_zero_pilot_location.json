@@ -1,0 +1,22 @@
+{
+  "version": "stillpoint-ground-zero-pilot-location-v1",
+  "id": "GROUND_ZERO",
+  "status": "pilot-local",
+  "authorityScope": "pilot-only",
+  "streetAddress": "3462 Hewitt, Loveland, CO 80538",
+  "coordinates": null,
+  "calendarCoreFreeze": {
+    "commit": "9c35130daecd6d74063d2ef9140e2b3348e049ad",
+    "tree": "c0f0e4a2071b9b65e8b9a5ac38b436b2da032c02"
+  },
+  "jurisdictionBoundary": {
+    "isCivicReferencePoint": false,
+    "isNationalReferencePoint": false,
+    "requiresExplicitRatificationForBroaderAuthority": true
+  },
+  "notes": [
+    "This record identifies the Ground Zero pilot location supplied by the human authority.",
+    "Its presence in the repository does not ratify it as a civic or national reference point.",
+    "Coordinates remain unset until separately supplied or explicitly adopted."
+  ]
+}

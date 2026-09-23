@@ -22,12 +22,34 @@ class CalendarRuntimeSurfaceTests(unittest.TestCase):
         self.assertEqual(value["common_date"]["year"], 2026)
         self.assertEqual(value["common_date"]["ordinal"], 1)
         self.assertEqual(value["common_date"]["weekday"], "Thursday")
+        self.assertEqual(value["canonical_coordinate"]["label"], "2026-01-01")
+        self.assertEqual(value["canonical_coordinate"]["weekday"], "Thursday")
+        self.assertEqual(value["interop_window"]["calendar"], "proleptic-gregorian")
+        self.assertEqual(value["interop_window"]["role"], "translation-only")
+        self.assertFalse(value["interop_window"]["mutates_calendar"])
         self.assertEqual(value["civil_window"]["opens"], "2026-01-01")
         self.assertEqual(value["map"]["year_days"], 364)
         self.assertEqual(value["map"]["weeks_per_year"], 52)
         self.assertFalse(value["map"]["december_31_exists"])
         self.assertEqual(value["map"]["year_count"], 50)
         self.assertEqual(value["map"]["total_days"], 18200)
+
+    def test_gregorian_interop_never_redefines_common_year_opening(self):
+        value = calendar_day_payload(2027, 1)
+
+        self.assertEqual(value["canonical_coordinate"]["label"], "2027-01-01")
+        self.assertEqual(value["common_date"]["month"], 1)
+        self.assertEqual(value["common_date"]["day"], 1)
+        self.assertEqual(value["common_date"]["weekday"], "Thursday")
+        self.assertEqual(value["interop_window"]["opens"], "2026-12-31")
+        self.assertNotEqual(
+            value["canonical_coordinate"]["label"],
+            value["interop_window"]["opens"],
+        )
+        self.assertTrue(value["map"]["interop_calendar_is_translation_only"])
+        self.assertTrue(
+            value["map"]["coordinate_observation_interpretation_separated"]
+        )
 
     def test_year_fifty_remains_same_grid_and_reports_jubilee(self):
         value = calendar_day_payload(2075, 1)

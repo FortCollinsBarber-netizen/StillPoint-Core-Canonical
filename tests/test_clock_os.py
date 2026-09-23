@@ -69,9 +69,17 @@ class ClockOSTests(unittest.TestCase):
         self.assertIsNone(snapshot["calendar"])
         self.assertIsNone(address_for_instant(before, config=CONFIG))
 
-    def test_clock_os_rolls_day_364_directly_to_next_year_day_001(self):
-        final_day_2026 = _after_sunset(date(2026, 12, 30))
-        end_snapshot = clock_snapshot(final_day_2026, config=CONFIG)
+    def test_clock_os_rolls_day_364_directly_to_next_year_day_001_at_midnight(self):
+        common_zone = timezone(timedelta(hours=-7))
+        final_second = datetime(
+            2026, 12, 30, 23, 59, 59, tzinfo=common_zone
+        )
+        next_second = datetime(
+            2026, 12, 31, 0, 0, 0, tzinfo=common_zone
+        )
+
+        end_snapshot = clock_snapshot(final_second, config=CONFIG)
+        next_snapshot = clock_snapshot(next_second, config=CONFIG)
 
         self.assertEqual(
             end_snapshot["calendar"]["calendar_address"],
@@ -81,9 +89,6 @@ class ClockOSTests(unittest.TestCase):
             end_snapshot["boundaries"]["next_begins"]["calendar_address"],
             "Y_2027-001",
         )
-
-        first_2027 = _after_sunset(date(2026, 12, 31))
-        next_snapshot = clock_snapshot(first_2027, config=CONFIG)
         self.assertEqual(
             next_snapshot["calendar"]["calendar_address"],
             "Y_2027-001",
@@ -91,6 +96,10 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(
             next_snapshot["calendar"]["common_date"]["weekday"],
             "Thursday",
+        )
+        self.assertEqual(
+            next_snapshot["boundaries"]["calendar_date_boundary"],
+            "common-standard-midnight",
         )
 
     def test_common_clock_uses_fixed_standard_offset_during_dst(self):
@@ -102,6 +111,41 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(common.utcoffset(), timedelta(hours=-7))
         self.assertEqual(civil.utcoffset(), timedelta(hours=-6))
         self.assertEqual(snapshot["instant"]["common_clock"], "11:00:00")
+
+
+    def test_sunset_does_not_rename_the_calendar_date(self):
+        common_zone = timezone(timedelta(hours=-7))
+        before_sunset = datetime(2026, 1, 1, 12, 0, tzinfo=common_zone)
+        after_sunset = datetime(2026, 1, 1, 20, 0, tzinfo=common_zone)
+
+        before = clock_snapshot(before_sunset, config=CONFIG)
+        after = clock_snapshot(after_sunset, config=CONFIG)
+
+        self.assertEqual(before["calendar"]["calendar_address"], "Y_2026-001")
+        self.assertEqual(after["calendar"]["calendar_address"], "Y_2026-001")
+        self.assertFalse(
+            before["invariants"]["solar_boundary_mutates_calendar_date"]
+        )
+        self.assertFalse(
+            after["invariants"]["solar_boundary_mutates_calendar_date"]
+        )
+
+    def test_dst_civil_label_cannot_shift_common_calendar_date(self):
+        # 00:30 daylight time is still 23:30 on the fixed Common Clock.
+        instant = datetime(2026, 7, 15, 6, 30, tzinfo=timezone.utc)
+        snapshot = clock_snapshot(instant, config=CONFIG)
+
+        self.assertTrue(snapshot["instant"]["civil"].startswith("2026-07-15T00:30"))
+        self.assertTrue(
+            snapshot["instant"]["common_standard"].startswith("2026-07-14T23:30")
+        )
+        self.assertEqual(
+            snapshot["boundaries"]["coordination_date"],
+            "2026-07-14",
+        )
+        self.assertFalse(
+            snapshot["invariants"]["daylight_saving_mutates_common_clock"]
+        )
 
     def test_canonical_address_projects_to_location_specific_sunset_window(self):
         window = canonical_civil_window(2026, 1, config=CONFIG)

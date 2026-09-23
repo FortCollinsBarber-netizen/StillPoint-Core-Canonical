@@ -193,7 +193,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "First fasting day of Ramadan",
         "islamic",
         date(2026, 2, 18),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("IslamicFinder Islamic Calendar 2026",),
         qualification="Actual month opening may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(

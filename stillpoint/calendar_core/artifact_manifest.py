@@ -70,8 +70,9 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
         "invariants": [
             "law-and-proof-have-distinct-roles",
             "proof-vectors-have-no-civic-authority",
-            "manifest-does-not-ratify-publication",
+            "manifest-does-not-ratify-projection-epoch",
             "compatibility-bridge-is-not-constitutional-law",
+            "no-reconciliation-artifact-has-operative-authority",
         ],
     }
 

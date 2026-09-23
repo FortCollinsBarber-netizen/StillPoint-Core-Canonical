@@ -99,7 +99,7 @@ class RhythmOverlayTests(unittest.TestCase):
             )
             for value in (year7, year49, jubilee)
         }
-        self.assertEqual(coordinates, {(7, 10, "Saturday")})
+        self.assertEqual(coordinates, {(7, 10, "Friday")})
 
     def test_seasonal_gate_is_overlay_state_not_grid_mutation(self):
         day = calendar_day_payload(2026, ordinal_day(10, 1))

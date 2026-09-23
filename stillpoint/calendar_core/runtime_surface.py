@@ -14,6 +14,7 @@ from typing import Any
 from .calendar import CANONICAL_DAY001_WEEKDAY
 from .population import address_from_ordinal
 from .publication import validate_publication_document
+from .witness_overlays import witnesses_for_external_date
 
 PUBLICATION_FILENAME = "calendar_publication_2026_2075.json"
 RUNTIME_SCHEMA = "stillpoint.calendar-day.v1"
@@ -80,6 +81,10 @@ def calendar_day_payload(
             "role": "external-translation-only",
             "grid_authority": False,
         },
+        "external_witness_overlays": [
+            event.as_payload()
+            for event in witnesses_for_external_date(day.opening_civil_date)
+        ],
         "season": {
             "number": day.quarter,
             "day": day.day_of_quarter,

@@ -10,7 +10,7 @@ from .service import CalendarConfig, get_calendar_snapshot
 from .sunset import apparent_sunrise_utc, apparent_sunset_utc
 
 UTC = timezone.utc
-PROJECTION_VECTOR_VERSION = "stillpoint-calendar-projection-vectors-v1"
+PROJECTION_VECTOR_VERSION = "stillpoint-calendar-projection-vectors-v2"
 
 
 def _iso_seconds(value: datetime) -> str:
@@ -53,28 +53,29 @@ def _expected(snapshot) -> dict[str, Any]:
     }
 
 
-def _config(reconciliation_days: int = 0) -> CalendarConfig:
+def _config() -> CalendarConfig:
     return CalendarConfig(
         location=CONFORMANCE_POINT,
         local_zone=CONFORMANCE_ZONE,
         common_year=2026,
         opening_civil_date=date(2026, 1, 1),
-        day001_weekday="Friday",
+        day001_weekday="Thursday",
         common_standard_offset_seconds=-7 * 3600,
-        reconciliation_days_after_completion=reconciliation_days,
+        reconciliation_days_after_completion=0,
+        year_count=50,
         continuous_k_at_opening=0,
-        reference_rule_version="v3.3-candidate",
+        reference_rule_version="fixed-364-v1",
         reference_station_id="LOVELAND_TEST",
-        ephemeris_id="CONFORMANCE_ONLY",
+        ephemeris_id="CONFORMANCE_WITNESS_ONLY",
+        jubilee_epoch_common_year=2026,
     )
 
 
-def _vector(vector_id: str, instant: datetime, reconciliation_days: int = 0) -> dict[str, Any]:
+def _vector(vector_id: str, instant: datetime) -> dict[str, Any]:
     return {
         "id": vector_id,
         "instantUTC": _iso_seconds(instant),
-        "reconciliationDaysAfterCompletion": reconciliation_days,
-        "expected": _expected(get_calendar_snapshot(instant, config=_config(reconciliation_days))),
+        "expected": _expected(get_calendar_snapshot(instant, config=_config())),
     }
 
 
@@ -83,7 +84,6 @@ def build_calendar_projection_vectors() -> dict[str, Any]:
     saturday_sunset = apparent_sunset_utc(date(2026, 9, 19), CONFORMANCE_POINT)
     sunday_sunrise = apparent_sunrise_utc(date(2026, 9, 20), CONFORMANCE_POINT)
     sunday_sunset = apparent_sunset_utc(date(2026, 9, 20), CONFORMANCE_POINT)
-    r3_sunset = apparent_sunset_utc(date(2027, 1, 2), CONFORMANCE_POINT)
 
     return {
         "version": PROJECTION_VECTOR_VERSION,
@@ -95,7 +95,8 @@ def build_calendar_projection_vectors() -> dict[str, Any]:
             "legalCivilZone": CONFORMANCE_ZONE,
             "commonYear": 2026,
             "openingCivilDate": "2026-01-01",
-            "day001Weekday": "Friday",
+            "day001Weekday": "Thursday",
+            "yearCount": 50,
             "commonStandardOffsetSeconds": -7 * 3600,
             "continuousKAtOpening": 0,
         },
@@ -106,12 +107,25 @@ def build_calendar_projection_vectors() -> dict[str, Any]:
             _vector("sunday-before-sunrise", sunday_sunrise - timedelta(seconds=1)),
             _vector("sunday-after-sunrise", sunday_sunrise + timedelta(seconds=1)),
             _vector("sunday-after-sunset", sunday_sunset + timedelta(seconds=1)),
-            _vector("reconciliation-r3", r3_sunset + timedelta(seconds=1), 7),
         ],
         "failureCases": [
-            {"id": "invalid-reconciliation", "kind": "publication", "input": {"reconciliationDaysAfterCompletion": 1}, "expectedFailure": "INVALID_RECONCILIATION"},
-            {"id": "outside-publication-range", "kind": "projection", "instantUTC": "2028-01-01T12:00:00Z", "expectedFailure": "OUTSIDE_PUBLISHED_RANGE"},
-            {"id": "unsupported-spec-version", "kind": "spec", "input": {"version": "unsupported-calendar-spec"}, "expectedFailure": "UNSUPPORTED_SPEC_VERSION"},
+            {
+                "id": "legacy-reconciliation-rejected",
+                "kind": "projection",
+                "input": {"reconciliationDaysAfterCompletion": 7},
+                "expectedFailure": "RECONCILIATION_PROHIBITED",
+            },
+            {
+                "id": "outside-50-year-range",
+                "kind": "projection",
+                "expectedFailure": "OUTSIDE_RATIFIED_MAP",
+            },
+            {
+                "id": "unsupported-spec-version",
+                "kind": "spec",
+                "input": {"version": "unsupported-calendar-spec"},
+                "expectedFailure": "UNSUPPORTED_SPEC_VERSION",
+            },
         ],
     }
 

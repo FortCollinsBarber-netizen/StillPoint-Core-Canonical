@@ -4,6 +4,12 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
+
 
 OVERLAY_POLICY_VERSION = "stillpoint-calendar-overlay-policy-v1"
 
@@ -51,7 +57,24 @@ class OverlayRecord:
             return "canonical-overlay"
         return "witness-overlay"
 
+    @property
+    def rhythm_authority(self) -> RhythmAuthority:
+        if self.kind in WITNESS_OVERLAY_KINDS:
+            return RhythmAuthority.OBSERVE
+        return RhythmAuthority.OVERLAY
+
     def as_payload(self) -> dict[str, Any]:
+        decision = RHYTHM_GOVERNOR.require(
+            RhythmRequest(
+                authority=self.rhythm_authority,
+                source=f"calendar-overlay:{self.kind}:{self.source}",
+                annotation={
+                    "overlay_id": self.id,
+                    "overlay_kind": self.kind,
+                    "authority_class": self.authority_class,
+                },
+            )
+        )
         return {
             "policy_version": OVERLAY_POLICY_VERSION,
             "kind": self.kind,
@@ -59,6 +82,11 @@ class OverlayRecord:
             "label": self.label,
             "source": self.source,
             "authority_class": self.authority_class,
+            "rhythm_governor": {
+                "authority": decision.authority.value,
+                "decision": decision.code,
+                "surface_mutated": decision.surface_mutated,
+            },
             "jurisdiction": {
                 "grid_authority": False,
                 "may_insert_days": False,
@@ -103,6 +131,12 @@ def inhabit_surface(
 ) -> dict[str, Any]:
     """Return a decorated calendar day without granting overlays grid authority."""
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="calendar-overlay-surface",
+        )
+    )
     before = grid_identity(day_payload)
     result = deepcopy(dict(day_payload))
     result["overlays"] = [overlay.as_payload() for overlay in overlays]

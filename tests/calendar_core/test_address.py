@@ -11,10 +11,7 @@ from stillpoint.calendar_core.address import (
 class CalendarAddressTests(unittest.TestCase):
     def test_ordinary_round_trip(self):
         for ordinal in (1, 2, 79, 80, 363, 364):
-            text = format_ordinary_address(
-                2026,
-                ordinal,
-            )
+            text = format_ordinary_address(2026, ordinal)
             parsed = parse_calendar_address(text)
             self.assertEqual(
                 parsed,
@@ -26,22 +23,20 @@ class CalendarAddressTests(unittest.TestCase):
             )
             self.assertEqual(parsed.text, text)
 
-    def test_reconciliation_round_trip(self):
+    def test_reconciliation_address_namespace_is_retired(self):
         for r_day in range(1, 8):
-            text = format_reconciliation_address(
-                2026,
-                r_day,
-            )
-            parsed = parse_calendar_address(text)
-            self.assertEqual(
-                parsed,
-                CalendarAddress(
-                    kind="RECONCILIATION",
-                    year=2026,
-                    reconciliation_day=r_day,
-                ),
-            )
-            self.assertEqual(parsed.text, text)
+            with self.assertRaisesRegex(
+                ValueError,
+                "Reconciliation is not part",
+            ):
+                format_reconciliation_address(
+                    2026,
+                    r_day,
+                )
+            with self.assertRaises(ValueError):
+                parse_calendar_address(
+                    f"Y_2026/Y_2027-R{r_day}"
+                )
 
     def test_invalid_ordinary_ordinal_fails(self):
         for ordinal in (0, 365):
@@ -50,20 +45,6 @@ class CalendarAddressTests(unittest.TestCase):
                     2026,
                     ordinal,
                 )
-
-    def test_invalid_reconciliation_day_fails(self):
-        for r_day in (0, 8):
-            with self.assertRaises(ValueError):
-                format_reconciliation_address(
-                    2026,
-                    r_day,
-                )
-
-    def test_nonconsecutive_reconciliation_bridge_fails(self):
-        with self.assertRaises(ValueError):
-            parse_calendar_address(
-                "Y_2026/Y_2028-R1"
-            )
 
 
 if __name__ == "__main__":

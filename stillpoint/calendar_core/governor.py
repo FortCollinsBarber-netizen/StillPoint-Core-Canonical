@@ -82,7 +82,6 @@ class RhythmRequest:
     attempts_grid_mutation: bool = False
     dst_shift_seconds: int = 0
     intercalary_days: int = 0
-    reconciliation_days: int = 0
     proposed_year_days: int | None = None
     proposed_weeks_per_year: int | None = None
     proposed_day001_weekday: str | None = None
@@ -227,12 +226,6 @@ class RhythmGovernor:
                 request,
                 "INTERCALATION_FORBIDDEN",
                 "intercalary days may not be inserted into the canonical grid",
-            )
-        if request.reconciliation_days != 0:
-            return self._reject(
-                request,
-                "RECONCILIATION_FORBIDDEN",
-                "reconciliation may not alter the canonical grid",
             )
         if (
             request.proposed_year_days is not None

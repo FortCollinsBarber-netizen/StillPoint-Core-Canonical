@@ -102,7 +102,7 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
             "proof-vectors-have-no-civic-authority",
             "manifest-does-not-ratify-projection-epoch",
             "compatibility-bridge-is-not-constitutional-law",
-            "no-reconciliation-artifact-has-operative-authority",
+            "calendar-surface-is-exactly-364-and-nonextensible",
             "population-layer-cannot-mutate-grid",
             "external-witness-layer-cannot-mutate-grid",
         ],

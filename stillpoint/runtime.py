@@ -267,6 +267,68 @@ class CompanyRuntime:
             req=ActionRequest(action_id=hashlib.sha256(("action|"+raw).encode()).hexdigest()[:20],task_id=task_id,action_type=action,target=target,scope=scope,artifact_refs=action_refs,approval_required=True,approval_id=None,expires_at=(now+timedelta(hours=24)).isoformat(),issued_at=now.isoformat(),idempotency_key=idem,success_criteria=[{"send_email":"provider_acceptance_receipt","publish":"publication_receipt","social_post":"post_receipt","export_artifact":"export_receipt","spend":"payment_receipt","sign":"signature_receipt","delete":"deletion_receipt"}.get(action,"external_receipt")],authority_revision=plan.authority_revision)
             self.db.add_action_request(req);out.append(req.action_id)
         return out
+    @staticmethod
+    def _execution_step_identities(plan):
+        steps=[]
+        for i,cid in enumerate(plan.contributors):
+            spec=plan.contributor_specs[i] if i<len(plan.contributor_specs) else {}
+            steps.append({
+                "phase":"contribution",
+                "agent_id":cid,
+                "identity":fingerprint("contribution",cid,spec),
+            })
+        steps.append({
+            "phase":"primary",
+            "agent_id":plan.primary,
+            "identity":fingerprint(
+                "primary",
+                plan.primary,
+                list(plan.primary_capabilities or plan.capabilities),
+                plan.expected_artifact,
+            ),
+        })
+        return steps
+
+    def _completed_prefix(self,task_id,plan,count):
+        count=int(count)
+        if count<0:
+            raise ValueError("preserve_completed_steps must be >= 0")
+        steps=self._execution_step_identities(plan)
+        if count>len(steps):
+            raise ValueError("preserve_completed_steps exceeds plan execution stages")
+        if count==0:
+            return []
+        selected=steps[:count]
+        identity_pairs=[(s["phase"],s["agent_id"]) for s in selected]
+        if len(set(identity_pairs))!=len(identity_pairs):
+            raise RuntimeError("cannot preserve an ambiguous duplicate stage identity")
+        runs=self.db.list_runs(task_id)
+        artifacts=self.db.list_artifacts(task_id)
+        preserved=[]
+        for step in selected:
+            matches=[
+                row for row in runs
+                if row.get("phase")==step["phase"]
+                and row.get("agent_id")==step["agent_id"]
+                and row.get("output") is not None
+            ]
+            if not matches:
+                raise RuntimeError(
+                    f"completed stage missing for repair prefix: "
+                    f"{step['phase']}:{step['agent_id']}"
+                )
+            row=matches[-1]
+            preserved.append({
+                **step,
+                "run_id":row["id"],
+                "output":row.get("output") or "",
+                "artifact_hashes":[
+                    a["sha256"] for a in artifacts
+                    if a.get("produced_by_run_id")==row["id"]
+                ],
+            })
+        return preserved
+
     def _finish(self,task_id,goal,plan,primary_output,review_text):
         if plan.restricted_actions:
             self._prepare_actions(task_id,goal,plan)
@@ -274,8 +336,20 @@ class CompanyRuntime:
             return TaskOutcome(task_id,TaskStatus.WAITING_APPROVAL,plan,primary_output,review_text,plan.approval_reason)
         self.db.update_task(task_id,status="completed",final_output=primary_output,review_output=review_text,error=None)
         return TaskOutcome(task_id,TaskStatus.COMPLETED,plan,primary_output,review_text)
-    def _execute(self,task_id,goal,project,plan,attachments):
+    def _execute(self,task_id,goal,project,plan,attachments,*,preserved_prefix=None):
         root_fp=self._fingerprint(goal,project,attachments);self.db.update_task(task_id,input_fingerprint=root_fp)
+        preserved_prefix=list(preserved_prefix or [])
+        current_steps=self._execution_step_identities(plan)
+        if len(preserved_prefix)>len(current_steps):
+            raise RuntimeError("repair prefix exceeds current execution plan")
+        for i,preserved in enumerate(preserved_prefix):
+            current=current_steps[i]
+            if (
+                preserved.get("phase")!=current["phase"]
+                or preserved.get("agent_id")!=current["agent_id"]
+                or preserved.get("identity")!=current["identity"]
+            ):
+                raise RuntimeError("repaired plan changed a preserved stage identity")
         contributions=[]
         for i,cid in enumerate(plan.contributors):
             prior=[]
@@ -283,10 +357,17 @@ class CompanyRuntime:
                 prior_spec=plan.contributor_specs[j] if j<len(plan.contributor_specs) else {}
                 if prior_spec.get("before")=="next_contributor":prior.append((name,out))
             cfp=fingerprint(root_fp,"contribution",cid,[(n,_sha_text(o)) for n,o in prior])
-            output=self._call_agent(task_id,cid,"contribution",goal,project,prior,attachments,plan,input_fp=cfp,legacy_fp=root_fp)
+            if i<len(preserved_prefix):
+                output=preserved_prefix[i]["output"]
+            else:
+                output=self._call_agent(task_id,cid,"contribution",goal,project,prior,attachments,plan,input_fp=cfp,legacy_fp=root_fp)
             contributions.append((self.registry.get(cid).name,output))
         pfp=fingerprint(root_fp,"primary",[(n,_sha_text(o)) for n,o in contributions])
-        primary_output=self._call_agent(task_id,plan.primary,"primary",goal,project,contributions,attachments,plan,input_fp=pfp,legacy_fp=root_fp)
+        primary_index=len(plan.contributors)
+        if primary_index<len(preserved_prefix):
+            primary_output=preserved_prefix[primary_index]["output"]
+        else:
+            primary_output=self._call_agent(task_id,plan.primary,"primary",goal,project,contributions,attachments,plan,input_fp=pfp,legacy_fp=root_fp)
         review_text=""
         if plan.review_required and plan.primary!="stillpoint":
             rfp=fingerprint(root_fp,"review",_sha_text(primary_output))
@@ -367,6 +448,89 @@ class CompanyRuntime:
             self.db.update_task(task_id,status="failed",error=str(exc));raise
         finally:
             self._active_task_id=None
+    def repair(self,task_id,note,*,preserve_completed_steps=0):
+        """Replan only the suffix after an explicit, verified completed prefix."""
+        task=self.db.get_task(task_id)
+        if not task:raise KeyError(task_id)
+        if not str(note or "").strip():
+            raise ValueError("repair note is required")
+        if task["status"] not in {
+            "new","running","failed","blocked","waiting_approval","ready_for_action","completed"
+        }:
+            raise RuntimeError(f"task cannot be repaired from status={task['status']}")
+        if not task.get("plan_json"):
+            raise RuntimeError("task has no prior plan to repair")
+
+        old_plan=WorkPlan.from_dict(json.loads(task["plan_json"]))
+        preserved=self._completed_prefix(task_id,old_plan,preserve_completed_steps)
+        effective=task["goal"]+f"\n\nCEO REPAIR INSTRUCTION:\n{note}"
+        self._active_task_id=task_id
+        try:
+            new_plan,planning_output,model_planned,planning_model=self.planner.plan(effective)
+            old_steps=self._execution_step_identities(old_plan)
+            new_steps=self._execution_step_identities(new_plan)
+            count=len(preserved)
+            if len(new_steps)<count:
+                raise RuntimeError("repaired plan removed a preserved stage")
+            for i in range(count):
+                if old_steps[i]!=new_steps[i]:
+                    raise RuntimeError("repaired plan changed a preserved stage identity")
+
+            invalidated=self.db.invalidate_task_action_authority(
+                task_id,
+                reason="superseded by localized plan repair",
+            )
+            self.db.set_plan(task_id,new_plan.to_dict())
+            self._record_planning(
+                task_id,effective,task.get("project"),
+                planning_output,model_planned,planning_model,
+            )
+            pr=self.db.add_plan_revision(
+                task_id,fingerprint(effective),new_plan.authority_revision,new_plan.to_dict()
+            )
+            self.db.add_resume_instruction(
+                task_id,note,fingerprint(note),new_plan.authority_revision,pr
+            )
+            receipt={
+                "schema":"stillpoint.plan-repair.v1",
+                "task_id":task_id,
+                "preserved_steps":[
+                    {
+                        "phase":p["phase"],
+                        "agent_id":p["agent_id"],
+                        "run_id":p["run_id"],
+                        "artifact_hashes":list(p["artifact_hashes"]),
+                    }
+                    for p in preserved
+                ],
+                "invalidated_action_ids":invalidated,
+                "prior_authority_revision":old_plan.authority_revision,
+                "new_authority_revision":new_plan.authority_revision,
+            }
+            repair_fp=fingerprint(receipt,note)
+            self.db.add_run(
+                task_id,"orchestra","repair_boundary",
+                json.dumps(receipt,sort_keys=True),
+                model="runtime",
+                input_summary="fp:"+repair_fp,
+                stage_key=stage_key(
+                    task_id,"repair_boundary",
+                    agent_id="orchestra",input_fingerprint=repair_fp,
+                ),
+            )
+            attachments=self._load_saved_attachments(task_id)
+            self.db.update_task(task_id,status="running",error=None)
+            return self._execute(
+                task_id,effective,task.get("project"),new_plan,attachments,
+                preserved_prefix=preserved,
+            )
+        except BudgetExceeded as exc:
+            self.db.update_task(task_id,status="blocked",error=str(exc));raise
+        except Exception as exc:
+            self.db.update_task(task_id,status="failed",error=str(exc));raise
+        finally:
+            self._active_task_id=None
+
     def promote_memory(self,key,value,*,scope="company",source="CEO",confidence="verified",task_id=None):
         if source != "CEO":
             raise PermissionError("durable memory promotion requires CEO source")

@@ -6,8 +6,6 @@ private struct CalendarProjectionVectorDocument: Decodable {
         let latitude: Double
         let longitude: Double
         let legalCivilZone: String
-        let commonYear: Int
-        let openingCivilDate: String
     }
 
     struct Vector: Decodable {
@@ -25,13 +23,11 @@ private struct CalendarProjectionVectorDocument: Decodable {
             let lordsDay: Bool
             let stillPoint: Bool
             let state: String
-            let reconciliationDay: Int?
             let nextProtectedBoundaryLabel: String?
         }
 
         let id: String
         let instantUTC: String
-        let reconciliationDaysAfterCompletion: Int
         let expected: Expected
     }
 
@@ -99,7 +95,7 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertFalse(snapshot.isLordsDay)
     }
 
-    func testSaturdaySunsetClosesSabbathAndOpensLordsDayWhileStillPointContinues() throws {
+    func testSaturdaySunsetOpensLordsDayWhileStillPointContinues() throws {
         let calendar = denverCalendar
         let saturday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 19, hour: 12
@@ -163,49 +159,32 @@ final class CivicCalendarTests: XCTestCase {
         )
     }
 
-    func testSundaySunsetEndsLordsDay() throws {
+    func testFixedCalendarProjectsWithoutPublicationTable() throws {
         let calendar = denverCalendar
-        let sunday = calendar.date(from: DateComponents(
-            year: 2026, month: 9, day: 20, hour: 12
+        let day = calendar.date(from: DateComponents(
+            year: 2026, month: 9, day: 18, hour: 12
         ))!
-        let sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
-            on: sunday,
-            latitude: latitude,
-            longitude: longitude,
-            calendar: calendar
-        ))
 
-        let at = CivicCalendarEngine.snapshot(
-            now: sunset,
+        let snapshot = CivicCalendarEngine.snapshot(
+            now: day,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: nil,
             calendar: calendar
         )
 
-        XCTAssertFalse(at.isSabbath)
-        XCTAssertFalse(at.isLordsDay)
-        XCTAssertFalse(at.isStillPoint)
-    }
-
-    func testCalendarDoesNotInventAnnualDateWithoutPublishedTable() {
-        let snapshot = CivicClockSnapshot.unavailable
-        XCTAssertEqual(snapshot.commonCalendarDetail, "PUBLISHED TABLE PENDING")
+        XCTAssertTrue(snapshot.commonCalendarLabel.contains("Y2026"))
+        XCTAssertTrue(snapshot.commonCalendarLabel.contains("DAY 260"))
+        XCTAssertNotEqual(
+            snapshot.commonCalendarDetail,
+            "ANNUAL TABLE PENDING"
+        )
     }
 
     func testAnnualDayChangesAtSunsetNotMidnight() throws {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
-                )
-            ]
-        )
-
         let secondCivilDay = calendar.date(from: DateComponents(
-            year: 2026, month: 3, day: 21, hour: 12
+            year: 2026, month: 1, day: 2, hour: 12
         ))!
         let secondSunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
             on: secondCivilDay,
@@ -218,14 +197,12 @@ final class CivicCalendarTests: XCTestCase {
             now: secondSunset.addingTimeInterval(-60),
             latitude: latitude,
             longitude: longitude,
-            publishedCalendar: published,
             calendar: calendar
         )
         let after = CivicCalendarEngine.snapshot(
             now: secondSunset.addingTimeInterval(60),
             latitude: latitude,
             longitude: longitude,
-            publishedCalendar: published,
             calendar: calendar
         )
 
@@ -233,91 +210,94 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertTrue(after.commonCalendarLabel.contains("DAY 002"))
     }
 
-    func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() {
+    func testDecember30RollsDirectlyToNextJanuary1() throws {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
-                )
-            ]
-        )
-
-        let farOutside = calendar.date(from: DateComponents(
-            year: 2027, month: 4, day: 1, hour: 12
+        let rolloverCivilDay = calendar.date(from: DateComponents(
+            year: 2026, month: 12, day: 31, hour: 12
         ))!
-
-        let snapshot = CivicCalendarEngine.snapshot(
-            now: farOutside,
+        let rollover = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: rolloverCivilDay,
             latitude: latitude,
             longitude: longitude,
-            publishedCalendar: published,
+            calendar: calendar
+        ))
+
+        let before = CivicCalendarEngine.snapshot(
+            now: rollover.addingTimeInterval(-60),
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+        let after = CivicCalendarEngine.snapshot(
+            now: rollover.addingTimeInterval(60),
+            latitude: latitude,
+            longitude: longitude,
             calendar: calendar
         )
 
-        XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
+        XCTAssertTrue(before.commonCalendarLabel.contains("Y2026"))
+        XCTAssertTrue(before.commonCalendarLabel.contains("DEC 30"))
+        XCTAssertTrue(before.commonCalendarLabel.contains("DAY 364"))
+        XCTAssertTrue(after.commonCalendarLabel.contains("Y2027"))
+        XCTAssertTrue(after.commonCalendarLabel.contains("JAN 01"))
+        XCTAssertTrue(after.commonCalendarLabel.contains("DAY 001"))
     }
 
-    func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() {
-        let calendar = denverCalendar
-        let inconsistent = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
-                ),
-                PublishedCivicYear(
-                    year: 8,
-                    openingCivilDate: "2027-03-21",
-                    reconciliationDaysAfterCompletion: 0
-                )
-            ]
+    func testCommonClockRemovesDaylightSavingOffset() throws {
+        let parser = ISO8601DateFormatter()
+        let now = try XCTUnwrap(
+            parser.date(from: "2026-09-18T19:00:00Z")
         )
-
-        let now = calendar.date(from: DateComponents(
-            year: 2026, month: 4, day: 1, hour: 12
-        ))!
-
         let snapshot = CivicCalendarEngine.snapshot(
             now: now,
             latitude: latitude,
             longitude: longitude,
-            publishedCalendar: inconsistent,
-            calendar: calendar
+            calendar: denverCalendar
         )
 
-        XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
+        XCTAssertEqual(snapshot.commonClockLabel, "12:00")
     }
 
-    func testExampleAnnualDayMathIsBoundedTo364() {
+    func testChristmasAndJubileeContextComeFromSharedLaw() throws {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
-                )
-            ]
-        )
-
-        let now = calendar.date(from: DateComponents(
-            year: 2026, month: 4, day: 1, hour: 12
+        let christmasCivilDay = calendar.date(from: DateComponents(
+            year: 2026, month: 12, day: 25, hour: 20
         ))!
-
-        let snapshot = CivicCalendarEngine.snapshot(
-            now: now,
+        let christmasSunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: christmasCivilDay,
             latitude: latitude,
             longitude: longitude,
-            publishedCalendar: published,
+            calendar: calendar
+        ))
+        let christmas = CivicCalendarEngine.snapshot(
+            now: christmasSunset.addingTimeInterval(60),
+            latitude: latitude,
+            longitude: longitude,
             calendar: calendar
         )
+        XCTAssertTrue(
+            christmas.observanceLabel.contains("Christmas Day")
+        )
+        XCTAssertEqual(christmas.jubileeLabel, "JUBILEE Y1/50")
 
-        XCTAssertTrue(snapshot.commonCalendarLabel.contains("YEAR 7"))
+        let year50CivilOpening = calendar.date(from: DateComponents(
+            year: 2074, month: 11, day: 1, hour: 20
+        ))!
+        let year50Sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: year50CivilOpening,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
+        let year50 = CivicCalendarEngine.snapshot(
+            now: year50Sunset.addingTimeInterval(60),
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        )
+        XCTAssertEqual(year50.jubileeLabel, "JUBILEE YEAR 50")
     }
+
     func testNativeProjectionConsumesGeneratedCalendarCoreSpecAndVectors() throws {
         let resourceRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -348,28 +328,21 @@ final class CivicCalendarTests: XCTestCase {
                 parser.date(from: vector.instantUTC),
                 "Could not parse \(vector.id)"
             )
-            let published = PublishedCivicCalendar.conformanceFixture(
-                years: [
-                    PublishedCivicYear(
-                        year: document.fixture.commonYear,
-                        openingCivilDate: document.fixture.openingCivilDate,
-                        reconciliationDaysAfterCompletion:
-                            vector.reconciliationDaysAfterCompletion
-                    )
-                ]
-            )
-
             let snapshot = CivicCalendarEngine.snapshot(
                 now: now,
                 latitude: document.fixture.latitude,
                 longitude: document.fixture.longitude,
-                publishedCalendar: published,
+                publishedCalendar: nil,
                 calendarCoreSpec: spec,
                 calendar: calendar
             )
             let expected = vector.expected
 
-            XCTAssertEqual(snapshot.namedDay, expected.namedDay.uppercased(), vector.id)
+            XCTAssertEqual(
+                snapshot.namedDay,
+                expected.namedDay.uppercased(),
+                vector.id
+            )
             XCTAssertEqual(snapshot.isSabbath, expected.sabbath, vector.id)
             XCTAssertEqual(snapshot.isLordsDay, expected.lordsDay, vector.id)
             XCTAssertEqual(snapshot.isStillPoint, expected.stillPoint, vector.id)
@@ -387,7 +360,9 @@ final class CivicCalendarTests: XCTestCase {
                     vector.id
                 )
                 XCTAssertTrue(
-                    snapshot.commonCalendarDetail.contains("S\(common.quarter)"),
+                    snapshot.commonCalendarDetail.contains(
+                        "S\(common.quarter)"
+                    ),
                     vector.id
                 )
                 XCTAssertTrue(
@@ -397,19 +372,18 @@ final class CivicCalendarTests: XCTestCase {
                     vector.id
                 )
                 XCTAssertTrue(
-                    snapshot.commonCalendarDetail.contains("D\(common.dayInWeek)"),
+                    snapshot.commonCalendarDetail.contains(
+                        "D\(common.dayInWeek)"
+                    ),
                     vector.id
                 )
-            } else if expected.state == "RECONCILIATION" {
-                XCTAssertEqual(snapshot.commonCalendarLabel, "RECONCILIATION", vector.id)
-                if let rDay = expected.reconciliationDay {
-                    XCTAssertTrue(
-                        snapshot.commonCalendarDetail.contains("R\(rDay)"),
-                        vector.id
-                    )
-                }
+            } else {
+                XCTAssertEqual(
+                    expected.state,
+                    "OUTSIDE_RANGE",
+                    vector.id
+                )
             }
         }
     }
-
 }

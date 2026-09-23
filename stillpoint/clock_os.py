@@ -1,16 +1,18 @@
 """Clock OS: read-only temporal runtime over the enacted Common Calendar.
 
-Clock OS translates between civil instants and the immutable Calendar Core
-surface. Solar boundaries determine when a named day opens at a supplied
-location; they never alter the 364-day grid, weekday pattern, or publication.
-No location is embedded in this module. Enactment-specific location and
-standard-time settings are supplied by the caller.
+Clock OS translates between external instants and the immutable Calendar Core
+surface. The retained 24-hour Common Clock changes the calendar coordinate at
+fixed-standard midnight. Local sunset, darkness, dawn, and sunrise remain real
+creation/protected-time boundaries, but they do not rename the calendar date
+or alter the 364-day grid. No location is embedded in this module.
+Enactment-specific location and standard-time settings are supplied by the
+caller.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -75,35 +77,64 @@ def _next_calendar_day(
         return None
 
 
-def canonical_civil_window(
+def canonical_coordination_window(
     year: int,
     ordinal: int,
     *,
     config: ClockConfig,
 ) -> dict[str, Any]:
-    """Return the location-specific sunset window for one canonical address."""
+    """Return the fixed-standard midnight window for one canonical address.
+
+    The external projection date is only a bridge into the host timeline.
+    The canonical address and retained 24-hour time are the operative Common
+    Calendar coordinate. Solar events are returned as witness/boundary data,
+    not as the date-change mechanism.
+    """
 
     day = calendar_day_payload(
         int(year),
         int(ordinal),
         publication_path=config.publication_path,
     )
-    opens_on = date.fromisoformat(day["civil_window"]["opens"])
-    closes_on = date.fromisoformat(day["civil_window"]["closes"])
-    opens_at = apparent_sunset_utc(opens_on, config.location)
-    closes_at = apparent_sunset_utc(closes_on, config.location)
+    projected_date = date.fromisoformat(day["civil_window"]["opens"])
+    standard_zone = timezone(
+        timedelta(seconds=int(config.common_standard_offset_seconds))
+    )
+    opens_standard = datetime.combine(projected_date, time.min, tzinfo=standard_zone)
+    closes_standard = opens_standard + timedelta(days=1)
+
+    sunset = apparent_sunset_utc(projected_date, config.location)
+    next_sunset = apparent_sunset_utc(projected_date + timedelta(days=1), config.location)
+
     return {
         "schema": CLOCK_SCHEMA,
         "authority": CLOCK_AUTHORITY,
         "calendar_address": day["calendar_address"],
-        "opening_civil_date": opens_on.isoformat(),
-        "closing_civil_date": closes_on.isoformat(),
-        "opens_at_utc": opens_at.isoformat(),
-        "closes_at_utc": closes_at.isoformat(),
+        "common_date": day["common_date"],
+        "boundary": "common-standard-midnight",
+        "opens_at_common_standard": opens_standard.isoformat(),
+        "closes_at_common_standard": closes_standard.isoformat(),
+        "opens_at_utc": opens_standard.astimezone(timezone.utc).isoformat(),
+        "closes_at_utc": closes_standard.astimezone(timezone.utc).isoformat(),
+        "external_projection_date": projected_date.isoformat(),
         "location_id": config.location.id,
-        "boundary_protocol": "apparent-sunrise-set-0.8333",
+        "solar_witness": {
+            "sunset_on_projection_date_utc": sunset.isoformat(),
+            "next_sunset_utc": next_sunset.isoformat(),
+            "calendar_effect": "none",
+        },
         "calendar_publication": day["publication"],
     }
+
+
+def canonical_civil_window(
+    year: int,
+    ordinal: int,
+    *,
+    config: ClockConfig,
+) -> dict[str, Any]:
+    """Backward-compatible name for the canonical coordination window."""
+    return canonical_coordination_window(year, ordinal, config=config)
 
 
 def address_for_instant(

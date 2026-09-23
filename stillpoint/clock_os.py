@@ -19,11 +19,9 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .calendar_core.governor import CalendarAuthority, RhythmGovernor
 from .calendar_core.models import GeoPoint
-from .calendar_core.runtime_surface import (
-    calendar_day_payload,
-    load_enacted_publication,
-)
+from .calendar_core.runtime_surface import load_enacted_publication
 from .calendar_core.sunset import apparent_sunset_utc, bracket_sunset
 from .calendar_core.week import protected_time_state
 from .lunar import lunar_phase_witness
@@ -70,11 +68,9 @@ def _next_calendar_day(
     else:
         next_year, next_ordinal = year + 1, 1
     try:
-        return calendar_day_payload(
-            next_year,
-            next_ordinal,
+        return RhythmGovernor(
             publication_path=publication_path,
-        )
+        ).read_day(next_year, next_ordinal)
     except ValueError:
         return None
 
@@ -87,11 +83,12 @@ def canonical_civil_window(
 ) -> dict[str, Any]:
     """Return the location-specific sunset window for one canonical address."""
 
-    day = calendar_day_payload(
-        int(year),
-        int(ordinal),
-        publication_path=config.publication_path,
+    governor = RhythmGovernor(publication_path=config.publication_path)
+    governor.require(
+        CalendarAuthority.OBSERVE,
+        payload={"event": "location-specific-solar-window"},
     )
+    day = governor.read_day(int(year), int(ordinal))
     opens_on = date.fromisoformat(day["civil_window"]["opens"])
     closes_on = date.fromisoformat(day["civil_window"]["closes"])
     opens_at = apparent_sunset_utc(opens_on, config.location)
@@ -132,6 +129,14 @@ def clock_snapshot(
     if instant.tzinfo is None:
         raise ValueError("instant must be timezone-aware")
 
+    governor = RhythmGovernor(publication_path=config.publication_path)
+    governor.require(
+        CalendarAuthority.COORDINATE,
+        payload={
+            "clock": "24-hour",
+            "common_standard_uses_dst": False,
+        },
+    )
     document = load_enacted_publication(config.publication_path)
     instant_utc = instant.astimezone(timezone.utc)
     civil_timestamp = instant_utc.astimezone(ZoneInfo(config.local_zone))
@@ -159,11 +164,7 @@ def clock_snapshot(
     following: dict[str, Any] | None = None
     if position is not None:
         year, ordinal = position
-        current = calendar_day_payload(
-            year,
-            ordinal,
-            publication_path=config.publication_path,
-        )
+        current = governor.read_day(year, ordinal)
         following = _next_calendar_day(
             year,
             ordinal,
@@ -256,5 +257,7 @@ def clock_snapshot(
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
+            "calendar_reads_governed": True,
+            "ordinary_calendar_mutation_authority_exists": False,
         },
     }

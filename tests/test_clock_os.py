@@ -182,16 +182,76 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(civil.utcoffset(), timedelta(hours=-6))
         self.assertEqual(snapshot["instant"]["common_clock"], "11:00:00")
 
-    def test_canonical_address_projects_to_location_specific_sunset_window(self):
+    def test_canonical_address_uses_fixed_standard_midnight_window(self):
         window = canonical_civil_window(2026, 1, config=CONFIG)
 
         self.assertEqual(window["calendar_address"], "Y_2026-001")
-        self.assertEqual(window["opening_civil_date"], "2026-01-01")
-        self.assertEqual(window["closing_civil_date"], "2026-01-02")
+        self.assertEqual(window["boundary"], "common-standard-midnight")
+        self.assertTrue(
+            window["opens_at_common_standard"].startswith(
+                "2026-01-01T00:00:00-07:00"
+            )
+        )
+        self.assertTrue(
+            window["closes_at_common_standard"].startswith(
+                "2026-01-02T00:00:00-07:00"
+            )
+        )
+        self.assertEqual(window["solar_witness"]["calendar_effect"], "none")
         self.assertGreater(
             datetime.fromisoformat(window["closes_at_utc"]),
             datetime.fromisoformat(window["opens_at_utc"]),
         )
+
+    def test_common_weekday_drives_sabbath_not_host_weekday(self):
+        instant = _after_sunset(date(2026, 12, 25))
+        snapshot = clock_snapshot(instant, config=CONFIG)
+
+        self.assertEqual(
+            snapshot["calendar"]["common_date"]["weekday"],
+            "Friday",
+        )
+        self.assertEqual(snapshot["protected_time"]["named_day"], "Saturday")
+        self.assertTrue(snapshot["protected_time"]["is_sabbath"])
+        self.assertTrue(snapshot["protected_time"]["is_stillpoint"])
+        self.assertFalse(snapshot["protected_time"]["is_lords_day"])
+
+    def test_saturday_sunset_moves_protected_time_to_lords_day_not_calendar_date(self):
+        instant = _after_sunset(date(2026, 12, 26))
+        snapshot = clock_snapshot(instant, config=CONFIG)
+
+        self.assertEqual(
+            snapshot["calendar"]["common_date"]["weekday"],
+            "Saturday",
+        )
+        self.assertEqual(snapshot["protected_time"]["named_day"], "Sunday")
+        self.assertFalse(snapshot["protected_time"]["is_sabbath"])
+        self.assertTrue(snapshot["protected_time"]["is_lords_day"])
+        self.assertTrue(snapshot["protected_time"]["is_stillpoint"])
+
+    def test_local_light_exposes_dawn_sunrise_daylight_sunset_and_dusk(self):
+        noon = datetime(2026, 6, 21, 19, 0, tzinfo=timezone.utc)
+        snapshot = clock_snapshot(noon, config=CONFIG)
+        light = snapshot["local_light"]
+
+        self.assertEqual(light["schema"], "stillpoint.local-light.v1")
+        self.assertIn(
+            light["phase"],
+            {"DARKNESS", "DAWN", "DAYLIGHT", "DUSK"},
+        )
+        self.assertLess(
+            datetime.fromisoformat(light["civil_dawn_utc"]),
+            datetime.fromisoformat(light["sunrise_utc"]),
+        )
+        self.assertLess(
+            datetime.fromisoformat(light["sunrise_utc"]),
+            datetime.fromisoformat(light["sunset_utc"]),
+        )
+        self.assertLess(
+            datetime.fromisoformat(light["sunset_utc"]),
+            datetime.fromisoformat(light["civil_dusk_utc"]),
+        )
+        self.assertEqual(light["calendar_effect"], "none")
 
     def test_naive_instant_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "timezone-aware"):
@@ -211,6 +271,14 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(reference["phase_name"], "NEW MOON")
         self.assertTrue(reference["is_waxing"])
         self.assertEqual(reference["calendar_effect"], "none")
+        self.assertEqual(
+            reference["previous_mean_new_moon_utc"],
+            REFERENCE_NEW_MOON.isoformat(),
+        )
+        self.assertGreater(
+            datetime.fromisoformat(reference["next_mean_new_moon_utc"]),
+            REFERENCE_NEW_MOON,
+        )
 
         first_quarter = lunar_phase_witness(
             REFERENCE_NEW_MOON

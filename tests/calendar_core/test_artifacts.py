@@ -63,8 +63,10 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertEqual(ordinary["quarters"], 4)
         self.assertFalse(ordinary["hasDecember31"])
         self.assertFalse(ordinary["hasFebruary29"])
-        self.assertFalse(spec["annualTransition"]["reconciliationAllowed"])
-        self.assertEqual(spec["annualTransition"]["interannualDays"], 0)
+        self.assertEqual(
+            spec["annualTransition"],
+            {"rule": "DAY_364_TO_NEXT_YEAR_DAY_001"},
+        )
 
         serialized = json.dumps(spec)
         self.assertNotIn("LOVELAND_TEST", serialized)
@@ -112,9 +114,6 @@ class CalendarArtifactTests(unittest.TestCase):
             (1, 1),
         )
 
-        self.assertFalse(
-            any("reconciliation" in row["id"].lower() for row in doc["vectors"])
-        )
 
     def test_publication_rows_are_exactly_364_days_apart(self):
         rows = self._publication()["years"]
@@ -133,19 +132,19 @@ class CalendarArtifactTests(unittest.TestCase):
             validate_publication_rows(rows)
         self.assertEqual(raised.exception.code, "OPENING_SPAN_MISMATCH")
 
-    def test_publication_rejects_superseded_reconciliation_field(self):
+    def test_publication_rejects_unknown_year_row_field(self):
         rows = [
             {
                 "year": 1,
                 "openingCivilDate": "2026-01-01",
-                "reconciliationDaysAfterCompletion": 7,
+                "unexpectedExtraDateField": 7,
             }
         ]
         with self.assertRaises(PublicationValidationError) as raised:
             validate_publication_rows(rows)
         self.assertEqual(
             raised.exception.code,
-            "SUPERSEDED_RECONCILIATION_FIELD",
+            "UNSUPPORTED_PUBLICATION_ROW_FIELD",
         )
 
     def test_publication_envelope_binds_authority_epoch_and_spec(self):

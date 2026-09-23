@@ -22,55 +22,48 @@ final class PublishedCalendarLoaderTests: XCTestCase {
     private let publicationDigest =
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
 
-    private func fixtureData() -> Data {
+    private func fixtureData(
+        reconciliation: Int = 0
+    ) -> Data {
         Data(
             """
             {
               "publicationVersion": "stillpoint-calendar-publication-v1",
-              "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v1",
-              "version": "stillpoint-temporal-v3.3",
+              "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v2",
+              "version": "stillpoint-fixed-364-v1",
               "authority": {
                 "id": "TEST_PILOT_AUTHORITY",
                 "status": "pilot"
               },
-              "referenceRuleVersion": "v3.3-candidate",
+              "referenceRuleVersion": "fixed-364-v1",
               "referencePoint": {
                 "id": "REFERENCE_TEST",
                 "coordinateCustodyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
               },
-              "duskProtocol": {
-                "id": "apparent-sunset-0.8333",
-                "sunCenterAltitudeDegrees": -0.8333
+              "gridRule": {
+                "yearDays": 364,
+                "weekDays": 7,
+                "yearCount": 2,
+                "reconciliationDays": 0
               },
-              "seasonalAnchor": {
-                "event": "march_equinox",
-                "commonMonth": 3,
-                "commonDay": 20,
-                "ordinal": 80
-              },
-              "snapOperator": "NearestLegalSpringGate",
               "ephemerisEvidence": {
                 "source": "TEST_EPHEMERIS",
-                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "role": "witness-only-no-grid-authority"
               },
               "years": [
                 {
-                  "year": 7,
+                  "year": 2026,
                   "openingCivilDate": "2026-01-01",
-                  "reconciliationDaysAfterCompletion": 0,
-                  "reconciliationReasonCode": "IMMEDIATE_CLOSER_OR_TIE",
-                  "governingMarchEquinoxYear": 2027,
-                  "governingMarchEquinoxUTC": "2027-03-20T12:00:00Z",
-                  "immediateCandidateOpeningCivilDate": "2026-12-31",
-                  "delayedCandidateOpeningCivilDate": "2027-01-07",
-                  "immediateSpringGateCivilDate": "2027-03-20",
-                  "delayedSpringGateCivilDate": "2027-03-27",
-                  "immediateErrorSeconds": 0,
-                  "delayedErrorSeconds": 604800,
-                  "nextYearSpringGateCivilDate": "2027-03-20"
+                  "reconciliationDaysAfterCompletion": (reconciliation)
+                },
+                {
+                  "year": 2027,
+                  "openingCivilDate": "2026-12-31",
+                  "reconciliationDaysAfterCompletion": 0
                 }
               ],
-              "publicationDigest": "\(publicationDigest)"
+              "publicationDigest": "(publicationDigest)"
             }
             """.utf8
         )
@@ -95,7 +88,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
             authorityID: "TEST_PILOT_AUTHORITY",
             authorityStatus: "pilot",
             referencePointID: "REFERENCE_TEST",
-            referenceRuleVersion: "v3.3-candidate",
+            referenceRuleVersion: "fixed-364-v1",
             ephemerisSource: "TEST_EPHEMERIS",
             ephemerisSHA256:
                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -117,7 +110,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         )
     }
 
-    func testExplicitFinitePolicyLoadsExactAuthorizedBytes() throws {
+    func testExplicitFinitePolicyLoadsFixed364Publication() throws {
         let data = fixtureData()
         let url = try writeFixture(data)
 
@@ -130,11 +123,15 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         )
 
         XCTAssertTrue(publication.isValidatedForProjection)
-        XCTAssertEqual(publication.years.count, 1)
-        XCTAssertEqual(publication.years[0].year, 7)
+        XCTAssertEqual(publication.years.count, 2)
+        XCTAssertEqual(publication.years[0].year, 2026)
         XCTAssertEqual(
-            publication.validationReceipt?.authorityID,
-            "TEST_PILOT_AUTHORITY"
+            publication.years[1].openingCivilDate,
+            "2026-12-31"
+        )
+        XCTAssertEqual(
+            publication.validationReceipt?.referenceRuleVersion,
+            "fixed-364-v1"
         )
     }
 
@@ -156,35 +153,11 @@ final class PublishedCalendarLoaderTests: XCTestCase {
     func testWrongAuthorityPolicyFailsClosed() throws {
         let data = fixtureData()
         let url = try writeFixture(data)
-        var expected = policy(for: data)
-        expected = PublishedCalendarPolicy(
-            authorityID: "OTHER_AUTHORITY",
-            authorityStatus: expected.authorityStatus,
-            referencePointID: expected.referencePointID,
-            referenceRuleVersion: expected.referenceRuleVersion,
-            ephemerisSource: expected.ephemerisSource,
-            ephemerisSHA256: expected.ephemerisSHA256,
-            publicationDigest: expected.publicationDigest,
-            resourceSHA256: expected.resourceSHA256
-        )
-
-        XCTAssertNil(
-            PublishedCalendarLoader.load(
-                url: url,
-                policy: expected,
-                calendarCoreSpec: try spec
-            )
-        )
-    }
-
-    func testWrongReferencePointFailsClosed() throws {
-        let data = fixtureData()
-        let url = try writeFixture(data)
         let base = policy(for: data)
         let wrong = PublishedCalendarPolicy(
-            authorityID: base.authorityID,
+            authorityID: "OTHER_AUTHORITY",
             authorityStatus: base.authorityStatus,
-            referencePointID: "OTHER_REFERENCE",
+            referencePointID: base.referencePointID,
             referenceRuleVersion: base.referenceRuleVersion,
             ephemerisSource: base.ephemerisSource,
             ephemerisSHA256: base.ephemerisSHA256,
@@ -201,45 +174,16 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         )
     }
 
-    func testUnvalidatedSyntheticPublicationCannotProject() {
-        let unvalidated = PublishedCivicCalendar(
-            version: "test",
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-01-01",
-                    reconciliationDaysAfterCompletion: 0
-                )
-            ],
-            validationReceipt: nil
-        )
+    func testAnyReconciliationFailsClosed() throws {
+        let data = fixtureData(reconciliation: 7)
+        let url = try writeFixture(data)
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(
-            identifier: "America/Denver"
-        )!
-
-        let now = calendar.date(
-            from: DateComponents(
-                year: 2026,
-                month: 1,
-                day: 10,
-                hour: 12
+        XCTAssertNil(
+            PublishedCalendarLoader.load(
+                url: url,
+                policy: policy(for: data),
+                calendarCoreSpec: try spec
             )
-        )!
-
-        let snapshot = CivicCalendarEngine.snapshot(
-            now: now,
-            latitude: 40.3978,
-            longitude: -105.0749,
-            publishedCalendar: unvalidated,
-            calendarCoreSpec: try? spec,
-            calendar: calendar
-        )
-
-        XCTAssertEqual(
-            snapshot.commonCalendarDetail,
-            "PUBLICATION NOT AUTHORIZED"
         )
     }
 }

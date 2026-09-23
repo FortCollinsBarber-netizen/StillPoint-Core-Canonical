@@ -54,7 +54,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
 
             self.assertTrue(all(not thread.is_alive() for thread in threads))
             self.assertEqual(errors, [])
-            self.assertEqual(sorted(versions), [23, 23])
+            self.assertEqual(sorted(versions), [24, 24])
 
             final = CompanyDB(db_path, migrations_dir=ROOT / "migrations")
             rows = final.conn.execute(
@@ -62,7 +62,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
                 "GROUP BY version HAVING COUNT(*) != 1"
             ).fetchall()
             self.assertEqual(rows, [])
-            self.assertEqual(final.schema_version, 23)
+            self.assertEqual(final.schema_version, 24)
             final.close()
 
     def test_upgrade_labels_prior_history_backfill_and_new_migration_exact(self):
@@ -85,7 +85,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
             self.assertEqual(custody[1]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[21]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[22]["custody_source"], "applied_exact")
-            self.assertEqual(custody[23]["custody_source"], "applied_exact")
+            self.assertEqual(custody[23]["custody_source"], "applied_exact")\n            self.assertEqual(custody[24]["custody_source"], "applied_exact")
             expected = hashlib.sha256(
                 (ROOT / "migrations" / "022_stage3_audit_closure.sql").read_bytes()
             ).hexdigest()
@@ -100,7 +100,7 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
             db_path = tmp / "company.sqlite"
 
             db = CompanyDB(db_path, migrations_dir=copied)
-            self.assertEqual(db.schema_version, 23)
+            self.assertEqual(db.schema_version, 24)
             db.close()
 
             changed = copied / "022_stage3_audit_closure.sql"

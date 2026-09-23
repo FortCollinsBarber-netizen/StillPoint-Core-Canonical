@@ -13,6 +13,13 @@
       "role": "conformance-proof-only",
       "sha256": "26952361015ff01352cd12b51c687152e75b31006e41bbe8747f9f2bdc22db8f",
       "version": "stillpoint-calendar-projection-vectors-v2"
+    },
+    {
+      "bytes": 12707,
+      "path": "stillpoint/contracts/calendar_population_v1.json",
+      "role": "calendar-population-no-grid-authority",
+      "sha256": "228c63dbe8f5732bcae2254a15d77284f6bf80122984944e0ac1a82392a5f54c",
+      "version": "stillpoint-calendar-population-v1"
     }
   ],
   "authorityStatus": "custody-only",
@@ -26,7 +33,8 @@
     "proof-vectors-have-no-civic-authority",
     "manifest-does-not-ratify-projection-epoch",
     "compatibility-bridge-is-not-constitutional-law",
-    "no-reconciliation-artifact-has-operative-authority"
+    "no-reconciliation-artifact-has-operative-authority",
+    "population-layer-cannot-mutate-grid"
   ],
   "version": "stillpoint-calendar-artifact-manifest-v1"
 }

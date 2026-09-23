@@ -1,31 +1,27 @@
 {
   "artifacts": [
     {
-      "bytes": 2097,
+      "bytes": 13243,
       "path": "stillpoint/contracts/calendar_core_spec.json",
       "role": "calendar-law",
-      "sha256": "84827168daf527240180fb739ccfcc5d3fff028d5394e705aa213195f6bda830",
-      "version": "stillpoint-calendar-core-spec-v1"
+      "sha256": "1377b365841a4e7c93148fa2adf32d52a51c07c9d25789c7f29747112edb7bb9",
+      "version": "stillpoint-calendar-core-spec-v2"
     },
     {
-      "bytes": 6757,
+      "bytes": 5797,
       "path": "stillpoint/contracts/calendar_projection_vectors.json",
       "role": "conformance-proof-only",
-      "sha256": "89264787f5bd0aa326d198305a3e71056b0952e4055bcd1bccd6d7d4651e3176",
-      "version": "stillpoint-calendar-projection-vectors-v1"
+      "sha256": "bb9957b16d7d66edbdfed565dd2eb009137b27c0861212eb23eb93f40b00b79a",
+      "version": "stillpoint-calendar-projection-vectors-v2"
     }
   ],
   "authorityStatus": "custody-only",
-  "compatibilityBridge": {
-    "authorityStatus": "non-authoritative-compatibility-only",
-    "includedInManifestDigest": false,
-    "path": "stillpoint/contracts/calendar_core_contract.json"
-  },
   "invariants": [
     "law-and-proof-have-distinct-roles",
     "proof-vectors-have-no-civic-authority",
     "manifest-does-not-ratify-publication",
-    "compatibility-bridge-is-not-constitutional-law"
+    "fixed-grid-has-no-reconciliation-namespace",
+    "astronomy-and-lunar-data-are-witness-only"
   ],
-  "version": "stillpoint-calendar-artifact-manifest-v1"
+  "version": "stillpoint-calendar-artifact-manifest-v2"
 }

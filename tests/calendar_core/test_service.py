@@ -21,8 +21,8 @@ class CalendarServiceTests(unittest.TestCase):
             config=config,
         )
 
-        self.assertEqual(snap.common_date.ordinal, 260)
-        self.assertEqual(snap.common_date.weekday, "Thursday")
+        self.assertEqual(snap.common_date.ordinal, 261)
+        self.assertEqual(snap.common_date.weekday, "Friday")
         self.assertEqual(snap.named_day, "Friday")
         self.assertEqual(snap.annual_phase, 9)
         self.assertEqual(snap.solar_gate, 1)

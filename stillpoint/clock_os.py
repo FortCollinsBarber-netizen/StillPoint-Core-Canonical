@@ -190,6 +190,9 @@ def clock_snapshot(
         },
         "location": {
             "id": config.location.id,
+            "coordinate_system": "WGS84",
+            "latitude": config.location.latitude,
+            "longitude": config.location.longitude,
         },
         "lunar_witness": lunar_phase_witness(instant_utc),
         "calendar_state": "ORDINARY" if current is not None else "OUTSIDE_RANGE",

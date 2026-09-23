@@ -25,6 +25,13 @@ class CommonCalendarV2Tests(unittest.TestCase):
             authority_id="TEST",
         )
         self.assertEqual(len(doc["years"]), 50)
+        self.assertEqual(
+            doc["projectionSemantics"]["openingCivilDate"]["role"],
+            "external-translation-only",
+        )
+        self.assertFalse(
+            doc["projectionSemantics"]["openingCivilDate"]["gridAuthority"]
+        )
         self.assertEqual(doc["years"][0]["openingCivilDate"], "2026-01-01")
         for first, second in zip(doc["years"], doc["years"][1:]):
             a = dt.date.fromisoformat(first["openingCivilDate"])

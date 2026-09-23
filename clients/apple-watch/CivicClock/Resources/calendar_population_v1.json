@@ -1,0 +1,574 @@
+{
+  "authorityStatus": "population-layer-no-grid-authority",
+  "distributedWitnesses": [
+    {
+      "id": "torah-appointed-times",
+      "sourceRefs": [
+        "Leviticus 23",
+        "Leviticus 25",
+        "Numbers 28-29",
+        "Deuteronomy 16"
+      ]
+    },
+    {
+      "id": "enochic-seasonal-architecture",
+      "role": "season-gate-witness",
+      "sourceRefs": [
+        "1 Enoch 72-82"
+      ]
+    },
+    {
+      "id": "jubilees-calendar-witness",
+      "role": "364-day-calendar-witness",
+      "sourceRefs": [
+        "Jubilees 6:29-32"
+      ]
+    }
+  ],
+  "invariants": [
+    "population-never-mutates-grid",
+    "source-provenance-remains-attached",
+    "observance-addresses-repeat-with-annual-template",
+    "astronomy-and-lunar-witnesses-cannot-move-observances"
+  ],
+  "jurisdiction": {
+    "gridAuthority": false,
+    "mayAlterWeekday": false,
+    "mayInsertDays": false,
+    "mayMoveYearOpening": false
+  },
+  "observances": [
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-01-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 1,
+      "name": "Month 1 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-02-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 2,
+      "name": "Month 2 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-03-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 3,
+      "name": "Month 3 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-04-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 4,
+      "name": "Month 4 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-05-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 5,
+      "name": "Month 5 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-06-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 6,
+      "name": "Month 6 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-07-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 7,
+      "name": "Month 7 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-08-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 8,
+      "name": "Month 8 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-09-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 9,
+      "name": "Month 9 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-10-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 10,
+      "name": "Month 10 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-11-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 11,
+      "name": "Month 11 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "month-12-opening",
+      "jurisdiction": "sacred-marker",
+      "month": 12,
+      "name": "Month 12 Opening",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Numbers 28:11-15"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 14,
+      "endDay": null,
+      "endMonth": null,
+      "id": "passover",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Passover",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:5",
+        "Numbers 28:16",
+        "Deuteronomy 16:1-8"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": 21,
+      "endMonth": 1,
+      "id": "unleavened-bread",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Feast of Unleavened Bread",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:6-8",
+        "Numbers 28:17-25",
+        "Deuteronomy 16:3-8"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "firstfruits",
+      "jurisdiction": "sacred",
+      "month": 1,
+      "name": "Firstfruits",
+      "note": "Canonical Common Calendar placement; source interpretation remains provenance.",
+      "rule": "canonical-sunday-after-weekly-sabbath-following-unleavened-bread",
+      "sourceRefs": [
+        "Leviticus 23:10-16"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": null,
+      "endMonth": null,
+      "id": "weeks",
+      "jurisdiction": "sacred",
+      "month": 3,
+      "name": "Feast of Weeks / Pentecost",
+      "note": "Canonical Common Calendar placement downstream of Firstfruits.",
+      "rule": "canonical-fiftieth-day-counted-from-firstfruits",
+      "sourceRefs": [
+        "Leviticus 23:15-21",
+        "Numbers 28:26-31",
+        "Deuteronomy 16:9-12",
+        "Jubilees 6"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "trumpets",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Trumpets",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:23-25",
+        "Numbers 29:1-6"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 10,
+      "endDay": null,
+      "endMonth": null,
+      "id": "atonement",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Day of Atonement",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:26-32",
+        "Numbers 29:7-11",
+        "Leviticus 25:9"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 15,
+      "endDay": 21,
+      "endMonth": 7,
+      "id": "booths",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Feast of Booths",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:33-43",
+        "Numbers 29:12-34",
+        "Deuteronomy 16:13-17"
+      ]
+    },
+    {
+      "assembly": true,
+      "day": 22,
+      "endDay": null,
+      "endMonth": null,
+      "id": "eighth-day",
+      "jurisdiction": "sacred",
+      "month": 7,
+      "name": "Eighth Day Assembly",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": [
+        "Leviticus 23:36,39",
+        "Numbers 29:35-38"
+      ]
+    },
+    {
+      "assembly": false,
+      "day": 1,
+      "endDay": null,
+      "endMonth": null,
+      "id": "new-year",
+      "jurisdiction": "civic",
+      "month": 1,
+      "name": "New Year's Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 19,
+      "endDay": null,
+      "endMonth": null,
+      "id": "mlk-day",
+      "jurisdiction": "civic",
+      "month": 1,
+      "name": "Martin Luther King Jr. Day",
+      "note": null,
+      "rule": "third-monday-january-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 16,
+      "endDay": null,
+      "endMonth": null,
+      "id": "washington-birthday",
+      "jurisdiction": "civic",
+      "month": 2,
+      "name": "Washington's Birthday",
+      "note": null,
+      "rule": "third-monday-february-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 10,
+      "endDay": null,
+      "endMonth": null,
+      "id": "mothers-day",
+      "jurisdiction": "civic-family",
+      "month": 5,
+      "name": "Mother's Day",
+      "note": null,
+      "rule": "second-sunday-may-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "memorial-day",
+      "jurisdiction": "civic",
+      "month": 5,
+      "name": "Memorial Day",
+      "note": null,
+      "rule": "last-monday-may-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 19,
+      "endDay": null,
+      "endMonth": null,
+      "id": "juneteenth",
+      "jurisdiction": "civic",
+      "month": 6,
+      "name": "Juneteenth National Independence Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 21,
+      "endDay": null,
+      "endMonth": null,
+      "id": "fathers-day",
+      "jurisdiction": "civic-family",
+      "month": 6,
+      "name": "Father's Day",
+      "note": null,
+      "rule": "third-sunday-june-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 4,
+      "endDay": null,
+      "endMonth": null,
+      "id": "independence-day",
+      "jurisdiction": "civic",
+      "month": 7,
+      "name": "Independence Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 7,
+      "endDay": null,
+      "endMonth": null,
+      "id": "labor-day",
+      "jurisdiction": "civic",
+      "month": 9,
+      "name": "Labor Day",
+      "note": null,
+      "rule": "first-monday-september-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 12,
+      "endDay": null,
+      "endMonth": null,
+      "id": "columbus-day",
+      "jurisdiction": "civic",
+      "month": 10,
+      "name": "Columbus Day",
+      "note": null,
+      "rule": "second-monday-october-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 11,
+      "endDay": null,
+      "endMonth": null,
+      "id": "veterans-day",
+      "jurisdiction": "civic",
+      "month": 11,
+      "name": "Veterans Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 26,
+      "endDay": null,
+      "endMonth": null,
+      "id": "thanksgiving",
+      "jurisdiction": "civic",
+      "month": 11,
+      "name": "Thanksgiving Day",
+      "note": null,
+      "rule": "fourth-thursday-november-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 25,
+      "endDay": null,
+      "endMonth": null,
+      "id": "christmas",
+      "jurisdiction": "civic",
+      "month": 12,
+      "name": "Christmas Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    }
+  ],
+  "seasonalArchitecture": {
+    "authorityRole": "witness-metadata-no-grid-mutation",
+    "gateSequence": [
+      4,
+      5,
+      6,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      1,
+      2,
+      3
+    ],
+    "motions": [
+      "northward",
+      "northward",
+      "northward_to_turn",
+      "southward_from_turn",
+      "southward",
+      "southward",
+      "southward",
+      "southward",
+      "southward_to_turn",
+      "northward_from_turn",
+      "northward",
+      "northward"
+    ],
+    "phaseLengths": [
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31,
+      30,
+      30,
+      31
+    ],
+    "quarterDays": 91,
+    "sourceRefs": [
+      "1 Enoch 72-82"
+    ]
+  },
+  "version": "stillpoint-calendar-population-v1"
+}

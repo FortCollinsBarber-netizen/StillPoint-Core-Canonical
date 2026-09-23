@@ -8,10 +8,10 @@
       "version": "stillpoint-calendar-core-spec-v2"
     },
     {
-      "bytes": 7304,
+      "bytes": 7324,
       "path": "stillpoint/contracts/calendar_projection_vectors.json",
       "role": "conformance-proof-only",
-      "sha256": "98929e9941f2bf93fa657691d6389b73a96ae2bac1e3eabd867d1881300abd41",
+      "sha256": "8e5716ce649a6e0727d8f58bc735fe1f460b51825309d642e8067029e837e42c",
       "version": "stillpoint-calendar-projection-vectors-v2"
     },
     {

@@ -10,83 +10,39 @@ from stillpoint.calendar_core.spec import (
 
 
 class CalendarCoreSpecValidationTests(unittest.TestCase):
-    def test_supported_spec_validates_exactly(self):
+    def test_supported_fixed_grid_validates_exactly(self):
         spec = build_calendar_core_spec()
         validate_calendar_core_spec(spec)
         self.assertEqual(spec["version"], SPEC_VERSION)
-        self.assertEqual(
-            spec["enactmentBoundary"]["status"],
-            "external-unresolved",
-        )
-        self.assertTrue(
-            spec["enactmentBoundary"]["lawDoesNotSupplyValues"]
-        )
-        self.assertEqual(
-            set(spec["enactmentBoundary"]["requiredForFinitePublication"]),
-            {
-                "firstOpening",
-                "referencePoint",
-                "ephemerisEvidence",
-                "publicationAuthority",
-            },
-        )
+        self.assertEqual(spec["grid"]["status"], "ratified-fixed")
+        self.assertEqual(spec["grid"]["days"], 364)
+        self.assertEqual(spec["grid"]["weeks"], 52)
+        self.assertEqual(spec["grid"]["day001Weekday"], "Thursday")
+        self.assertEqual(spec["grid"]["lastDate"], {"month": 12, "day": 30})
+        self.assertFalse(spec["grid"]["december31Exists"])
+        self.assertEqual(spec["reconciliation"]["allowedDays"], [0])
+        self.assertFalse(spec["reconciliation"]["enabled"])
 
     def test_unknown_spec_version_fails_closed(self):
         spec = build_calendar_core_spec()
         spec["version"] = "future-calendar-law"
         with self.assertRaises(CalendarSpecValidationError) as raised:
             validate_calendar_core_spec(spec)
-        self.assertEqual(
-            raised.exception.code,
-            "UNSUPPORTED_SPEC_VERSION",
-        )
+        self.assertEqual(raised.exception.code, "UNSUPPORTED_SPEC_VERSION")
 
     def test_structural_drift_fails_closed(self):
         spec = build_calendar_core_spec()
-        spec["ordinaryCalendar"]["baseYearDays"] = 371
+        spec["ordinaryCalendar"]["baseYearDays"] = 365
         with self.assertRaises(CalendarSpecValidationError) as raised:
             validate_calendar_core_spec(spec)
-        self.assertEqual(
-            raised.exception.code,
-            "SPEC_DRIFT",
-        )
+        self.assertEqual(raised.exception.code, "SPEC_DRIFT")
 
-    def test_pilot_reference_cannot_be_promoted_into_law(self):
+    def test_external_ephemeris_cannot_rewrite_calendar_law(self):
         spec = copy.deepcopy(build_calendar_core_spec())
-        spec["referencePoint"] = {
-            "id": "GROUND_ZERO",
-        }
+        spec["ephemerisEvidence"] = {"source": "EXAMPLE", "sha256": "0" * 64}
         with self.assertRaises(CalendarSpecValidationError) as raised:
             validate_calendar_core_spec(spec)
-        self.assertEqual(
-            raised.exception.code,
-            "SPEC_CONTAINS_ENACTMENT_DATA",
-        )
-
-    def test_first_opening_cannot_be_promoted_into_law(self):
-        spec = copy.deepcopy(build_calendar_core_spec())
-        spec["firstOpening"] = {
-            "openingCivilDate": "2026-01-01",
-        }
-        with self.assertRaises(CalendarSpecValidationError) as raised:
-            validate_calendar_core_spec(spec)
-        self.assertEqual(
-            raised.exception.code,
-            "SPEC_CONTAINS_ENACTMENT_DATA",
-        )
-
-    def test_ephemeris_cannot_be_promoted_into_law(self):
-        spec = copy.deepcopy(build_calendar_core_spec())
-        spec["ephemerisEvidence"] = {
-            "source": "EXAMPLE",
-            "sha256": "0" * 64,
-        }
-        with self.assertRaises(CalendarSpecValidationError) as raised:
-            validate_calendar_core_spec(spec)
-        self.assertEqual(
-            raised.exception.code,
-            "SPEC_CONTAINS_ENACTMENT_DATA",
-        )
+        self.assertEqual(raised.exception.code, "SPEC_CONTAINS_EXTERNAL_EVIDENCE")
 
 
 if __name__ == "__main__":

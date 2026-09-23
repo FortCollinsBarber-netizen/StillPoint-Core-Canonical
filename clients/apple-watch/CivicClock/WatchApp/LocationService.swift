@@ -5,12 +5,14 @@ import Foundation
 final class LocationService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var coordinate: CLLocationCoordinate2D?
     @Published private(set) var authorization: CLAuthorizationStatus
+    @Published private(set) var accuracyAuthorization: CLAccuracyAuthorization
     @Published private(set) var groundZero: GroundZeroObservation?
 
     private let manager = CLLocationManager()
 
     override init() {
         authorization = manager.authorizationStatus
+        accuracyAuthorization = manager.accuracyAuthorization
         groundZero = CivicClockSharedStore.loadGroundZero()
         super.init()
         manager.delegate = self
@@ -25,6 +27,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     func start() {
         authorization = manager.authorizationStatus
+        accuracyAuthorization = manager.accuracyAuthorization
 
         switch authorization {
         case .notDetermined:
@@ -41,7 +44,8 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         manager.distanceFilter = kCLDistanceFilterNone
 
         if groundZero == nil {
-            // Keep sampling until the first precise, fresh observation is locked.
+            // Keep sampling until the first precise, fresh, non-simulated
+            // observation is locked.
             manager.startUpdatingLocation()
         } else {
             // Ground Zero is immutable. Later measurements are current-location
@@ -52,6 +56,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorization = manager.authorizationStatus
+        accuracyAuthorization = manager.accuracyAuthorization
         if authorization == .authorizedAlways || authorization == .authorizedWhenInUse {
             beginMeasurement()
         }
@@ -72,8 +77,15 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
         guard groundZero == nil else { return }
 
+        accuracyAuthorization = manager.accuracyAuthorization
+        let fullAccuracy = accuracyAuthorization == .fullAccuracy
+        let sourceInformation = location.sourceInformation
+        let simulated = sourceInformation?.isSimulatedBySoftware
+
         let age = abs(location.timestamp.timeIntervalSinceNow)
         guard
+            fullAccuracy,
+            simulated != true,
             age <= 30,
             location.horizontalAccuracy <= GroundZeroObservation.maximumLockAccuracyMeters
         else { return }
@@ -92,7 +104,11 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             horizontalAccuracyMeters: location.horizontalAccuracy,
             verticalAccuracyMeters: verticalAccuracy,
             timeZoneIdentifier: TimeZone.current.identifier,
-            source: GroundZeroObservation.sourceID
+            source: GroundZeroObservation.sourceID,
+            coordinateSystem: GroundZeroObservation.coordinateReferenceSystem,
+            fullAccuracyAuthorized: fullAccuracy,
+            simulatedBySoftware: simulated,
+            producedByAccessory: sourceInformation?.isProducedByAccessory
         )
 
         if CivicClockSharedStore.saveGroundZeroIfAbsent(observation) {

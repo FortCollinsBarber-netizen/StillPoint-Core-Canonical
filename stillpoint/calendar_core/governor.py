@@ -104,6 +104,21 @@ class CalendarAuthority(str, Enum):
     REJECT = "REJECT"
 
 
+INHABITANT_LAYER_POLICY = {
+    "feasts": CalendarAuthority.OVERLAY,
+    "sabbath": CalendarAuthority.OVERLAY,
+    "stillpoint": CalendarAuthority.OVERLAY,
+    "seasons": CalendarAuthority.OVERLAY,
+    "lunar-witness": CalendarAuthority.OBSERVE,
+    "jewish-overlay": CalendarAuthority.OVERLAY,
+    "islamic-overlay": CalendarAuthority.OVERLAY,
+    "seven-year-cycle": CalendarAuthority.OVERLAY,
+    "forty-nine-year-cycle": CalendarAuthority.OVERLAY,
+    "jubilee": CalendarAuthority.OVERLAY,
+    "local-light": CalendarAuthority.OBSERVE,
+}
+
+
 class CalendarInvariantViolation(ValueError):
     """Raised when the canonical calendar surface no longer matches its lock."""
 
@@ -168,6 +183,11 @@ def _canonical_surface_document() -> dict[str, Any]:
         "dst": "forbidden-on-common-clock",
         "coordination_clock": "24-hour",
         "observation_authority": "annotate-only-no-grid-mutation",
+        "inhabitant_layers": {
+            layer: authority.value
+            for layer, authority in INHABITANT_LAYER_POLICY.items()
+        },
+        "inhabitant_surface_authority": "none",
     }
 
 
@@ -298,6 +318,11 @@ class RhythmGovernor:
             "december_31_exists": False,
             "february_29_exists": False,
             "ordinary_mutation_authority_exists": False,
+            "inhabitant_layers": {
+                layer: authority.value
+                for layer, authority in INHABITANT_LAYER_POLICY.items()
+            },
+            "inhabitant_surface_authority": "none",
         }
 
     def validate_date(self, year: int, month: int, day: int) -> CanonicalDate:
@@ -450,6 +475,41 @@ class RhythmGovernor:
             "annotation": dict(payload),
             "surface_digest": decision.surface_digest,
             "grid_mutated": False,
+        }
+
+    def inhabit(
+        self,
+        layer: str,
+        *,
+        year: int,
+        month: int,
+        day: int,
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Attach a recognized layer to the surface without granting grid authority."""
+
+        layer_id = str(layer).strip().lower()
+        authority = INHABITANT_LAYER_POLICY.get(layer_id)
+        if authority is None:
+            raise CalendarAuthorityViolation(
+                f"unknown inhabitant layer: {layer}; no authority inferred"
+            )
+        envelope = self.annotate(
+            authority,
+            year=year,
+            month=month,
+            day=day,
+            payload={
+                "layer": layer_id,
+                "layer_payload": dict(payload),
+                "surface_authority": "none",
+            },
+        )
+        return {
+            **envelope,
+            "layer": layer_id,
+            "layer_authority": authority.value,
+            "surface_authority": "none",
         }
 
     def _reject(

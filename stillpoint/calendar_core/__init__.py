@@ -31,6 +31,17 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .governor import (
+    GOVERNING_RULE,
+    GOVERNOR_SCHEMA,
+    CalendarAuthority,
+    CalendarAuthorityViolation,
+    CalendarInvariantViolation,
+    CanonicalDate,
+    GovernorDecision,
+    RhythmGovernor,
+    canonical_surface_digest,
+)
 from .observances import (
     ALL_OBSERVANCES,
     CIVIC_OBSERVANCES,
@@ -110,6 +121,15 @@ from .witness import (
 
 __all__ = [
     "MONTH_LENGTHS",
+    "GOVERNOR_SCHEMA",
+    "GOVERNING_RULE",
+    "CalendarAuthority",
+    "CalendarAuthorityViolation",
+    "CalendarInvariantViolation",
+    "CanonicalDate",
+    "GovernorDecision",
+    "RhythmGovernor",
+    "canonical_surface_digest",
     "GATE_SEQUENCE",
     "PHASE_LENGTHS",
     "SPEC_VERSION",

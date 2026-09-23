@@ -96,6 +96,16 @@ def canonical_civil_window(
         "schema": CLOCK_SCHEMA,
         "authority": CLOCK_AUTHORITY,
         "calendar_address": day["calendar_address"],
+        "canonical_coordinate": day["canonical_coordinate"],
+        "interop": {
+            "calendar": "proleptic-gregorian",
+            "role": "translation-only",
+            "opening_date": opens_on.isoformat(),
+            "closing_date": closes_on.isoformat(),
+            "mutates_calendar": False,
+        },
+        # Compatibility names for existing consumers. These are interoperability
+        # dates, not Common Calendar named-date authority.
         "opening_civil_date": opens_on.isoformat(),
         "closing_civil_date": closes_on.isoformat(),
         "opens_at_utc": opens_at.isoformat(),
@@ -233,5 +243,7 @@ def clock_snapshot(
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
+            "interop_calendar_is_translation_only": True,
+            "coordinate_observation_interpretation_separated": True,
         },
     }

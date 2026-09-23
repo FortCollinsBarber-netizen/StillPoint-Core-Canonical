@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from .calendar import WEEKDAYS
 from .models import DuskProtocol, GeoPoint, WeeklyProtectedState
 from .sunset import apparent_sunrise_utc, apparent_sunset_utc, bracket_sunset
 
@@ -93,6 +94,11 @@ def protected_time_state_for_common_date(
     ).tzinfo)
     sunrise = apparent_sunrise_utc(projection_date, location, protocol)
     sunset = apparent_sunset_utc(projection_date, location, protocol)
+    weekday_index = WEEKDAYS.index(common_weekday)
+    next_weekday = WEEKDAYS[(weekday_index + 1) % 7]
+    creation_named_day = (
+        next_weekday if instant_utc >= sunset else common_weekday
+    )
 
     if common_weekday == "Friday":
         if instant_utc >= sunset:
@@ -159,7 +165,7 @@ def protected_time_state_for_common_date(
             )
 
     return WeeklyProtectedState(
-        named_day=common_weekday,
+        named_day=creation_named_day,
         is_sabbath=False,
         is_lords_day=False,
         is_stillpoint=False,

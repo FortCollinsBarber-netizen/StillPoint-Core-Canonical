@@ -2,7 +2,7 @@
   "release": "StillPoint Core",
   "version": "0.4.0a4",
   "release_stage": "alpha",
-  "schema_version": 23,
+  "schema_version": 24,
   "canonical_repository": "FortCollinsBarber-netizen/StillPoint-Core-Canonical",
   "canonical_branch": "main",
   "intended_release_tag": "v0.4.0a4",
@@ -55,7 +55,10 @@
     "signal_facts_require_materialized_custody": true,
     "signal_daemon_degradation_is_durable": true,
     "secret_values_exported_to_environment": false,
-    "deployment_releases_immutable": true
+    "deployment_releases_immutable": true,
+    "acquired_resource_possession_is_not_authorization": true,
+    "acquired_resource_activation_requires_current_warrant": true,
+    "acquired_resource_terminal_states_do_not_revive": true
   },
   "signal": {
     "provider": "icloud",

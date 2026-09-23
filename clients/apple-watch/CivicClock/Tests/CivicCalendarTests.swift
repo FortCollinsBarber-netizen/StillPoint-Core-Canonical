@@ -8,15 +8,18 @@ private struct CalendarProjectionVectorDocument: Decodable {
         let legalCivilZone: String
         let commonYear: Int
         let openingCivilDate: String
+        let day001Weekday: String
     }
 
     struct Vector: Decodable {
         struct Expected: Decodable {
             struct CommonDate: Decodable {
+                let year: Int
                 let ordinal: Int
                 let quarter: Int
                 let week: Int
                 let dayInWeek: Int
+                let weekday: String
             }
 
             let commonDate: CommonDate?
@@ -25,13 +28,11 @@ private struct CalendarProjectionVectorDocument: Decodable {
             let lordsDay: Bool
             let stillPoint: Bool
             let state: String
-            let reconciliationDay: Int?
             let nextProtectedBoundaryLabel: String?
         }
 
         let id: String
         let instantUTC: String
-        let reconciliationDaysAfterCompletion: Int
         let expected: Expected
     }
 
@@ -49,6 +50,20 @@ final class CivicCalendarTests: XCTestCase {
 
     private let latitude = 40.3978
     private let longitude = -105.0749
+
+    func testV2SpecFreezesImmutableCalendarIdentity() throws {
+        let spec = try XCTUnwrap(CalendarCoreSpecLoader.load())
+        XCTAssertEqual(spec.version, "stillpoint-calendar-core-spec-v2")
+        XCTAssertEqual(spec.ordinaryCalendar.baseYearDays, 364)
+        XCTAssertEqual(spec.ordinaryCalendar.weeksPerYear, 52)
+        XCTAssertEqual(spec.ordinaryCalendar.day001Weekday, "Thursday")
+        XCTAssertEqual(spec.ordinaryCalendar.yearClosing.month, 12)
+        XCTAssertEqual(spec.ordinaryCalendar.yearClosing.day, 30)
+        XCTAssertFalse(spec.ordinaryCalendar.hasDecember31)
+        XCTAssertFalse(spec.ordinaryCalendar.hasFebruary29)
+        XCTAssertEqual(spec.annualTransition.interannualDays, 0)
+        XCTAssertFalse(spec.annualTransition.reconciliationAllowed)
+    }
 
     func testSunriseAndSunsetStayOnRequestedLocalCivilDate() throws {
         let calendar = denverCalendar
@@ -198,8 +213,7 @@ final class CivicCalendarTests: XCTestCase {
             years: [
                 PublishedCivicYear(
                     year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
+                    openingCivilDate: "2026-03-20"
                 )
             ]
         )
@@ -239,8 +253,7 @@ final class CivicCalendarTests: XCTestCase {
             years: [
                 PublishedCivicYear(
                     year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
+                    openingCivilDate: "2026-03-20"
                 )
             ]
         )
@@ -257,22 +270,23 @@ final class CivicCalendarTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
+        XCTAssertEqual(
+            snapshot.commonCalendarDetail,
+            "OUTSIDE PUBLISHED TABLE"
+        )
     }
 
-    func testPublishedRowsMustAgreeOnDeclaredBoundarySpan() {
+    func testPublishedRowsMustBeExactly364DaysApart() {
         let calendar = denverCalendar
         let inconsistent = PublishedCivicCalendar.conformanceFixture(
             years: [
                 PublishedCivicYear(
                     year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
+                    openingCivilDate: "2026-03-20"
                 ),
                 PublishedCivicYear(
                     year: 8,
-                    openingCivilDate: "2027-03-21",
-                    reconciliationDaysAfterCompletion: 0
+                    openingCivilDate: "2027-03-21"
                 )
             ]
         )
@@ -289,7 +303,10 @@ final class CivicCalendarTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(snapshot.commonCalendarDetail, "OUTSIDE PUBLISHED TABLE")
+        XCTAssertEqual(
+            snapshot.commonCalendarDetail,
+            "OUTSIDE PUBLISHED TABLE"
+        )
     }
 
     func testExampleAnnualDayMathIsBoundedTo364() {
@@ -298,8 +315,7 @@ final class CivicCalendarTests: XCTestCase {
             years: [
                 PublishedCivicYear(
                     year: 7,
-                    openingCivilDate: "2026-03-20",
-                    reconciliationDaysAfterCompletion: 0
+                    openingCivilDate: "2026-03-20"
                 )
             ]
         )
@@ -318,6 +334,7 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertTrue(snapshot.commonCalendarLabel.contains("YEAR 7"))
     }
+
     func testNativeProjectionConsumesGeneratedCalendarCoreSpecAndVectors() throws {
         let resourceRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -336,11 +353,44 @@ final class CivicCalendarTests: XCTestCase {
         )
 
         XCTAssertEqual(document.authorityStatus, "conformance-only")
+        XCTAssertEqual(document.fixture.day001Weekday, "Thursday")
 
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(
             identifier: document.fixture.legalCivilZone
         ))
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+
+        let firstOpening = try XCTUnwrap(
+            formatter.date(from: document.fixture.openingCivilDate)
+        )
+        let secondOpening = try XCTUnwrap(
+            calendar.date(
+                byAdding: .day,
+                value: spec.ordinaryCalendar.baseYearDays,
+                to: firstOpening
+            )
+        )
+
+        let published = PublishedCivicCalendar.conformanceFixture(
+            years: [
+                PublishedCivicYear(
+                    year: document.fixture.commonYear,
+                    openingCivilDate: document.fixture.openingCivilDate
+                ),
+                PublishedCivicYear(
+                    year: document.fixture.commonYear + 1,
+                    openingCivilDate: formatter.string(from: secondOpening)
+                )
+            ]
+        )
+
         let parser = ISO8601DateFormatter()
 
         for vector in document.vectors {
@@ -348,17 +398,6 @@ final class CivicCalendarTests: XCTestCase {
                 parser.date(from: vector.instantUTC),
                 "Could not parse \(vector.id)"
             )
-            let published = PublishedCivicCalendar.conformanceFixture(
-                years: [
-                    PublishedCivicYear(
-                        year: document.fixture.commonYear,
-                        openingCivilDate: document.fixture.openingCivilDate,
-                        reconciliationDaysAfterCompletion:
-                            vector.reconciliationDaysAfterCompletion
-                    )
-                ]
-            )
-
             let snapshot = CivicCalendarEngine.snapshot(
                 now: now,
                 latitude: document.fixture.latitude,
@@ -369,7 +408,11 @@ final class CivicCalendarTests: XCTestCase {
             )
             let expected = vector.expected
 
-            XCTAssertEqual(snapshot.namedDay, expected.namedDay.uppercased(), vector.id)
+            XCTAssertEqual(
+                snapshot.namedDay,
+                expected.namedDay.uppercased(),
+                vector.id
+            )
             XCTAssertEqual(snapshot.isSabbath, expected.sabbath, vector.id)
             XCTAssertEqual(snapshot.isLordsDay, expected.lordsDay, vector.id)
             XCTAssertEqual(snapshot.isStillPoint, expected.stillPoint, vector.id)
@@ -382,12 +425,20 @@ final class CivicCalendarTests: XCTestCase {
             if let common = expected.commonDate {
                 XCTAssertTrue(
                     snapshot.commonCalendarLabel.contains(
+                        "YEAR \(common.year)"
+                    ),
+                    vector.id
+                )
+                XCTAssertTrue(
+                    snapshot.commonCalendarLabel.contains(
                         "DAY \(String(format: "%03d", common.ordinal))"
                     ),
                     vector.id
                 )
                 XCTAssertTrue(
-                    snapshot.commonCalendarDetail.contains("S\(common.quarter)"),
+                    snapshot.commonCalendarDetail.contains(
+                        "S\(common.quarter)"
+                    ),
                     vector.id
                 )
                 XCTAssertTrue(
@@ -397,19 +448,25 @@ final class CivicCalendarTests: XCTestCase {
                     vector.id
                 )
                 XCTAssertTrue(
-                    snapshot.commonCalendarDetail.contains("D\(common.dayInWeek)"),
+                    snapshot.commonCalendarDetail.contains(
+                        "D\(common.dayInWeek)"
+                    ),
                     vector.id
                 )
-            } else if expected.state == "RECONCILIATION" {
-                XCTAssertEqual(snapshot.commonCalendarLabel, "RECONCILIATION", vector.id)
-                if let rDay = expected.reconciliationDay {
-                    XCTAssertTrue(
-                        snapshot.commonCalendarDetail.contains("R\(rDay)"),
-                        vector.id
-                    )
-                }
+                let weekdays = [
+                    "Sunday", "Monday", "Tuesday", "Wednesday",
+                    "Thursday", "Friday", "Saturday"
+                ]
+                let thursdayIndex = 4
+                let expectedWeekday = weekdays[
+                    (thursdayIndex + common.ordinal - 1) % 7
+                ]
+                XCTAssertEqual(
+                    common.weekday,
+                    expectedWeekday,
+                    vector.id
+                )
             }
         }
     }
-
 }

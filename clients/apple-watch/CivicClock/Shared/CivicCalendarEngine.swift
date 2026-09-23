@@ -192,7 +192,6 @@ enum CivicCalendarEngine {
 
         let baseYearDays = spec.ordinaryCalendar.baseYearDays
         let quarterDays = spec.ordinaryCalendar.quarterDays
-        let allowedReconciliation = Set(spec.reconciliation.allowedDays)
 
         let formatter = DateFormatter()
         formatter.calendar = calendar
@@ -206,10 +205,6 @@ enum CivicCalendarEngine {
 
         for index in sorted.indices {
             let current = sorted[index]
-
-            guard allowedReconciliation.contains(
-                current.reconciliationDaysAfterCompletion
-            ) else { continue }
 
             guard
                 let openingDay = formatter.date(from: current.openingCivilDate),
@@ -231,8 +226,7 @@ enum CivicCalendarEngine {
                 to: currentBoundaryDay
             ).day else { continue }
 
-            let legalSpan =
-                baseYearDays + current.reconciliationDaysAfterCompletion
+            let legalSpan = baseYearDays
             guard boundaryOffset >= 0, boundaryOffset < legalSpan else {
                 continue
             }
@@ -258,15 +252,6 @@ enum CivicCalendarEngine {
                     ),
                     now < nextOpening
                 else { continue }
-            }
-
-            if boundaryOffset >= baseYearDays {
-                let reconciliationDay =
-                    boundaryOffset - baseYearDays + 1
-                return (
-                    "RECONCILIATION",
-                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
-                )
             }
 
             let day = boundaryOffset + 1

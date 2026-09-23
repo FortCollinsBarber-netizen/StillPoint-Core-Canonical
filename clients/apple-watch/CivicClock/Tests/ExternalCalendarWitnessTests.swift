@@ -87,7 +87,7 @@ final class ExternalCalendarWitnessTests: XCTestCase {
     func testClockSnapshotSurfacesWitnessAndLocalLight() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.timeZone = TimeZone(secondsFromGMT: -7 * 3600)!
 
         let now = try XCTUnwrap(
             ISO8601DateFormatter().date(

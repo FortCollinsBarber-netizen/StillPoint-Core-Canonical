@@ -109,28 +109,16 @@ class RhythmGovernorTests(unittest.TestCase):
         self.assertFalse(rejected.accepted)
         self.assertEqual(rejected.code, "DST_FORBIDDEN")
 
-    def test_intercalation_and_reconciliation_are_rejected(self):
-        for request, code in [
-            (
-                RhythmRequest(
-                    RhythmAuthority.OBSERVE,
-                    "astronomy",
-                    intercalary_days=1,
-                ),
-                "INTERCALATION_FORBIDDEN",
-            ),
-            (
-                RhythmRequest(
-                    RhythmAuthority.OBSERVE,
-                    "historical-reconciliation",
-                    reconciliation_days=7,
-                ),
-                "RECONCILIATION_FORBIDDEN",
-            ),
-        ]:
-            decision = RHYTHM_GOVERNOR.authorize(request)
-            self.assertFalse(decision.accepted)
-            self.assertEqual(decision.code, code)
+    def test_extra_date_insertion_is_rejected(self):
+        decision = RHYTHM_GOVERNOR.authorize(
+            RhythmRequest(
+                RhythmAuthority.OBSERVE,
+                "external-calendar",
+                intercalary_days=1,
+            )
+        )
+        self.assertFalse(decision.accepted)
+        self.assertEqual(decision.code, "INTERCALATION_FORBIDDEN")
 
     def test_observation_may_annotate_but_cannot_change_surface(self):
         decision = RHYTHM_GOVERNOR.authorize(

@@ -85,7 +85,8 @@ class Stage3MigrationAuditClosureTests(unittest.TestCase):
             self.assertEqual(custody[1]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[21]["custody_source"], "canonical_backfill")
             self.assertEqual(custody[22]["custody_source"], "applied_exact")
-            self.assertEqual(custody[23]["custody_source"], "applied_exact")\n            self.assertEqual(custody[24]["custody_source"], "applied_exact")
+            self.assertEqual(custody[23]["custody_source"], "applied_exact")
+            self.assertEqual(custody[24]["custody_source"], "applied_exact")
             expected = hashlib.sha256(
                 (ROOT / "migrations" / "022_stage3_audit_closure.sql").read_bytes()
             ).hexdigest()

@@ -79,7 +79,7 @@ class JubileeCompletionTests(unittest.TestCase):
         )
         self.assertEqual(
             after["reconciliation"]["allowedDays"],
-            [0, 7],
+            [0],
         )
 
 

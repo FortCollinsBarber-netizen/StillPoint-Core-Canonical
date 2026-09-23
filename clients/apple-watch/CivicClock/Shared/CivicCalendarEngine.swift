@@ -25,6 +25,8 @@ enum CivicCalendarEngine {
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = PublishedCalendarLoader.load(policy: .enactedStillPoint),
         population: CalendarPopulation? = CalendarPopulationLoader.load(),
+        externalWitnesses: ExternalCalendarWitnessCatalog? =
+            ExternalCalendarWitnessLoader.load(),
         calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load(),
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
@@ -125,6 +127,34 @@ enum CivicCalendarEngine {
             calendar: calendar
         )
 
+        let externalDate = externalProjectionDateLabel(
+            now: now,
+            calendar: calendar
+        )
+        let witnessEvents = externalWitnesses?.events(
+            onExternalDate: externalDate
+        ) ?? []
+        let externalWitnessLabel = witnessEvents.map { event in
+            event.begins_at == "sunset"
+                ? "\(event.name) · SUNSET"
+                : event.name
+        }.joined(separator: " · ")
+
+        var sourceRefs = annual.sourceRefs
+        for event in witnessEvents {
+            for ref in event.source_refs where !sourceRefs.contains(ref) {
+                sourceRefs.append(ref)
+            }
+        }
+
+        let localLight = SolarBoundaryCalculator.localLightObservation(
+            around: now,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar,
+            spec: spec
+        )
+
         let weekly = weeklyProtectedTimeState(
             now: now,
             sacredCivilDay: sacredCivilDay,
@@ -153,8 +183,31 @@ enum CivicCalendarEngine {
             commonCalendarDetail: annual.detail,
             observanceLabel: annual.observance,
             jubileeLabel: annual.jubilee,
-            sourceRefs: annual.sourceRefs
+            sourceRefs: sourceRefs,
+            externalWitnessLabel: externalWitnessLabel.isEmpty
+                ? nil
+                : externalWitnessLabel,
+            localLightPhase: localLight?.phase,
+            civilDawn: localLight?.civilDawn,
+            sunrise: localLight?.sunrise,
+            sunset: localLight?.sunset,
+            civilDusk: localLight?.civilDusk,
+            nextLightEvent: localLight?.nextEvent,
+            nextLightEventAt: localLight?.nextEventAt
         )
+    }
+
+    private static func externalProjectionDateLabel(
+        now: Date,
+        calendar: Calendar
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter.string(from: now)
     }
 
     private static func permanentStandardCalendar(

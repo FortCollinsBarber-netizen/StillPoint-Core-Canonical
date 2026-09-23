@@ -34,8 +34,6 @@ struct CalendarCoreSpec: Codable, Equatable {
     }
 
     struct AnnualTransition: Codable, Equatable {
-        let interannualDays: Int
-        let reconciliationAllowed: Bool
         let rule: String
     }
 
@@ -116,9 +114,7 @@ enum CalendarCoreSpecLoader {
                 == CalendarCoreSpec.MonthDay(month: 12, day: 30),
             calendar.hasFebruary29 == false,
             calendar.hasDecember31 == false,
-            transition.rule == "DAY_364_TO_NEXT_YEAR_DAY_001",
-            transition.interannualDays == 0,
-            transition.reconciliationAllowed == false
+            transition.rule == "DAY_364_TO_NEXT_YEAR_DAY_001"
         else { return false }
 
         return true

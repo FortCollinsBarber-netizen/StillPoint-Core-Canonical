@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .calendar import ordinal_day
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .models import JubileeState
 
 
@@ -32,6 +37,17 @@ def jubilee_state(
     chooses an opening, changes a year length, inserts Reconciliation, or
     modifies weekday identity.
     """
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OVERLAY,
+            source="seven-year-49-jubilee",
+            annotation={
+                "common_year": common_year,
+                "epoch_common_year": epoch_common_year,
+                "epoch_cycle": epoch_cycle,
+            },
+        )
+    )
     if epoch_common_year is None:
         return None
     if common_year < epoch_common_year:

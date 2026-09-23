@@ -169,6 +169,28 @@ class CalendarPopulationTests(unittest.TestCase):
             self.assertEqual(mothers.weekday, "Sunday")
             self.assertEqual(fathers.weekday, "Sunday")
 
+    def test_seed_pattern_observances_retain_familiar_dates_and_weekdays(self):
+        expected = (
+            (2, 14, "Saturday", "Valentine's Day"),
+            (2, 18, "Wednesday", "Ash Wednesday"),
+            (3, 17, "Tuesday", "St. Patrick's Day"),
+            (4, 3, "Friday", "Good Friday"),
+            (4, 5, "Sunday", "Easter Sunday"),
+            (10, 31, "Saturday", "Halloween"),
+            (12, 24, "Thursday", "Christmas Eve"),
+            (12, 30, "Wednesday", "New Year's Eve"),
+        )
+        for year in (2026, 2036, 2056, 2075):
+            for month, day, weekday, name in expected:
+                row = address(
+                    publication_document=self.publication,
+                    year=year,
+                    month=month,
+                    day=day,
+                )
+                self.assertEqual(row.weekday, weekday)
+                self.assertIn(name, row.observance_names)
+
     def test_enochic_phase_gate_and_source_remain_witness_metadata(self):
         row = address(
             publication_document=self.publication,

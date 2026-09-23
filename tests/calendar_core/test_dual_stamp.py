@@ -3,17 +3,20 @@ from datetime import date, datetime, timedelta, timezone
 
 from stillpoint.calendar_core.dual_stamp import project_dual_stamp
 from stillpoint.calendar_core.models import GeoPoint
-from stillpoint.calendar_core.sunset import apparent_sunset_utc
-
-
 class DualStampTests(unittest.TestCase):
     point = GeoPoint(40.3978, -105.0749, "LOVELAND_TEST")
 
     def _after_boundary(self, civil_date: date) -> datetime:
-        return (
-            apparent_sunset_utc(civil_date, self.point)
-            + timedelta(seconds=1)
-        )
+        standard = timezone(timedelta(hours=-7))
+        return datetime(
+            civil_date.year,
+            civil_date.month,
+            civil_date.day,
+            0,
+            0,
+            1,
+            tzinfo=standard,
+        ).astimezone(timezone.utc)
 
     def _stamp(
         self,

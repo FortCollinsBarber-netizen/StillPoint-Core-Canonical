@@ -146,7 +146,14 @@ def clock_snapshot(
         location=config.location,
         local_zone=config.local_zone,
     )
-    position = _publication_position(pair.previous_civil_date, document)
+
+    # Calendar date labels belong to the fixed 24-hour coordination layer.
+    # Solar events remain real local boundaries for protected/sacred time, but
+    # sunset does not rename the civil/calendar date. The Common Clock uses a
+    # fixed standard offset, so daylight-saving policy cannot shift this date
+    # boundary by an hour.
+    coordination_date = common_timestamp.date()
+    position = _publication_position(coordination_date, document)
 
     current: dict[str, Any] | None = None
     following: dict[str, Any] | None = None
@@ -204,10 +211,12 @@ def clock_snapshot(
             "is_stillpoint": weekly.is_stillpoint,
         },
         "boundaries": {
-            "current_day_opened_at": pair.previous.isoformat(),
-            "current_day_closes_at": pair.next.isoformat(),
-            "opening_civil_date": pair.previous_civil_date.isoformat(),
-            "closing_civil_date": pair.next_civil_date.isoformat(),
+            "calendar_date_boundary": "common-standard-midnight",
+            "coordination_date": coordination_date.isoformat(),
+            "solar_previous_sunset": pair.previous.isoformat(),
+            "solar_next_sunset": pair.next.isoformat(),
+            "solar_previous_sunset_civil_date": pair.previous_civil_date.isoformat(),
+            "solar_next_sunset_civil_date": pair.next_civil_date.isoformat(),
             "next_protected_boundary": (
                 weekly.next_protected_boundary.isoformat()
                 if weekly.next_protected_boundary is not None
@@ -233,5 +242,8 @@ def clock_snapshot(
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
+            "calendar_date_changes_at_common_standard_midnight": True,
+            "solar_boundary_mutates_calendar_date": False,
+            "daylight_saving_mutates_common_clock": False,
         },
     }

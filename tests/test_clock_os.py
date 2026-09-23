@@ -92,6 +92,20 @@ class ClockOSTests(unittest.TestCase):
             next_snapshot["calendar"]["common_date"]["weekday"],
             "Thursday",
         )
+        self.assertEqual(
+            next_snapshot["calendar"]["canonical_coordinate"]["label"],
+            "2027-01-01",
+        )
+        self.assertEqual(
+            next_snapshot["calendar"]["interop_window"]["opens"],
+            "2026-12-31",
+        )
+        self.assertFalse(
+            next_snapshot["calendar"]["interop_window"]["mutates_calendar"]
+        )
+        self.assertTrue(
+            next_snapshot["invariants"]["interop_calendar_is_translation_only"]
+        )
 
     def test_common_clock_uses_fixed_standard_offset_during_dst(self):
         instant = datetime(2026, 7, 15, 18, 0, tzinfo=timezone.utc)
@@ -107,6 +121,9 @@ class ClockOSTests(unittest.TestCase):
         window = canonical_civil_window(2026, 1, config=CONFIG)
 
         self.assertEqual(window["calendar_address"], "Y_2026-001")
+        self.assertEqual(window["canonical_coordinate"]["label"], "2026-01-01")
+        self.assertEqual(window["interop"]["role"], "translation-only")
+        self.assertFalse(window["interop"]["mutates_calendar"])
         self.assertEqual(window["opening_civil_date"], "2026-01-01")
         self.assertEqual(window["closing_civil_date"], "2026-01-02")
         self.assertGreater(

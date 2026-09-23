@@ -64,7 +64,7 @@ class V04CapabilityFabricTests(unittest.TestCase):
         return path
 
     def test_current_schema_catalog_and_grants_exist(self):
-        self.assertEqual(self.db.schema_version,23)
+        self.assertEqual(self.db.schema_version,24)
         snap=self.broker.snapshot(include_events=False)
         self.assertEqual({x["capability_id"] for x in snap["catalog"]},{"web_research","x_research","code_execution","structured_output"})
         self.assertTrue(snap["manifest_audit"]["ok"])

@@ -41,8 +41,8 @@ CREATE TRIGGER IF NOT EXISTS trg_acquired_resources_validate_insert
 BEFORE INSERT ON acquired_resources BEGIN
   SELECT CASE WHEN trim(NEW.resource_id)='' OR trim(NEW.owner_role)='' OR trim(NEW.kind)=''
     THEN RAISE(ABORT,'acquired resource identity fields required') END;
-  SELECT CASE WHEN NEW.status NOT IN ('quarantined','resolved','activated','consumed','expired')
-    THEN RAISE(ABORT,'invalid acquired resource status') END;
+  SELECT CASE WHEN NEW.status<>'quarantined'
+    THEN RAISE(ABORT,'acquired resource must enter quarantine') END;
   SELECT CASE WHEN NEW.one_shot NOT IN (0,1)
     THEN RAISE(ABORT,'invalid acquired resource one_shot flag') END;
 END;
@@ -63,6 +63,11 @@ BEFORE UPDATE ON acquired_resources BEGIN
     THEN RAISE(ABORT,'invalid acquired resource transition') END;
   SELECT CASE WHEN OLD.status IN ('consumed','expired') AND NEW.status<>OLD.status
     THEN RAISE(ABORT,'terminal acquired resource cannot revive') END;
+  SELECT CASE WHEN OLD.status='activated' AND (
+      NEW.activation_warrant_id<>OLD.activation_warrant_id OR
+      NEW.authorized_capabilities_json<>OLD.authorized_capabilities_json OR
+      NEW.parent_capabilities_json<>OLD.parent_capabilities_json)
+    THEN RAISE(ABORT,'activated authority binding is immutable') END;
   SELECT CASE WHEN NEW.status IN ('activated','consumed') AND
       (NEW.activation_warrant_id IS NULL OR trim(NEW.activation_warrant_id)='')
     THEN RAISE(ABORT,'activated resource requires warrant') END;

@@ -28,18 +28,21 @@
     "december-30-is-day-364",
     "december-31-does-not-exist",
     "february-29-does-not-exist",
+    "day-001-is-thursday",
     "day-364-transitions-directly-to-next-day-001",
     "no-interannual-reconciliation-days",
+    "four-seasonal-quarters-are-91-days-each",
     "annual-weekday-pattern-repeats-identically",
     "witness-layers-cannot-mutate-calendar-address"
   ],
   "jurisdiction": {
     "authorityNamespace": "stillpoint.temporal",
     "calendarNamespace": "stillpoint.calendar_core",
-    "translationAuthority": "external-finite-evidence-object"
+    "translationAuthority": "external-finite-projection-object"
   },
   "ordinaryCalendar": {
     "baseYearDays": 364,
+    "day001Weekday": "Thursday",
     "hasDecember31": false,
     "hasFebruary29": false,
     "monthLengths": [
@@ -56,12 +59,9 @@
       30,
       30
     ],
-    "quarterLengths": [
-      90,
-      91,
-      92,
-      91
-    ],
+    "quarterDays": 91,
+    "quarterRelation": "ordinal-seasonal-not-civil-month-triples",
+    "quarters": 4,
     "weekDays": 7,
     "weeksPerYear": 52,
     "yearClosing": {

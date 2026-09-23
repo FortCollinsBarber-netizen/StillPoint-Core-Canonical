@@ -98,6 +98,36 @@ class DualStampTests(unittest.TestCase):
         self.assertEqual(new_year.continuous_k, 364)
         self.assertEqual(new_year.common_date.weekday, "Thursday")
 
+    def test_sunset_does_not_advance_common_civil_date(self):
+        opening = date(2026, 1, 1)
+        sunset = apparent_sunset_utc(opening, self.point)
+        before = self._stamp(
+            instant=sunset - timedelta(seconds=1),
+            common_year=1,
+            opening=opening,
+            continuous_k=0,
+        )
+        after = self._stamp(
+            instant=sunset + timedelta(seconds=1),
+            common_year=1,
+            opening=opening,
+            continuous_k=0,
+        )
+        self.assertEqual(before.calendar_address, "Y_1-001")
+        self.assertEqual(after.calendar_address, "Y_1-001")
+
+        next_midnight_standard = datetime(
+            2026, 1, 2, 7, 0, 0, tzinfo=timezone.utc
+        )
+        next_day = self._stamp(
+            instant=next_midnight_standard,
+            common_year=1,
+            opening=opening,
+            continuous_k=0,
+        )
+        self.assertEqual(next_day.calendar_address, "Y_1-002")
+        self.assertEqual(next_day.common_date.weekday, "Friday")
+
     def test_removed_reconciliation_parameter_is_not_part_of_v2_api(self):
         with self.assertRaises(TypeError):
             project_dual_stamp(

@@ -7,6 +7,7 @@ from stillpoint.calendar_core.projection_vectors import (
     build_calendar_projection_vectors,
 )
 from stillpoint.calendar_core.publication import (
+    build_projection_semantics,
     PUBLICATION_VERSION,
     PublicationValidationError,
     publication_digest,
@@ -28,6 +29,7 @@ class CalendarArtifactTests(unittest.TestCase):
                 "id": "PILOT_AUTHORITY",
                 "status": "pilot",
             },
+            "projectionSemantics": build_projection_semantics(),
             "years": [
                 {
                     "year": 1,
@@ -137,6 +139,34 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertEqual(envelope.calendar_core_spec_version, SPEC_VERSION)
         self.assertEqual(envelope.authority_id, "PILOT_AUTHORITY")
         self.assertEqual(envelope.publication_range.year_count, 2)
+
+    def test_publication_projection_is_translation_only(self):
+        document = self._publication()
+        semantics = document["projectionSemantics"]
+        self.assertEqual(
+            semantics["openingCivilDate"]["role"],
+            "external-translation-only",
+        )
+        self.assertFalse(
+            semantics["openingCivilDate"]["gridAuthority"]
+        )
+        self.assertEqual(
+            semantics["commonYear"]["opening"],
+            {"month": 1, "day": 1},
+        )
+        self.assertEqual(
+            semantics["commonYear"]["closing"],
+            {"month": 12, "day": 30},
+        )
+
+        document["projectionSemantics"]["openingCivilDate"]["gridAuthority"] = True
+        document["publicationDigest"] = publication_digest(document)
+        with self.assertRaises(PublicationValidationError) as raised:
+            validate_publication_document(document)
+        self.assertEqual(
+            raised.exception.code,
+            "INVALID_PROJECTION_SEMANTICS",
+        )
 
     def test_publication_rejects_tampering(self):
         document = self._publication()

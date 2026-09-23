@@ -19,7 +19,7 @@ The named-date sequence is:
 
 `January 1 → … → December 30 → January 1`
 
-December 31 does not exist. February 29 does not exist. There are no leap years and no interannual reconciliation days.
+December 31 does not exist. February 29 does not exist. There are no leap years. Every Common year contains exactly 364 named dates.
 
 Day 001 is Thursday. Day 364 is Wednesday. Because `364 = 52 × 7`, every named Common date returns to the same weekday every Common year. The fifty-year map is one immutable annual grid repeated fifty times, with seven-year, forty-nine-year, and Jubilee position layered over it.
 
@@ -49,9 +49,6 @@ Astronomical, lunar, seasonal, historical, textual, Jewish, Islamic, local-light
 
 The existing `openingCivilDate` values in the finite publication are an **external proleptic-Gregorian interoperability projection only**. They are not Common Calendar year-opening labels and have zero grid authority. Every Common year still opens at Common January 1 and closes at Common December 30.
 
-## Historical models
-
-Earlier v3.2/v3.3 reconciliation and Spring-Gate correction models remain historical evidence. They are non-operative and may not regain authority through compatibility code, fixtures, documentation, or projection data.
 
 ## Enactment
 

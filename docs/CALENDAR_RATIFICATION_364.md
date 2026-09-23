@@ -33,9 +33,19 @@ Common Clock does not observe daylight saving time. It uses permanent standard t
 
 Local sunset, darkness, dawn, sunrise, daylight, and sunset remain separately observable creation events. Sabbath and StillPoint boundaries are calculated from the relevant local light events.
 
-## Witness law
+## Overlay and witness law
 
-Astronomical, lunar, seasonal, historical, textual, and external-civil observations may be stored, compared, audited, and displayed. They cannot insert a day, move a Common date, change a weekday, or mutate the 364-day grid.
+The fixed 364-day surface is Calendar law. Everything else inhabits that surface.
+
+Canonical overlays are: feasts, Sabbath, StillPoint, seven-year position, forty-nine-year position, and Jubilee position.
+
+Witness overlays are: seasons, lunar observations, Jewish-calendar translation, Islamic-calendar translation, and local-light events.
+
+Every overlay has zero grid authority. An overlay may annotate, compare, translate, or govern its own bounded protected-time behavior. It may not insert or delete a Common date, move a named date, change a weekday, move January 1 or December 30, alter the 364-day year, create February 29, create December 31, or rewrite the fifty-year surface.
+
+The governing rule is: **inhabit the surface; never rewrite the surface.**
+
+Astronomical, lunar, seasonal, historical, textual, Jewish, Islamic, local-light, and external-civil observations may be stored, compared, audited, and displayed. They remain provenance-bearing evidence or bounded overlays.
 
 The existing `openingCivilDate` values in the finite publication are an **external proleptic-Gregorian interoperability projection only**. They are not Common Calendar year-opening labels and have zero grid authority. Every Common year still opens at Common January 1 and closes at Common December 30.
 

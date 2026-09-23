@@ -245,29 +245,59 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertEqual(snapshot.commonCalendarDetail, "PUBLICATION UNAVAILABLE")
     }
 
-    func testAnnualDayChangesAtSunsetNotMidnight() throws {
+    func testCommonCivilDateChangesAtStandardMidnightWhileSacredDayChangesAtSunset() throws {
         let calendar = denverCalendar
         let published = fiftyYearFixture()
 
-        let secondCivilDay = calendar.date(from: DateComponents(
-            year: 2026, month: 3, day: 21, hour: 12
-        ))!
-        let secondSunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
-            on: secondCivilDay,
+        var standard = Calendar(identifier: .gregorian)
+        standard.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: -7 * 3600))
+
+        let dayOneNoon = try XCTUnwrap(standard.date(from: DateComponents(
+            year: 2026, month: 3, day: 20, hour: 12
+        )))
+        let sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+            on: dayOneNoon,
             latitude: latitude,
             longitude: longitude,
-            calendar: calendar
+            calendar: standard
         ))
 
+        let beforeSunset = CivicCalendarEngine.snapshot(
+            now: sunset.addingTimeInterval(-60),
+            latitude: latitude,
+            longitude: longitude,
+            publishedCalendar: published,
+            calendar: calendar
+        )
+        let afterSunset = CivicCalendarEngine.snapshot(
+            now: sunset.addingTimeInterval(60),
+            latitude: latitude,
+            longitude: longitude,
+            publishedCalendar: published,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(beforeSunset.commonCalendarLabel.contains("DAY 001"))
+        XCTAssertTrue(afterSunset.commonCalendarLabel.contains("DAY 001"))
+        XCTAssertEqual(beforeSunset.namedDay, "THURSDAY")
+        XCTAssertEqual(afterSunset.namedDay, "FRIDAY")
+
+        let beforeMidnight = try XCTUnwrap(standard.date(from: DateComponents(
+            year: 2026, month: 3, day: 20, hour: 23, minute: 59
+        )))
+        let afterMidnight = try XCTUnwrap(standard.date(from: DateComponents(
+            year: 2026, month: 3, day: 21, hour: 0, minute: 1
+        )))
+
         let before = CivicCalendarEngine.snapshot(
-            now: secondSunset.addingTimeInterval(-60),
+            now: beforeMidnight,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
             calendar: calendar
         )
         let after = CivicCalendarEngine.snapshot(
-            now: secondSunset.addingTimeInterval(60),
+            now: afterMidnight,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: published,
@@ -276,6 +306,8 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertTrue(before.commonCalendarLabel.contains("DAY 001"))
         XCTAssertTrue(after.commonCalendarLabel.contains("DAY 002"))
+        XCTAssertTrue(after.commonCalendarDetail.contains("FRIDAY"))
+        XCTAssertEqual(after.namedDay, "FRIDAY")
     }
 
     func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() {

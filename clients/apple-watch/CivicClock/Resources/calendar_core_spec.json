@@ -2,19 +2,10 @@
   "boundary": {
     "apparentHorizonZenithDegrees": 90.8333,
     "failurePolicy": "explicit-no-silent-fallback",
-    "protocolId": "apparent-sunrise-set-0.8333"
+    "protocolId": "apparent-sunrise-set-0.8333",
+    "role": "local-day-boundary-only"
   },
-  "enactmentBoundary": {
-    "lawDoesNotSupplyValues": true,
-    "requiredForFinitePublication": [
-      "firstOpening",
-      "referencePoint",
-      "ephemerisEvidence",
-      "publicationAuthority"
-    ],
-    "status": "external-unresolved"
-  },
-  "gates": {
+  "enochicArchitecture": {
     "gateSequence": [
       4,
       5,
@@ -43,63 +34,87 @@
       30,
       30,
       31
-    ]
+    ],
+    "quarterDays": 91,
+    "quarters": 4,
+    "role": "ordinal-sacred-geometry"
+  },
+  "grid": {
+    "day001Weekday": "Thursday",
+    "days": 364,
+    "december31Exists": false,
+    "firstDate": {
+      "day": 1,
+      "month": 1
+    },
+    "interannualDays": 0,
+    "lastDate": {
+      "day": 30,
+      "month": 12
+    },
+    "nextAfterLastDate": {
+      "day": 1,
+      "month": 1
+    },
+    "status": "ratified-fixed",
+    "weeks": 52
+  },
+  "historicalReferenceRules": {
+    "v3.2": {
+      "operator": "NearestLegal",
+      "status": "historical-superseded"
+    },
+    "v3.3": {
+      "operator": "NearestLegalSpringGate",
+      "status": "historical-superseded"
+    }
   },
   "invariants": [
-    "continuous-time-never-gaps",
-    "ordinary-year-is-always-364",
-    "reconciliation-is-0-or-7-and-interannual",
-    "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
-    "week-sequence-is-never-broken",
-    "missing-required-evidence-fails-closed",
-    "publication-is-finite-and-does-not-self-ratify"
+    "day-001-through-day-364-only",
+    "december-31-does-not-exist",
+    "day-364-transitions-directly-to-next-year-day-001",
+    "every-year-is-exactly-52-weeks",
+    "weekday-addresses-repeat-identically-every-year",
+    "astronomy-may-witness-but-cannot-move-the-grid",
+    "lunar-evidence-may-witness-but-cannot-move-the-grid",
+    "civil-translation-may-describe-but-cannot-move-the-grid",
+    "jubilee-counts-years-but-cannot-move-the-grid"
   ],
   "jurisdiction": {
+    "astronomyRole": "witness-and-boundary-evidence-not-grid-authority",
     "authorityNamespace": "stillpoint.temporal",
     "calendarNamespace": "stillpoint.calendar_core",
-    "publicationAuthority": "external-finite-evidence-object"
+    "civilCalendarRole": "translation-layer-not-grid-authority",
+    "primary": "fixed-364-day-sacred-civic-grid"
   },
   "ordinaryCalendar": {
     "baseYearDays": 364,
     "monthLengths": [
-      30,
+      31,
+      28,
+      31,
       30,
       31,
       30,
+      31,
+      31,
       30,
       31,
       30,
-      30,
-      31,
-      30,
-      30,
-      31
+      30
     ],
     "quarterDays": 91,
     "quarters": 4,
     "weekDays": 7
   },
   "reconciliation": {
-    "addressPattern": "Y_n/Y_n+1-R{day}",
+    "addressPattern": "none",
     "allowedDays": [
-      0,
-      7
+      0
     ],
+    "enabled": false,
     "inheritsOrdinaryFields": false,
-    "namespace": "interannual"
+    "namespace": "abolished"
   },
-  "referenceRules": {
-    "v3.2": {
-      "operator": "NearestLegal",
-      "status": "recovered-historical"
-    },
-    "v3.3Candidate": {
-      "operator": "NearestLegalSpringGate",
-      "springGateDay": 20,
-      "springGateMonth": 3,
-      "springGateOrdinal": 80,
-      "status": "candidate-unratified"
-    }
-  },
-  "version": "stillpoint-calendar-core-spec-v1"
+  "version": "stillpoint-calendar-core-spec-v2-fixed-364"
 }

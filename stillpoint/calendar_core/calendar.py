@@ -4,12 +4,18 @@ from datetime import date, timedelta
 
 from .models import CommonDate
 
+MONTH_NAMES = (
+    "January", "February", "March", "April",
+    "May", "June", "July", "August",
+    "September", "October", "November", "December",
+)
 MONTH_LENGTHS = (
     31, 28, 31,
     30, 31, 30,
     31, 31, 30,
     31, 30, 30,
 )
+CANONICAL_TEMPLATE_YEAR = 2026
 QUARTER_DAYS = 91
 QUARTERS = 4
 WEEKDAYS = (
@@ -20,6 +26,8 @@ CANONICAL_DAY001_WEEKDAY = "Thursday"
 
 
 def validate_grid() -> None:
+    if len(MONTH_NAMES) != 12 or len(MONTH_LENGTHS) != 12:
+        raise RuntimeError("Common Calendar must preserve twelve familiar months")
     if sum(MONTH_LENGTHS) != 364:
         raise RuntimeError("Common year must total exactly 364 days")
     if 364 % 7 != 0:

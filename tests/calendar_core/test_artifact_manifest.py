@@ -37,11 +37,13 @@ class CalendarArtifactCustodyTests(unittest.TestCase):
             "conformance-proof-only",
             by_role,
         )
-        self.assertEqual(
-            manifest["compatibilityBridge"][
-                "authorityStatus"
-            ],
-            "non-authoritative-compatibility-only",
+        self.assertIn(
+            "fixed-grid-has-no-reconciliation-namespace",
+            manifest["invariants"],
+        )
+        self.assertIn(
+            "astronomy-and-lunar-data-are-witness-only",
+            manifest["invariants"],
         )
 
     def test_manifest_hashes_exact_export_bytes(self):

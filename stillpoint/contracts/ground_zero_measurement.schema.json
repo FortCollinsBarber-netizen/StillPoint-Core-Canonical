@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stillpoint.ground-zero-measurement.v1",
+  "title": "StillPoint Ground Zero Measurement",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "groundZeroID",
+    "source",
+    "coordinateSystem",
+    "latitude",
+    "longitude",
+    "horizontalAccuracyMeters",
+    "capturedAt",
+    "timeZoneIdentifier",
+    "fullAccuracyAuthorized"
+  ],
+  "properties": {
+    "schema": {
+      "const": "stillpoint.ground-zero-measurement.v1"
+    },
+    "groundZeroID": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "const": "apple-core-location"
+    },
+    "coordinateSystem": {
+      "const": "WGS84"
+    },
+    "latitude": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "longitude": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "altitudeMeters": {
+      "type": ["number", "null"]
+    },
+    "horizontalAccuracyMeters": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 25
+    },
+    "verticalAccuracyMeters": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "timeZoneIdentifier": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fullAccuracyAuthorized": {
+      "const": true
+    },
+    "simulatedBySoftware": {
+      "type": ["boolean", "null"]
+    },
+    "producedByAccessory": {
+      "type": ["boolean", "null"]
+    }
+  }
+}

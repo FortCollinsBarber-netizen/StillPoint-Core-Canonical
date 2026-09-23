@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import sqlite3
+from types import SimpleNamespace
 
 import pytest
 
+from stillpoint.adapters.registry import ActionAdapterRegistry
+from stillpoint.contracts.models import ActionResult
 from stillpoint.db import CompanyDB
 from stillpoint.resource_custody import AcquiredResourceCustody, ResourceCustodyError
 from stillpoint.temporal.warrants import Warrant
@@ -327,6 +330,90 @@ def test_database_rejects_direct_activated_insert_and_binding_rewrite(tmp_path):
                WHERE resource_id='tool-immutable'"""
         )
     conn.rollback()
+    db.close()
+
+
+class AcquiredSendAdapter:
+    name = "acquired_send"
+    action_types = ("send_email",)
+    acquired_resource_id = "adapter-credential"
+
+    def __init__(self):
+        self.executions = 0
+
+    def can_execute(self, request):
+        return True
+
+    def execute(self, request):
+        self.executions += 1
+        return ActionResult(
+            action_id=request.action_id,
+            status="succeeded",
+            evidence=[],
+            adapter=self.name,
+            external_id="acquired-spy",
+        )
+
+
+def test_acquired_adapter_cannot_enter_static_registry_and_one_shot_replay_is_blocked(tmp_path):
+    db, gate = custody(tmp_path)
+    gate.acquire(
+        resource_id="adapter-credential",
+        owner_role="signal",
+        kind="action_adapter",
+        discovered_capabilities=("send_email",),
+        one_shot=True,
+        now_iso=NOW,
+    )
+    gate.resolve(
+        "adapter-credential",
+        capabilities=("send_email",),
+        authenticated_evidence={"adapter_identity": "verified"},
+        now_iso=NOW,
+    )
+
+    adapter = AcquiredSendAdapter()
+    registry = ActionAdapterRegistry()
+    with pytest.raises(ValueError, match="register_acquired"):
+        registry.register(adapter)
+    with pytest.raises(ResourceCustodyError) as exc:
+        registry.register_acquired(
+            adapter,
+            gate,
+            resource_id="adapter-credential",
+            now_iso=NOW,
+        )
+    assert exc.value.code == "RESOURCE_NOT_ACTIVE"
+
+    warrant = activation_warrant(
+        db,
+        "adapter-credential",
+        capabilities=("send_email",),
+        valid_to="2099-01-01T00:00:00+00:00",
+    )
+    gate.activate(
+        "adapter-credential",
+        warrant_id=warrant.warrant_id,
+        parent_capabilities=("send_email",),
+        now_iso=NOW,
+    )
+    registry.register_acquired(
+        adapter,
+        gate,
+        resource_id="adapter-credential",
+        now_iso=NOW,
+    )
+
+    request = SimpleNamespace(action_id="action-1", action_type="send_email")
+    result = registry.execute_resolved(request, adapter)
+    assert result.status == "succeeded"
+    assert adapter.executions == 1
+    assert gate.get("adapter-credential").status == "consumed"
+
+    with pytest.raises(ResourceCustodyError) as exc:
+        registry.execute_resolved(request, adapter)
+    assert exc.value.code == "RESOURCE_NOT_ACTIVE"
+    assert adapter.executions == 1
     db.close()
 
 def test_schema_advances_to_acquired_resource_custody(tmp_path):

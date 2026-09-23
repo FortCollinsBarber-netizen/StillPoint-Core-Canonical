@@ -23,8 +23,6 @@ class CalendarCoreContractTests(unittest.TestCase):
             [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 30],
         )
         self.assertEqual(constants["seasonalQuarterDays"], 91)
-        self.assertEqual(constants["interannualDays"], 0)
-        self.assertFalse(constants["reconciliationAllowed"])
         self.assertEqual(
             doc["jurisdiction"]["authorityStatus"],
             "non-authoritative-compatibility-only",

@@ -57,8 +57,10 @@ class JubileeCompletionTests(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertEqual(after["ordinaryCalendar"]["baseYearDays"], 364)
         self.assertEqual(after["ordinaryCalendar"]["weeksPerYear"], 52)
-        self.assertFalse(after["annualTransition"]["reconciliationAllowed"])
-        self.assertEqual(after["annualTransition"]["interannualDays"], 0)
+        self.assertEqual(
+            after["annualTransition"],
+            {"rule": "DAY_364_TO_NEXT_YEAR_DAY_001"},
+        )
 
 
 if __name__ == "__main__":

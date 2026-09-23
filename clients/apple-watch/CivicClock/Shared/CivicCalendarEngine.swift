@@ -21,7 +21,7 @@ enum CivicCalendarEngine {
         now: Date,
         latitude: Double,
         longitude: Double,
-        publishedCalendar: PublishedCivicCalendar? = PublishedCalendarLoader.load(),
+        publishedCalendar: PublishedCivicCalendar? = PublishedCalendarLoader.load(policy: .enactedStillPoint),
         population: CalendarPopulation? = CalendarPopulationLoader.load(),
         calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load(),
         calendar inputCalendar: Calendar = .current

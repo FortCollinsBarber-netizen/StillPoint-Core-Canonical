@@ -66,9 +66,19 @@ def calendar_day_payload(
             "day_in_week": day.day_in_week,
             "weekday": day.weekday,
         },
+        "common_civil_coordinate": {
+            "date": f"{day.year:04d}-{day.month:02d}-{day.day:02d}",
+            "clock": "24-hour",
+            "date_boundary": "00:00",
+            "daylight_saving_time": False,
+            "role": "coordination-coordinate",
+        },
         "civil_window": {
             "opens": day.opening_civil_date.isoformat(),
             "closes": day.closes_on_civil_date.isoformat(),
+            "frame": "proleptic-gregorian",
+            "role": "external-translation-only",
+            "grid_authority": False,
         },
         "season": {
             "number": day.quarter,

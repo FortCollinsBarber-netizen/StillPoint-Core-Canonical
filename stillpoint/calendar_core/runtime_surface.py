@@ -66,6 +66,20 @@ def calendar_day_payload(
             "day_in_week": day.day_in_week,
             "weekday": day.weekday,
         },
+        "canonical_coordinate": {
+            "label": f"{day.year:04d}-{day.month:02d}-{day.day:02d}",
+            "authority": "calendar-core",
+            "weekday": day.weekday,
+        },
+        "interop_window": {
+            "calendar": "proleptic-gregorian",
+            "role": "translation-only",
+            "opens": day.opening_civil_date.isoformat(),
+            "closes": day.closes_on_civil_date.isoformat(),
+            "mutates_calendar": False,
+        },
+        # Compatibility alias for existing clients. These are host/ISO
+        # translation dates, never the canonical Common Calendar coordinate.
         "civil_window": {
             "opens": day.opening_civil_date.isoformat(),
             "closes": day.closes_on_civil_date.isoformat(),
@@ -107,5 +121,7 @@ def calendar_day_payload(
             "year_days": 364,
             "weeks_per_year": 52,
             "december_31_exists": False,
+            "interop_calendar_is_translation_only": True,
+            "coordinate_observation_interpretation_separated": True,
         },
     }

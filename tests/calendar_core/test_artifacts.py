@@ -7,6 +7,7 @@ from stillpoint.calendar_core.projection_vectors import (
     build_calendar_projection_vectors,
 )
 from stillpoint.calendar_core.publication import (
+    build_projection_semantics,
     PUBLICATION_VERSION,
     PublicationValidationError,
     publication_digest,
@@ -16,6 +17,10 @@ from stillpoint.calendar_core.publication import (
 from stillpoint.calendar_core.spec import (
     SPEC_VERSION,
     build_calendar_core_spec,
+)
+from stillpoint.calendar_core.witness_overlays import (
+    EXTERNAL_WITNESS_ARTIFACT_VERSION,
+    build_external_witness_artifact,
 )
 
 
@@ -28,6 +33,7 @@ class CalendarArtifactTests(unittest.TestCase):
                 "id": "PILOT_AUTHORITY",
                 "status": "pilot",
             },
+            "projectionSemantics": build_projection_semantics(),
             "years": [
                 {
                     "year": 1,
@@ -57,13 +63,33 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertEqual(ordinary["quarters"], 4)
         self.assertFalse(ordinary["hasDecember31"])
         self.assertFalse(ordinary["hasFebruary29"])
-        self.assertFalse(spec["annualTransition"]["reconciliationAllowed"])
-        self.assertEqual(spec["annualTransition"]["interannualDays"], 0)
+        self.assertEqual(
+            spec["annualTransition"],
+            {"rule": "DAY_364_TO_NEXT_YEAR_DAY_001"},
+        )
 
         serialized = json.dumps(spec)
         self.assertNotIn("LOVELAND_TEST", serialized)
         self.assertNotIn("openingCivilDate", serialized)
         self.assertNotIn("jubileeEpoch", serialized)
+
+    def test_external_witness_artifact_has_zero_grid_authority(self):
+        document = build_external_witness_artifact()
+        self.assertEqual(
+            document["version"],
+            EXTERNAL_WITNESS_ARTIFACT_VERSION,
+        )
+        self.assertEqual(
+            document["authorityStatus"],
+            "witness-layer-no-grid-authority",
+        )
+        self.assertFalse(document["jurisdiction"]["gridAuthority"])
+        self.assertFalse(document["jurisdiction"]["mayInsertDays"])
+        self.assertFalse(document["scope"]["repeatIntoLaterCommonYears"])
+        self.assertTrue(document["events"])
+        self.assertTrue(
+            all(event["calendar_effect"] == "none" for event in document["events"])
+        )
 
     def test_projection_vectors_prove_direct_year_transition(self):
         doc = build_calendar_projection_vectors()
@@ -88,9 +114,6 @@ class CalendarArtifactTests(unittest.TestCase):
             (1, 1),
         )
 
-        self.assertFalse(
-            any("reconciliation" in row["id"].lower() for row in doc["vectors"])
-        )
 
     def test_publication_rows_are_exactly_364_days_apart(self):
         rows = self._publication()["years"]
@@ -109,19 +132,19 @@ class CalendarArtifactTests(unittest.TestCase):
             validate_publication_rows(rows)
         self.assertEqual(raised.exception.code, "OPENING_SPAN_MISMATCH")
 
-    def test_publication_rejects_superseded_reconciliation_field(self):
+    def test_publication_rejects_unknown_year_row_field(self):
         rows = [
             {
                 "year": 1,
                 "openingCivilDate": "2026-01-01",
-                "reconciliationDaysAfterCompletion": 7,
+                "unexpectedExtraDateField": 7,
             }
         ]
         with self.assertRaises(PublicationValidationError) as raised:
             validate_publication_rows(rows)
         self.assertEqual(
             raised.exception.code,
-            "SUPERSEDED_RECONCILIATION_FIELD",
+            "UNSUPPORTED_PUBLICATION_ROW_FIELD",
         )
 
     def test_publication_envelope_binds_authority_epoch_and_spec(self):
@@ -137,6 +160,34 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertEqual(envelope.calendar_core_spec_version, SPEC_VERSION)
         self.assertEqual(envelope.authority_id, "PILOT_AUTHORITY")
         self.assertEqual(envelope.publication_range.year_count, 2)
+
+    def test_publication_projection_is_translation_only(self):
+        document = self._publication()
+        semantics = document["projectionSemantics"]
+        self.assertEqual(
+            semantics["openingCivilDate"]["role"],
+            "external-translation-only",
+        )
+        self.assertFalse(
+            semantics["openingCivilDate"]["gridAuthority"]
+        )
+        self.assertEqual(
+            semantics["commonYear"]["opening"],
+            {"month": 1, "day": 1},
+        )
+        self.assertEqual(
+            semantics["commonYear"]["closing"],
+            {"month": 12, "day": 30},
+        )
+
+        document["projectionSemantics"]["openingCivilDate"]["gridAuthority"] = True
+        document["publicationDigest"] = publication_digest(document)
+        with self.assertRaises(PublicationValidationError) as raised:
+            validate_publication_document(document)
+        self.assertEqual(
+            raised.exception.code,
+            "INVALID_PROJECTION_SEMANTICS",
+        )
 
     def test_publication_rejects_tampering(self):
         document = self._publication()

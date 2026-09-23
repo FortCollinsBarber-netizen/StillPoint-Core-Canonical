@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from stillpoint.calendar_core.publication import (
+    build_projection_semantics,
     PUBLICATION_VERSION,
     PublicationValidationError,
     publication_digest,
@@ -57,6 +58,7 @@ def generate(
             "id": authority_id.strip(),
             "status": authority_status,
         },
+        "projectionSemantics": build_projection_semantics(),
         "years": years,
     }
     document["publicationDigest"] = publication_digest(document)

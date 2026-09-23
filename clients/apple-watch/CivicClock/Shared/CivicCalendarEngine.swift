@@ -14,6 +14,8 @@ private struct AnnualCalendarState {
     let observance: String
     let jubilee: String
     let sourceRefs: [String]
+    let weekdayName: String?
+    let weekdayNumber: Int?
 }
 
 enum CivicCalendarEngine {
@@ -23,10 +25,15 @@ enum CivicCalendarEngine {
         longitude: Double,
         publishedCalendar: PublishedCivicCalendar? = PublishedCalendarLoader.load(policy: .enactedStillPoint),
         population: CalendarPopulation? = CalendarPopulationLoader.load(),
+        externalWitnesses: ExternalCalendarWitnessCatalog? =
+            ExternalCalendarWitnessLoader.load(),
         calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load(),
         calendar inputCalendar: Calendar = .current
     ) -> CivicClockSnapshot {
-        var calendar = inputCalendar
+        var calendar = permanentStandardCalendar(
+            now: now,
+            inputCalendar: inputCalendar
+        )
         calendar.locale = Locale(identifier: "en_US_POSIX")
 
         let commonClock = commonClockLabel(
@@ -86,23 +93,72 @@ enum CivicCalendarEngine {
             )
         }
 
-        let namedCivilDate = calendar.date(
-            byAdding: .day,
-            value: 1,
-            to: calendar.startOfDay(for: previous)
-        )!
-        let weekday = calendar.component(.weekday, from: namedCivilDate)
+        let commonCivilDay = calendar.startOfDay(for: now)
+        let todaySunset = SolarBoundaryCalculator.sunset(
+            on: commonCivilDay,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar,
+            spec: spec
+        )
+        let sacredCivilDay: Date
+        if let todaySunset, now >= todaySunset {
+            sacredCivilDay = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: commonCivilDay
+            )!
+        } else {
+            sacredCivilDay = commonCivilDay
+        }
 
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        let weekdayName = formatter.weekdaySymbols[weekday - 1]
+        let annual = annualState(
+            civilInstant: now,
+            publishedCalendar: publishedCalendar,
+            population: population,
+            spec: spec,
+            calendar: calendar
+        )
+        let sacredDay = annualState(
+            civilInstant: sacredCivilDay,
+            publishedCalendar: publishedCalendar,
+            population: population,
+            spec: spec,
+            calendar: calendar
+        )
+
+        let externalDate = externalProjectionDateLabel(
+            now: now,
+            calendar: calendar
+        )
+        let witnessEvents = externalWitnesses?.events(
+            onExternalDate: externalDate
+        ) ?? []
+        let externalWitnessLabel = witnessEvents.map { event in
+            event.begins_at == "sunset"
+                ? "\(event.name) · SUNSET"
+                : event.name
+        }.joined(separator: " · ")
+
+        var sourceRefs = annual.sourceRefs
+        for event in witnessEvents {
+            for ref in event.source_refs where !sourceRefs.contains(ref) {
+                sourceRefs.append(ref)
+            }
+        }
+
+        let localLight = SolarBoundaryCalculator.localLightObservation(
+            around: now,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar,
+            spec: spec
+        )
 
         let weekly = weeklyProtectedTimeState(
             now: now,
-            namedCivilDate: namedCivilDate,
-            weekday: weekday,
+            sacredCivilDay: sacredCivilDay,
+            weekdayName: sacredDay.weekdayName,
             latitude: latitude,
             longitude: longitude,
             nextSunset: next,
@@ -110,18 +166,10 @@ enum CivicCalendarEngine {
             calendar: calendar
         )
 
-        let annual = annualState(
-            previousBoundary: previous,
-            publishedCalendar: publishedCalendar,
-            population: population,
-            spec: spec,
-            calendar: calendar
-        )
-
         return CivicClockSnapshot(
             generatedAt: now,
-            namedDay: weekdayName.uppercased(),
-            weekdayNumber: weekday,
+            namedDay: sacredDay.weekdayName?.uppercased() ?? "COMMON DAY",
+            weekdayNumber: sacredDay.weekdayNumber ?? 0,
             isSabbath: weekly.isSabbath,
             isLordsDay: weekly.isLordsDay,
             isStillPoint: weekly.isStillPoint,
@@ -135,38 +183,69 @@ enum CivicCalendarEngine {
             commonCalendarDetail: annual.detail,
             observanceLabel: annual.observance,
             jubileeLabel: annual.jubilee,
-            sourceRefs: annual.sourceRefs
+            sourceRefs: sourceRefs,
+            externalWitnessLabel: externalWitnessLabel.isEmpty
+                ? nil
+                : externalWitnessLabel,
+            localLightPhase: localLight?.phase,
+            civilDawn: localLight?.civilDawn,
+            sunrise: localLight?.sunrise,
+            sunset: localLight?.sunset,
+            civilDusk: localLight?.civilDusk,
+            nextLightEvent: localLight?.nextEvent,
+            nextLightEventAt: localLight?.nextEventAt
         )
+    }
+
+    private static func externalProjectionDateLabel(
+        now: Date,
+        calendar: Calendar
+    ) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        return formatter.string(from: now)
+    }
+
+    private static func permanentStandardCalendar(
+        now: Date,
+        inputCalendar: Calendar
+    ) -> Calendar {
+        var calendar = inputCalendar
+        let zone = inputCalendar.timeZone
+        let legalOffset = zone.secondsFromGMT(for: now)
+        let dstOffset = Int(zone.daylightSavingTimeOffset(for: now))
+        let standardOffset = legalOffset - dstOffset
+        calendar.timeZone = TimeZone(secondsFromGMT: standardOffset)!
+        return calendar
     }
 
     private static func commonClockLabel(
         now: Date,
         calendar: Calendar
     ) -> String {
-        let zone = calendar.timeZone
-        let legalOffset = zone.secondsFromGMT(for: now)
-        let dstOffset = Int(zone.daylightSavingTimeOffset(for: now))
-        let standardOffset = legalOffset - dstOffset
-
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(secondsFromGMT: standardOffset)
+        formatter.timeZone = calendar.timeZone
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: now)
     }
 
     private static func weeklyProtectedTimeState(
         now: Date,
-        namedCivilDate: Date,
-        weekday: Int,
+        sacredCivilDay: Date,
+        weekdayName: String?,
         latitude: Double,
         longitude: Double,
         nextSunset: Date,
         spec: CalendarCoreSpec,
         calendar: Calendar
     ) -> WeeklyProtectedTimeState {
-        if weekday == 7 {
+        if weekdayName == "Saturday" {
             return WeeklyProtectedTimeState(
                 isSabbath: true,
                 isLordsDay: false,
@@ -176,8 +255,8 @@ enum CivicCalendarEngine {
             )
         }
 
-        if weekday == 1 {
-            let sunday = calendar.startOfDay(for: namedCivilDate)
+        if weekdayName == "Sunday" {
+            let sunday = calendar.startOfDay(for: sacredCivilDay)
             let sunrise = SolarBoundaryCalculator.sunrise(
                 on: sunday,
                 latitude: latitude,
@@ -216,7 +295,7 @@ enum CivicCalendarEngine {
     }
 
     private static func annualState(
-        previousBoundary: Date,
+        civilInstant: Date,
         publishedCalendar: PublishedCivicCalendar?,
         population: CalendarPopulation?,
         spec: CalendarCoreSpec,
@@ -231,7 +310,9 @@ enum CivicCalendarEngine {
                 detail: "PUBLICATION UNAVAILABLE",
                 observance: "",
                 jubilee: "",
-                sourceRefs: []
+                sourceRefs: [],
+                weekdayName: nil,
+                weekdayNumber: nil
             )
         }
 
@@ -242,7 +323,9 @@ enum CivicCalendarEngine {
                 detail: "50-YEAR PUBLICATION REQUIRED",
                 observance: "",
                 jubilee: "",
-                sourceRefs: []
+                sourceRefs: [],
+                weekdayName: nil,
+                weekdayNumber: nil
             )
         }
 
@@ -253,7 +336,7 @@ enum CivicCalendarEngine {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.isLenient = false
 
-        let currentBoundaryDay = calendar.startOfDay(for: previousBoundary)
+        let currentCivilDay = calendar.startOfDay(for: civilInstant)
 
         for index in rows.indices {
             let row = rows[index]
@@ -265,7 +348,7 @@ enum CivicCalendarEngine {
             guard let boundaryOffset = calendar.dateComponents(
                 [.day],
                 from: openingBoundaryDay,
-                to: currentBoundaryDay
+                to: currentCivilDay
             ).day,
             (0..<spec.ordinaryCalendar.baseYearDays).contains(boundaryOffset)
             else { continue }
@@ -397,7 +480,9 @@ enum CivicCalendarEngine {
                 observance:
                     observances.map(\.name).joined(separator: " · "),
                 jubilee: jubileeText,
-                sourceRefs: sourceRefs
+                sourceRefs: sourceRefs,
+                weekdayName: staticWeekday,
+                weekdayNumber: staticWeekdayIndex + 1
             )
         }
 
@@ -406,7 +491,9 @@ enum CivicCalendarEngine {
             detail: "OUTSIDE PUBLISHED 50-YEAR MAP",
             observance: "",
             jubilee: "",
-            sourceRefs: []
+            sourceRefs: [],
+            weekdayName: nil,
+            weekdayNumber: nil
         )
     }
 

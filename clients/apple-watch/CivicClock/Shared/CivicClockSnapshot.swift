@@ -18,6 +18,14 @@ struct CivicClockSnapshot: Codable, Equatable {
     let observanceLabel: String
     let jubileeLabel: String
     let sourceRefs: [String]
+    var externalWitnessLabel: String? = nil
+    var localLightPhase: String? = nil
+    var civilDawn: Date? = nil
+    var sunrise: Date? = nil
+    var sunset: Date? = nil
+    var civilDusk: Date? = nil
+    var nextLightEvent: String? = nil
+    var nextLightEventAt: Date? = nil
 
     static let unavailable = CivicClockSnapshot(
         generatedAt: .now,

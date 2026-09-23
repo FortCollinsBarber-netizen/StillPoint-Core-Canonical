@@ -14,6 +14,13 @@ from .runtime import CompanyRuntime
 from .doctor import run_doctor
 from .adapters.production import build_production_registry, reconcile_gmail_send
 from .office_runtime import OfficeRuntimeCoordinator
+from .calendar_core.governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+    assert_canonical_surface,
+)
+from .calendar_core.overlays import overlay_policy_payload
 from .calendar_core.runtime_surface import calendar_day_payload
 from .calendar_core.models import GeoPoint
 from .clock_os import ClockConfig, canonical_civil_window, clock_snapshot
@@ -94,13 +101,29 @@ def main(argv=None) -> int:
     sub.add_parser("offices")
     sub.add_parser("capabilities")
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
+    sub.add_parser("calendar-governor")
     clock_at=sub.add_parser("clock-at");clock_at.add_argument("--instant",required=True);clock_at.add_argument("--latitude",type=float,required=True);clock_at.add_argument("--longitude",type=float,required=True);clock_at.add_argument("--zone",required=True);clock_at.add_argument("--standard-offset-seconds",type=int,required=True);clock_at.add_argument("--location-id",default="LOCAL");clock_at.add_argument("--publication-path")
     clock_window=sub.add_parser("clock-window");clock_window.add_argument("year",type=int);clock_window.add_argument("--ordinal",type=int,required=True);clock_window.add_argument("--latitude",type=float,required=True);clock_window.add_argument("--longitude",type=float,required=True);clock_window.add_argument("--zone",required=True);clock_window.add_argument("--standard-offset-seconds",type=int,required=True);clock_window.add_argument("--location-id",default="LOCAL");clock_window.add_argument("--publication-path")
     continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
     if args.cmd=="calendar-day":
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(RhythmAuthority.READ, "calendar-cli")
+        )
         _json(calendar_day_payload(args.year,args.ordinal))
+        return 0
+    if args.cmd=="calendar-governor":
+        assert_canonical_surface()
+        _json({
+            "schema": "stillpoint.rhythm-governor.v1",
+            "surface": "immutable",
+            "ordinary_mutation_authority_exists": False,
+            "authority_vocabulary": [
+                "READ", "COORDINATE", "OBSERVE", "OVERLAY", "REJECT"
+            ],
+            "overlay_policy": overlay_policy_payload(),
+        })
         return 0
     if args.cmd in {"clock-at","clock-window"}:
         config=ClockConfig(

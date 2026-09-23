@@ -75,18 +75,12 @@ def build_calendar_core_spec() -> dict[str, Any]:
         },
         "annualTransition": {
             "rule": "DAY_364_TO_NEXT_YEAR_DAY_001",
-            "interannualDays": 0,
-            "reconciliationAllowed": False,
         },
         "witnessPolicy": {
             "astronomy": "witness-only-no-grid-mutation",
             "lunar": "witness-only-no-grid-mutation",
             "seasonal": "witness-only-no-grid-mutation",
             "enochicGates": "witness-metadata-no-grid-mutation",
-        },
-        "historicalModels": {
-            "nearestLegalV32": "superseded-non-operative",
-            "nearestLegalSpringGateV33": "superseded-non-operative",
         },
         "invariants": [
             "year-is-always-364",
@@ -97,7 +91,7 @@ def build_calendar_core_spec() -> dict[str, Any]:
             "february-29-does-not-exist",
             "day-001-is-thursday",
             "day-364-transitions-directly-to-next-day-001",
-            "no-interannual-reconciliation-days",
+            "year-transition-has-no-extra-date",
             "four-seasonal-quarters-are-91-days-each",
             "annual-weekday-pattern-repeats-identically",
             "witness-layers-cannot-mutate-calendar-address",

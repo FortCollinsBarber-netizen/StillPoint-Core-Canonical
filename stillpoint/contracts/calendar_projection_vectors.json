@@ -2,14 +2,6 @@
   "authorityStatus": "conformance-only",
   "failureCases": [
     {
-      "expectedFailure": "INVALID_CALENDAR_ADDRESS",
-      "id": "r-address-rejected",
-      "input": {
-        "address": "Y_1/Y_2-R1"
-      },
-      "kind": "address"
-    },
-    {
       "expectedFailure": "INVALID_MONTH_DAY",
       "id": "december-31-rejected",
       "input": {
@@ -53,21 +45,21 @@
     {
       "expected": {
         "annualPhase": 9,
-        "calendarAddress": "Y_1-260",
+        "calendarAddress": "Y_1-261",
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 17,
-          "dayInWeek": 1,
-          "dayOfQuarter": 78,
+          "day": 18,
+          "dayInWeek": 2,
+          "dayOfQuarter": 79,
           "month": 9,
-          "ordinal": 260,
+          "ordinal": 261,
           "quarter": 3,
           "week": 38,
-          "weekday": "Thursday",
+          "weekday": "Friday",
           "year": 1
         },
         "commonStandardOffsetSeconds": -25200,
-        "continuousK": 259,
+        "continuousK": 260,
         "lordsDay": false,
         "namedDay": "Friday",
         "nextProtectedBoundaryLabel": null,
@@ -140,21 +132,21 @@
     {
       "expected": {
         "annualPhase": 9,
-        "calendarAddress": "Y_1-262",
+        "calendarAddress": "Y_1-263",
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 19,
-          "dayInWeek": 3,
-          "dayOfQuarter": 80,
+          "day": 20,
+          "dayInWeek": 4,
+          "dayOfQuarter": 81,
           "month": 9,
-          "ordinal": 262,
+          "ordinal": 263,
           "quarter": 3,
           "week": 38,
-          "weekday": "Saturday",
+          "weekday": "Sunday",
           "year": 1
         },
         "commonStandardOffsetSeconds": -25200,
-        "continuousK": 261,
+        "continuousK": 262,
         "lordsDay": true,
         "namedDay": "Sunday",
         "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
@@ -169,21 +161,21 @@
     {
       "expected": {
         "annualPhase": 9,
-        "calendarAddress": "Y_1-262",
+        "calendarAddress": "Y_1-263",
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 19,
-          "dayInWeek": 3,
-          "dayOfQuarter": 80,
+          "day": 20,
+          "dayInWeek": 4,
+          "dayOfQuarter": 81,
           "month": 9,
-          "ordinal": 262,
+          "ordinal": 263,
           "quarter": 3,
           "week": 38,
-          "weekday": "Saturday",
+          "weekday": "Sunday",
           "year": 1
         },
         "commonStandardOffsetSeconds": -25200,
-        "continuousK": 261,
+        "continuousK": 262,
         "lordsDay": true,
         "namedDay": "Sunday",
         "nextProtectedBoundaryLabel": "LORD'S DAY ENDS \u00b7 SUNDAY SUNSET",

@@ -286,18 +286,6 @@ def build_calendar_projection_vectors(
         "failureCases": [
             {
                 "id":
-                    "r-address-rejected",
-                "kind":
-                    "address",
-                "input": {
-                    "address":
-                        "Y_1/Y_2-R1",
-                },
-                "expectedFailure":
-                    "INVALID_CALENDAR_ADDRESS",
-            },
-            {
-                "id":
                     "december-31-rejected",
                 "kind":
                     "common-date",

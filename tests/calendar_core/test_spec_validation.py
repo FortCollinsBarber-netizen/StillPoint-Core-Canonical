@@ -25,7 +25,10 @@ class CalendarCoreSpecValidationTests(unittest.TestCase):
             set(spec["enactmentBoundary"]["requiredForFiniteProjection"]),
             {"firstOpening", "publicationAuthority"},
         )
-        self.assertFalse(spec["annualTransition"]["reconciliationAllowed"])
+        self.assertEqual(
+            spec["annualTransition"],
+            {"rule": "DAY_364_TO_NEXT_YEAR_DAY_001"},
+        )
 
     def test_unknown_spec_version_fails_closed(self):
         spec = build_calendar_core_spec()

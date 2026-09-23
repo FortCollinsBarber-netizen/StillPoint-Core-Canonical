@@ -12,8 +12,15 @@ from pathlib import Path
 from typing import Any
 
 from .calendar import CANONICAL_DAY001_WEEKDAY
+from .governor import (
+    CanonicalDate,
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .population import address_from_ordinal
 from .publication import validate_publication_document
+from .witness_overlays import witnesses_for_external_date
 
 PUBLICATION_FILENAME = "calendar_publication_2026_2075.json"
 RUNTIME_SCHEMA = "stillpoint.calendar-day.v1"
@@ -51,6 +58,13 @@ def calendar_day_payload(
         jubilee_epoch_common_year=first_year,
         jubilee_epoch_cycle=1,
     )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="calendar-runtime-surface",
+            canonical_date=CanonicalDate(day.year, day.month, day.day),
+        )
+    )
 
     authority = document.get("authority") or {}
     return {
@@ -66,10 +80,24 @@ def calendar_day_payload(
             "day_in_week": day.day_in_week,
             "weekday": day.weekday,
         },
+        "common_civil_coordinate": {
+            "date": f"{day.year:04d}-{day.month:02d}-{day.day:02d}",
+            "clock": "24-hour",
+            "date_boundary": "00:00",
+            "daylight_saving_time": False,
+            "role": "coordination-coordinate",
+        },
         "civil_window": {
             "opens": day.opening_civil_date.isoformat(),
             "closes": day.closes_on_civil_date.isoformat(),
+            "frame": "proleptic-gregorian",
+            "role": "external-translation-only",
+            "grid_authority": False,
         },
+        "external_witness_overlays": [
+            event.as_payload()
+            for event in witnesses_for_external_date(day.opening_civil_date)
+        ],
         "season": {
             "number": day.quarter,
             "day": day.day_of_quarter,
@@ -78,7 +106,12 @@ def calendar_day_payload(
             "enoch_motion": day.enoch_motion,
         },
         "protected_time": {
-            "is_sabbath": day.is_sabbath_date,
+            "is_sabbath_date": day.is_sabbath_date,
+            "sabbath_opens": "Friday local sunset",
+            "sabbath_closes": "Saturday local sunset",
+            "stillpoint_opens": "Friday local sunset",
+            "stillpoint_releases": "Sunday local sunrise",
+            "boundary_authority": "local-light-overlay-no-grid-mutation",
         },
         "observances": [
             {"id": oid, "name": name}
@@ -87,6 +120,28 @@ def calendar_day_payload(
         "jubilee": {
             "cycle": day.jubilee_cycle,
             "year": day.jubilee_year,
+            "seven_year": {
+                "block": (
+                    ((day.jubilee_year - 1) // 7) + 1
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "year_in_block": (
+                    ((day.jubilee_year - 1) % 7) + 1
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "is_seventh_year": day.is_sabbatical_threshold,
+            },
+            "forty_nine": {
+                "year": (
+                    day.jubilee_year
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "is_year_49": day.jubilee_year == 49,
+                "completed": day.jubilee_year == 50,
+            },
             "is_sabbatical_threshold": day.is_sabbatical_threshold,
             "is_jubilee_year": day.is_jubilee_year,
             "is_jubilee_release_day": day.is_jubilee_release_day,

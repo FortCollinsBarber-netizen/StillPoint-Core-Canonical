@@ -89,8 +89,8 @@ def main(argv=None) -> int:
     sub.add_parser("approvals")
     sub.add_parser("offices")
     sub.add_parser("capabilities")
-    continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
+    continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
     if args.cmd=="calendar-day":

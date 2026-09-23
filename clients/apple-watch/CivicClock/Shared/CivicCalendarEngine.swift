@@ -8,6 +8,13 @@ private struct WeeklyProtectedTimeState {
     let nextBoundaryLabel: String?
 }
 
+private struct AnnualCalendarState {
+    let label: String
+    let detail: String
+    let observance: String
+    let jubilee: String
+}
+
 enum CivicCalendarEngine {
     static func snapshot(
         now: Date,
@@ -19,6 +26,12 @@ enum CivicCalendarEngine {
     ) -> CivicClockSnapshot {
         var calendar = inputCalendar
         calendar.locale = Locale(identifier: "en_US_POSIX")
+        _ = publishedCalendar
+
+        let commonClock = commonClockLabel(
+            now: now,
+            calendar: calendar
+        )
 
         guard let spec = calendarCoreSpec else {
             return CivicClockSnapshot(
@@ -34,7 +47,10 @@ enum CivicCalendarEngine {
                 nextProtectedBoundary: nil,
                 nextProtectedBoundaryLabel: nil,
                 commonCalendarLabel: "CALENDAR",
-                commonCalendarDetail: "CORE SPEC UNAVAILABLE"
+                commonCalendarDetail: "CORE SPEC UNAVAILABLE",
+                commonClockLabel: commonClock,
+                observanceLabel: "",
+                jubileeLabel: ""
             )
         }
 
@@ -59,8 +75,11 @@ enum CivicCalendarEngine {
                 boundaryStatus: "SUN BOUNDARY UNAVAILABLE",
                 nextProtectedBoundary: nil,
                 nextProtectedBoundaryLabel: nil,
-                commonCalendarLabel: "CALENDAR",
-                commonCalendarDetail: "FALLBACK RULE NOT ENACTED"
+                commonCalendarLabel: "COMMON CALENDAR",
+                commonCalendarDetail: "HORIZON BOUNDARY UNAVAILABLE",
+                commonClockLabel: commonClock,
+                observanceLabel: "",
+                jubileeLabel: ""
             )
         }
 
@@ -87,12 +106,8 @@ enum CivicCalendarEngine {
             calendar: calendar
         )
 
-        let annual = annualLabel(
-            now: now,
+        let annual = annualState(
             previousBoundary: previous,
-            latitude: latitude,
-            longitude: longitude,
-            publishedCalendar: publishedCalendar,
             spec: spec,
             calendar: calendar
         )
@@ -110,8 +125,28 @@ enum CivicCalendarEngine {
             nextProtectedBoundary: weekly.nextBoundary,
             nextProtectedBoundaryLabel: weekly.nextBoundaryLabel,
             commonCalendarLabel: annual.label,
-            commonCalendarDetail: annual.detail
+            commonCalendarDetail: annual.detail,
+            commonClockLabel: commonClock,
+            observanceLabel: annual.observance,
+            jubileeLabel: annual.jubilee
         )
+    }
+
+    private static func commonClockLabel(
+        now: Date,
+        calendar: Calendar
+    ) -> String {
+        let zone = calendar.timeZone
+        let legalOffset = zone.secondsFromGMT(for: now)
+        let dstOffset = Int(zone.daylightSavingTimeOffset(for: now))
+        let standardOffset = legalOffset - dstOffset
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(secondsFromGMT: standardOffset)
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: now)
     }
 
     private static func weeklyProtectedTimeState(
@@ -173,26 +208,13 @@ enum CivicCalendarEngine {
         )
     }
 
-    private static func annualLabel(
-        now: Date,
+    private static func annualState(
         previousBoundary: Date,
-        latitude: Double,
-        longitude: Double,
-        publishedCalendar: PublishedCivicCalendar?,
         spec: CalendarCoreSpec,
         calendar: Calendar
-    ) -> (label: String, detail: String) {
-        guard let publishedCalendar else {
-            return ("COMMON CALENDAR", "ANNUAL TABLE PENDING")
-        }
-
-        guard publishedCalendar.isValidatedForProjection else {
-            return ("COMMON CALENDAR", "PUBLICATION NOT AUTHORIZED")
-        }
-
+    ) -> AnnualCalendarState {
+        let cycle = spec.canonicalCycle
         let baseYearDays = spec.ordinaryCalendar.baseYearDays
-        let quarterDays = spec.ordinaryCalendar.quarterDays
-        let allowedReconciliation = Set(spec.reconciliation.allowedDays)
 
         let formatter = DateFormatter()
         formatter.calendar = calendar
@@ -201,85 +223,165 @@ enum CivicCalendarEngine {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.isLenient = false
 
-        let sorted = publishedCalendar.years.sorted { $0.year < $1.year }
-        let currentBoundaryDay = calendar.startOfDay(for: previousBoundary)
-
-        for index in sorted.indices {
-            let current = sorted[index]
-
-            guard allowedReconciliation.contains(
-                current.reconciliationDaysAfterCompletion
-            ) else { continue }
-
-            guard
-                let openingDay = formatter.date(from: current.openingCivilDate),
-                let opening = SolarBoundaryCalculator.sunset(
-                    on: openingDay,
-                    latitude: latitude,
-                    longitude: longitude,
-                    calendar: calendar,
-                    spec: spec
-                )
-            else { continue }
-
-            guard now >= opening else { continue }
-
-            let openingBoundaryDay = calendar.startOfDay(for: openingDay)
-            guard let boundaryOffset = calendar.dateComponents(
-                [.day],
-                from: openingBoundaryDay,
-                to: currentBoundaryDay
-            ).day else { continue }
-
-            let legalSpan =
-                baseYearDays + current.reconciliationDaysAfterCompletion
-            guard boundaryOffset >= 0, boundaryOffset < legalSpan else {
-                continue
-            }
-
-            if sorted.indices.contains(index + 1) {
-                let next = sorted[index + 1]
-                guard
-                    let nextOpeningDay = formatter.date(
-                        from: next.openingCivilDate
-                    ),
-                    let publishedSpan = calendar.dateComponents(
-                        [.day],
-                        from: openingBoundaryDay,
-                        to: calendar.startOfDay(for: nextOpeningDay)
-                    ).day,
-                    publishedSpan == legalSpan,
-                    let nextOpening = SolarBoundaryCalculator.sunset(
-                        on: nextOpeningDay,
-                        latitude: latitude,
-                        longitude: longitude,
-                        calendar: calendar,
-                        spec: spec
-                    ),
-                    now < nextOpening
-                else { continue }
-            }
-
-            if boundaryOffset >= baseYearDays {
-                let reconciliationDay =
-                    boundaryOffset - baseYearDays + 1
-                return (
-                    "RECONCILIATION",
-                    "R\(reconciliationDay) · YEAR \(current.year) COMPLETE"
-                )
-            }
-
-            let day = boundaryOffset + 1
-            let week = ((day - 1) / spec.ordinaryCalendar.weekDays) + 1
-            let dayInWeek =
-                ((day - 1) % spec.ordinaryCalendar.weekDays) + 1
-            let season = ((day - 1) / quarterDays) + 1
-            return (
-                "YEAR \(current.year) · DAY \(String(format: "%03d", day))",
-                "S\(season) · W\(String(format: "%02d", week)) · D\(dayInWeek)"
+        guard let firstOpening = formatter.date(
+            from: cycle.firstOpeningCivilDate
+        ) else {
+            return AnnualCalendarState(
+                label: "COMMON CALENDAR",
+                detail: "INVALID CANONICAL OPENING",
+                observance: "",
+                jubilee: ""
             )
         }
 
-        return ("COMMON CALENDAR", "OUTSIDE PUBLISHED TABLE")
+        let currentBoundaryDay = calendar.startOfDay(
+            for: previousBoundary
+        )
+        let firstOpeningDay = calendar.startOfDay(
+            for: firstOpening
+        )
+        guard let offset = calendar.dateComponents(
+            [.day],
+            from: firstOpeningDay,
+            to: currentBoundaryDay
+        ).day,
+        offset >= 0,
+        offset < cycle.totalDays else {
+            return AnnualCalendarState(
+                label: "COMMON CALENDAR",
+                detail: "OUTSIDE RATIFIED 50-YEAR MAP",
+                observance: "",
+                jubilee: ""
+            )
+        }
+
+        let yearOffset = offset / baseYearDays
+        let ordinal = (offset % baseYearDays) + 1
+        let year = cycle.firstYearLabel + yearOffset
+        let week = ((ordinal - 1) / spec.ordinaryCalendar.weekDays) + 1
+        let dayInWeek =
+            ((ordinal - 1) % spec.ordinaryCalendar.weekDays) + 1
+        let season = ((ordinal - 1) / spec.ordinaryCalendar.quarterDays) + 1
+        let dayOfSeason =
+            ((ordinal - 1) % spec.ordinaryCalendar.quarterDays) + 1
+
+        guard let monthDay = monthDay(
+            ordinal: ordinal,
+            monthLengths: spec.ordinaryCalendar.monthLengths
+        ) else {
+            return AnnualCalendarState(
+                label: "COMMON CALENDAR",
+                detail: "INVALID COMMON DATE",
+                observance: "",
+                jubilee: ""
+            )
+        }
+
+        let gate = gateForOrdinal(
+            ordinal,
+            phaseLengths: spec.gates.phaseLengths,
+            gateSequence: spec.gates.gateSequence
+        )
+
+        let monthName = [
+            "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+            "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+        ][monthDay.month - 1]
+
+        let names = spec.observances.compactMap { observance -> String? in
+            guard let start = ordinalFor(
+                month: observance.month,
+                day: observance.day,
+                monthLengths: spec.ordinaryCalendar.monthLengths
+            ) else { return nil }
+
+            let end: Int
+            if let endMonth = observance.endMonth,
+               let endDay = observance.endDay,
+               let resolved = ordinalFor(
+                    month: endMonth,
+                    day: endDay,
+                    monthLengths: spec.ordinaryCalendar.monthLengths
+               ) {
+                end = resolved
+            } else {
+                end = start
+            }
+            return (start...end).contains(ordinal)
+                ? observance.name
+                : nil
+        }
+
+        let jubileeYear = yearOffset + 1
+        let isJubilee = jubileeYear == 50
+        let isSabbatical =
+            jubileeYear < 50 && jubileeYear % 7 == 0
+        let isReleaseDay =
+            isJubilee
+            && monthDay.month == 7
+            && monthDay.day == 10
+
+        var jubileeText = "JUBILEE Y\(jubileeYear)/50"
+        if isSabbatical {
+            jubileeText += " · SABBATICAL"
+        }
+        if isJubilee {
+            jubileeText = "JUBILEE YEAR 50"
+        }
+        if isReleaseDay {
+            jubileeText += " · RELEASE"
+        }
+
+        let gateText = gate.map { "G\($0)" } ?? "G—"
+        return AnnualCalendarState(
+            label:
+                "Y\(year) · \(monthName) \(String(format: "%02d", monthDay.day)) · DAY \(String(format: "%03d", ordinal))",
+            detail:
+                "W\(String(format: "%02d", week)) D\(dayInWeek) · S\(season).\(dayOfSeason) · \(gateText)",
+            observance: names.joined(separator: " · "),
+            jubilee: jubileeText
+        )
+    }
+
+    private static func monthDay(
+        ordinal: Int,
+        monthLengths: [Int]
+    ) -> (month: Int, day: Int)? {
+        var remaining = ordinal
+        for (index, length) in monthLengths.enumerated() {
+            if remaining <= length {
+                return (index + 1, remaining)
+            }
+            remaining -= length
+        }
+        return nil
+    }
+
+    private static func ordinalFor(
+        month: Int,
+        day: Int,
+        monthLengths: [Int]
+    ) -> Int? {
+        guard
+            (1...monthLengths.count).contains(month),
+            (1...monthLengths[month - 1]).contains(day)
+        else { return nil }
+        return monthLengths.prefix(month - 1).reduce(0, +) + day
+    }
+
+    private static func gateForOrdinal(
+        _ ordinal: Int,
+        phaseLengths: [Int],
+        gateSequence: [Int]
+    ) -> Int? {
+        var start = 1
+        for index in phaseLengths.indices {
+            let end = start + phaseLengths[index] - 1
+            if (start...end).contains(ordinal) {
+                return gateSequence[index]
+            }
+            start = end + 1
+        }
+        return nil
     }
 }

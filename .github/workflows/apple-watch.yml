@@ -7,6 +7,7 @@ on:
       - "stillpoint/calendar_core/**"
       - "stillpoint/contracts/calendar_core_*.json"
       - "stillpoint/contracts/calendar_population_v1.json"
+      - "stillpoint/contracts/calendar_external_witnesses_2026.json"
       - "stillpoint/contracts/calendar_publication_*.json"
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
@@ -22,6 +23,7 @@ on:
       - "stillpoint/calendar_core/**"
       - "stillpoint/contracts/calendar_core_*.json"
       - "stillpoint/contracts/calendar_population_v1.json"
+      - "stillpoint/contracts/calendar_external_witnesses_2026.json"
       - "stillpoint/contracts/calendar_publication_*.json"
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
@@ -53,14 +55,17 @@ jobs:
             --spec-output /tmp/calendar_core_spec.json \
             --vectors-output /tmp/calendar_projection_vectors.json \
             --population-output /tmp/calendar_population_v1.json \
+            --external-witness-output /tmp/calendar_external_witnesses_2026.json \
             --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
           diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_population_v1.json stillpoint/contracts/calendar_population_v1.json
+          diff -u /tmp/calendar_external_witnesses_2026.json stillpoint/contracts/calendar_external_witnesses_2026.json
           diff -u /tmp/calendar_core_spec.json clients/apple-watch/CivicClock/Resources/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json clients/apple-watch/CivicClock/Resources/calendar_projection_vectors.json
           diff -u /tmp/calendar_population_v1.json clients/apple-watch/CivicClock/Resources/calendar_population_v1.json
+          diff -u /tmp/calendar_external_witnesses_2026.json clients/apple-watch/CivicClock/Resources/calendar_external_witnesses_2026.json
 
       - name: Validate enacted 50-year publication and Watch handoff
         run: |

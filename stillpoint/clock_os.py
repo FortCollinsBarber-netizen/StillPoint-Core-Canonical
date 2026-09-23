@@ -97,6 +97,14 @@ def canonical_civil_window(
         "schema": CLOCK_SCHEMA,
         "authority": CLOCK_AUTHORITY,
         "calendar_address": day["calendar_address"],
+        "common_civil_coordinate": day["common_civil_coordinate"],
+        "interop": {
+            "frame": day["civil_window"]["frame"],
+            "role": day["civil_window"]["role"],
+            "grid_authority": day["civil_window"]["grid_authority"],
+            "opening_date": opens_on.isoformat(),
+            "closing_date": closes_on.isoformat(),
+        },
         "opening_civil_date": opens_on.isoformat(),
         "closing_civil_date": closes_on.isoformat(),
         "opens_at_utc": opens_at.isoformat(),
@@ -171,6 +179,25 @@ def clock_snapshot(
             publication_path=config.publication_path,
         )
 
+    common_calendar_coordinate: dict[str, Any] | None = None
+    if current is not None:
+        common_date_value = current["common_date"]
+        common_time = common_timestamp.strftime("%H:%M:%S")
+        common_calendar_coordinate = {
+            "year": int(common_date_value["year"]),
+            "month": int(common_date_value["month"]),
+            "day": int(common_date_value["day"]),
+            "weekday": str(common_date_value["weekday"]),
+            "time": common_time,
+            "display": (
+                f"{int(common_date_value['year']):04d}-"
+                f"{int(common_date_value['month']):02d}-"
+                f"{int(common_date_value['day']):02d} "
+                f"{common_time}"
+            ),
+            "calendar_address": current["calendar_address"],
+        }
+
     authority = document["authority"]
     rows = document["years"]
     next_common_midnight = datetime.combine(
@@ -200,6 +227,7 @@ def clock_snapshot(
                 config.common_standard_offset_seconds
             ),
             "common_clock": common_timestamp.strftime("%H:%M:%S"),
+            "common_calendar": common_calendar_coordinate,
         },
         "location": {
             "id": config.location.id,
@@ -257,6 +285,10 @@ def clock_snapshot(
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
+            "calendar_date_changes_at_common_standard_midnight": True,
+            "solar_boundary_mutates_calendar_date": False,
+            "daylight_saving_mutates_common_clock": False,
+            "interop_calendar_is_translation_only": True,
             "calendar_reads_governed": True,
             "ordinary_calendar_mutation_authority_exists": False,
         },

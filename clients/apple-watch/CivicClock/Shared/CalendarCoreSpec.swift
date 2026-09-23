@@ -5,12 +5,24 @@ struct CalendarCoreSpec: Codable, Equatable {
         let apparentHorizonZenithDegrees: Double
         let failurePolicy: String
         let protocolId: String
+        let role: String
     }
 
-    struct EnactmentBoundary: Codable, Equatable {
-        let lawDoesNotSupplyValues: Bool
-        let requiredForFinitePublication: [String]
+    struct DateAddress: Codable, Equatable {
+        let month: Int
+        let day: Int
+    }
+
+    struct Grid: Codable, Equatable {
         let status: String
+        let days: Int
+        let weeks: Int
+        let day001Weekday: String
+        let firstDate: DateAddress
+        let lastDate: DateAddress
+        let december31Exists: Bool
+        let nextAfterLastDate: DateAddress
+        let interannualDays: Int
     }
 
     struct OrdinaryCalendar: Codable, Equatable {
@@ -22,65 +34,32 @@ struct CalendarCoreSpec: Codable, Equatable {
     }
 
     struct Reconciliation: Codable, Equatable {
+        let enabled: Bool
         let addressPattern: String
         let allowedDays: [Int]
         let inheritsOrdinaryFields: Bool
         let namespace: String
     }
 
-    struct Gates: Codable, Equatable {
+    struct EnochicArchitecture: Codable, Equatable {
+        let phaseLengths: [Int]
         let gateSequence: [Int]
         let pairedGateCount: Int
-        let phaseLengths: [Int]
-    }
-
-    struct ReferenceRules: Codable, Equatable {
-        struct Rule: Codable, Equatable {
-            let operation: String
-            let status: String
-
-            enum CodingKeys: String, CodingKey {
-                case operation = "operator"
-                case status
-            }
-        }
-
-        struct V33Candidate: Codable, Equatable {
-            let operation: String
-            let springGateOrdinal: Int
-            let springGateMonth: Int
-            let springGateDay: Int
-            let status: String
-
-            enum CodingKeys: String, CodingKey {
-                case operation = "operator"
-                case springGateOrdinal
-                case springGateMonth
-                case springGateDay
-                case status
-            }
-        }
-
-        let v32: Rule
-        let v33Candidate: V33Candidate
-
-        enum CodingKeys: String, CodingKey {
-            case v32 = "v3.2"
-            case v33Candidate = "v3.3Candidate"
-        }
+        let quarterDays: Int
+        let quarters: Int
+        let role: String
     }
 
     let version: String
     let boundary: Boundary
-    let enactmentBoundary: EnactmentBoundary
+    let grid: Grid
     let ordinaryCalendar: OrdinaryCalendar
     let reconciliation: Reconciliation
-    let gates: Gates
-    let referenceRules: ReferenceRules
+    let enochicArchitecture: EnochicArchitecture
 }
 
 enum CalendarCoreSpecLoader {
-    static let supportedVersion = "stillpoint-calendar-core-spec-v1"
+    static let supportedVersion = "stillpoint-calendar-core-spec-v2-fixed-364"
 
     static func load(bundle: Bundle = .main) -> CalendarCoreSpec? {
         if let url = bundle.url(
@@ -118,44 +97,36 @@ enum CalendarCoreSpecLoader {
     private static func validate(_ spec: CalendarCoreSpec) -> Bool {
         let calendar = spec.ordinaryCalendar
         let reconciliation = spec.reconciliation
-        let gates = spec.gates
-        let enactment = spec.enactmentBoundary
-        let v33 = spec.referenceRules.v33Candidate
+        let grid = spec.grid
+        let enoch = spec.enochicArchitecture
 
         guard
             spec.version == supportedVersion,
             spec.boundary.apparentHorizonZenithDegrees.isFinite,
-            enactment.status == "external-unresolved",
-            enactment.lawDoesNotSupplyValues,
-            Set(enactment.requiredForFinitePublication) == Set([
-                "firstOpening",
-                "referencePoint",
-                "ephemerisEvidence",
-                "publicationAuthority"
-            ]),
-            calendar.baseYearDays > 0,
-            calendar.weekDays > 0,
-            calendar.quarterDays > 0,
-            calendar.quarters > 0,
-            calendar.monthLengths.reduce(0, +) == calendar.baseYearDays,
-            calendar.quarterDays * calendar.quarters == calendar.baseYearDays,
-            calendar.baseYearDays % calendar.weekDays == 0,
-            reconciliation.namespace == "interannual",
-            reconciliation.inheritsOrdinaryFields == false,
-            reconciliation.allowedDays.contains(0),
-            reconciliation.allowedDays.allSatisfy({
-                $0 >= 0 && $0 % calendar.weekDays == 0
-            }),
-            gates.phaseLengths.reduce(0, +) == calendar.baseYearDays,
-            gates.gateSequence.count == gates.phaseLengths.count,
-            gates.pairedGateCount > 0,
-            !spec.referenceRules.v32.operation.isEmpty,
-            !spec.referenceRules.v32.status.isEmpty,
-            !v33.operation.isEmpty,
-            !v33.status.isEmpty,
-            (1...calendar.baseYearDays).contains(v33.springGateOrdinal),
-            (1...12).contains(v33.springGateMonth),
-            v33.springGateDay > 0
+            grid.status == "ratified-fixed",
+            grid.days == 364,
+            grid.weeks == 52,
+            grid.day001Weekday == "Thursday",
+            grid.firstDate == DateAddress(month: 1, day: 1),
+            grid.lastDate == DateAddress(month: 12, day: 30),
+            grid.december31Exists == false,
+            grid.nextAfterLastDate == DateAddress(month: 1, day: 1),
+            grid.interannualDays == 0,
+            calendar.baseYearDays == grid.days,
+            calendar.weekDays == 7,
+            calendar.monthLengths.reduce(0, +) == grid.days,
+            calendar.monthLengths.count == 12,
+            calendar.monthLengths.last == 30,
+            calendar.quarterDays == 91,
+            calendar.quarters == 4,
+            reconciliation.enabled == false,
+            reconciliation.namespace == "abolished",
+            reconciliation.allowedDays == [0],
+            enoch.phaseLengths.reduce(0, +) == grid.days,
+            enoch.gateSequence.count == enoch.phaseLengths.count,
+            enoch.pairedGateCount == 6,
+            enoch.quarterDays == 91,
+            enoch.quarters == 4
         else { return false }
 
         return true

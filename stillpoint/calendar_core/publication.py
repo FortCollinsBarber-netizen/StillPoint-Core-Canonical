@@ -11,6 +11,18 @@ from .spec import SPEC_VERSION
 BASE_YEAR_DAYS = 364
 PUBLICATION_VERSION = "stillpoint-calendar-publication-v2"
 ALLOWED_AUTHORITY_STATUSES = ("pilot", "enacted")
+PROJECTION_SEMANTICS = {
+    "openingCivilDate": {
+        "frame": "proleptic-gregorian",
+        "role": "external-translation-only",
+        "gridAuthority": False,
+    },
+    "commonYear": {
+        "opening": {"month": 1, "day": 1},
+        "closing": {"month": 12, "day": 30},
+        "dateLabels": "canonical-common-calendar",
+    },
+}
 FORBIDDEN_SUPERSEDED_ROW_KEYS = frozenset({
     "reconciliationDaysAfterCompletion",
     "reconciliationReasonCode",
@@ -203,6 +215,7 @@ def validate_publication_document(
         "publicationVersion",
         "calendarCoreSpecVersion",
         "authority",
+        "projectionSemantics",
         "years",
         "publicationDigest",
     }
@@ -309,6 +322,13 @@ def validate_publication_document(
         raise PublicationValidationError(
             "PUBLICATION_AUTHORITY_STATUS_MISMATCH",
             f"publication authority is {authority_status}; required {require_authority_status}",
+        )
+
+    projection_semantics = document.get("projectionSemantics")
+    if projection_semantics != PROJECTION_SEMANTICS:
+        raise PublicationValidationError(
+            "INVALID_PROJECTION_SEMANTICS",
+            "openingCivilDate is external Gregorian translation only and may not carry Common Calendar grid authority",
         )
 
     rows = document.get("years")

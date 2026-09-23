@@ -58,10 +58,10 @@ class ClockOSTests(unittest.TestCase):
             "none",
         )
 
-    def test_clock_os_is_outside_range_before_first_enacted_sunset(self):
-        before = (
-            apparent_sunset_utc(date(2026, 1, 1), TEST_LOCATION)
-            - timedelta(minutes=30)
+    def test_clock_os_is_outside_range_before_first_enacted_midnight(self):
+        common_zone = timezone(timedelta(hours=-7))
+        before = datetime(
+            2025, 12, 31, 23, 59, 59, tzinfo=common_zone
         )
         snapshot = clock_snapshot(before, config=CONFIG)
 

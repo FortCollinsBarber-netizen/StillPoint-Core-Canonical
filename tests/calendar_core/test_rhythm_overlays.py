@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
 
 from stillpoint.calendar_core.calendar import ordinal_day
+from stillpoint.calendar_core.overlays import (
+    OverlayRecord,
+    grid_identity,
+    inhabit_surface,
+)
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
 from stillpoint.calendar_core.witness_overlays import (
+    ExternalCalendarWitness,
     witnesses_for_external_date,
 )
 
@@ -62,8 +69,6 @@ class RhythmOverlayTests(unittest.TestCase):
         )
 
     def test_external_witness_catalog_can_be_filtered_by_calendar(self):
-        from datetime import date
-
         jewish = witnesses_for_external_date(
             date(2026, 12, 4),
             calendars=["jewish"],
@@ -78,6 +83,86 @@ class RhythmOverlayTests(unittest.TestCase):
             ["jewish-hanukkah-2026"],
         )
         self.assertEqual(islamic, ())
+
+    def test_external_witness_payload_carries_governor_observe_receipt(self):
+        day = calendar_day_payload(2026, ordinal_day(4, 1))
+        witness = next(
+            item
+            for item in day["external_witness_overlays"]
+            if item["id"] == "jewish-passover-2026"
+        )
+
+        receipt = witness["rhythm_governor"]
+        self.assertEqual(receipt["authority"], "OBSERVE")
+        self.assertEqual(receipt["decision"], "AUTHORIZED")
+        self.assertFalse(receipt["surface_mutated"])
+
+    def test_generic_overlay_policy_routes_canonical_and_witness_authority(self):
+        base = calendar_day_payload(2026, ordinal_day(12, 10))
+        before = grid_identity(base)
+        decorated = inhabit_surface(
+            base,
+            [
+                OverlayRecord(
+                    kind="feast",
+                    id="test-feast",
+                    label="Test Feast",
+                    source="test",
+                    data={"note": "canonical overlay"},
+                ),
+                OverlayRecord(
+                    kind="lunar",
+                    id="test-lunar",
+                    label="Test Lunar Witness",
+                    source="test",
+                    data={"phase": "full"},
+                ),
+            ],
+        )
+
+        self.assertEqual(grid_identity(decorated), before)
+        by_id = {item["id"]: item for item in decorated["overlays"]}
+        self.assertEqual(
+            by_id["test-feast"]["rhythm_governor"]["authority"],
+            "OVERLAY",
+        )
+        self.assertEqual(
+            by_id["test-lunar"]["rhythm_governor"]["authority"],
+            "OBSERVE",
+        )
+        for item in by_id.values():
+            self.assertEqual(
+                item["rhythm_governor"]["decision"],
+                "AUTHORIZED",
+            )
+            self.assertFalse(
+                item["rhythm_governor"]["surface_mutated"]
+            )
+            self.assertFalse(item["jurisdiction"]["grid_authority"])
+
+    def test_external_witness_namespace_and_provenance_fail_closed(self):
+        with self.assertRaisesRegex(ValueError, "source_calendar"):
+            ExternalCalendarWitness(
+                id="bad-calendar",
+                name="Bad Calendar",
+                source_calendar="gregorian",
+                external_date=date(2026, 1, 1),
+                source_refs=("test",),
+            )
+
+        with self.assertRaisesRegex(ValueError, "source provenance"):
+            ExternalCalendarWitness(
+                id="missing-source",
+                name="Missing Source",
+                source_calendar="jewish",
+                external_date=date(2026, 1, 1),
+            )
+
+        with self.assertRaisesRegex(ValueError, "unsupported external witness"):
+            witnesses_for_external_date(
+                date(2026, 1, 1),
+                calendars=["gregorian"],
+            )
 
     def test_seven_year_49_and_jubilee_layers_do_not_move_the_date(self):
         year7 = calendar_day_payload(2032, ordinal_day(7, 10))

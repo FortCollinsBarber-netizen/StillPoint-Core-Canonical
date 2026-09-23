@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .models import DuskProtocol, GeoPoint, WeeklyProtectedState
 from .sunset import apparent_sunrise_utc, bracket_sunset
 
@@ -20,6 +25,17 @@ def protected_time_state(
     if instant.tzinfo is None:
         raise ValueError("instant must be timezone-aware")
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OVERLAY,
+            source="weekly-protected-time:sabbath-stillpoint",
+            annotation={
+                "sabbath": True,
+                "stillpoint": True,
+                "local_light": True,
+            },
+        )
+    )
     pair = bracket_sunset(instant, location, local_zone, protocol)
     named_day = named_day_for_boundary_civil_date(pair.previous_civil_date)
 

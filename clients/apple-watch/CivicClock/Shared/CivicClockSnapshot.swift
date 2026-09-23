@@ -14,6 +14,9 @@ struct CivicClockSnapshot: Codable, Equatable {
     let nextProtectedBoundaryLabel: String?
     let commonCalendarLabel: String
     let commonCalendarDetail: String
+    let commonClockLabel: String
+    let observanceLabel: String
+    let jubileeLabel: String
 
     static let unavailable = CivicClockSnapshot(
         generatedAt: .now,
@@ -28,7 +31,10 @@ struct CivicClockSnapshot: Codable, Equatable {
         nextProtectedBoundary: nil,
         nextProtectedBoundaryLabel: nil,
         commonCalendarLabel: "CALENDAR",
-        commonCalendarDetail: "PUBLISHED TABLE PENDING"
+        commonCalendarDetail: "OUTSIDE RATIFIED MAP",
+        commonClockLabel: "--:--",
+        observanceLabel: "",
+        jubileeLabel: ""
     )
 }
 

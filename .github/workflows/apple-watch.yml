@@ -24,11 +24,9 @@ on:
       - "stillpoint/contracts/calendar_external_witnesses_2026.json"
       - "stillpoint/contracts/calendar_publication_*.json"
       - "specs/temporal_calendar/**"
-      - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
       - "tools/export_calendar_core_artifacts.py"
       - "tools/export_calendar_population.py"
-      - "tools/generate_common_calendar_v33.py"
       - ".github/workflows/apple-watch.yml"
 
 permissions:

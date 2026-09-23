@@ -7,7 +7,6 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv)>1 else Path.cwd()
 EXPECTED_VERSION = "0.4.0a4"
 EXPECTED_REPOSITORY = "FortCollinsBarber-netizen/StillPoint-Core-Canonical"
-EXPECTED_SCHEMA = 23
 EXPECTED_PATCH = "041-icloud-auth-boundary-correction"
 EXPECTED_MILESTONE = "v0.4-stage3-audit-closure"
 EXPECTED_GOVERNANCE = "abbada7549a95510d9552441a4f7bb1c92977f899cdfa953e8e394b058d00cc9"
@@ -25,6 +24,12 @@ EXPECTED_TAGS = {
     "patch005-canonical": "4a077f216902f4bad725b6b2e61a176a54f81404",
     "v0.2.0rc1": "772ed8cb6890b5897174165e80635257e34050c7",
 }
+migration_files=sorted(ROOT.glob("migrations/[0-9][0-9][0-9]_*.sql"))
+if not migration_files:
+    raise SystemExit("FAIL no canonical migrations found")
+EXPECTED_MIGRATIONS=[path.name for path in migration_files]
+EXPECTED_SCHEMA=int(EXPECTED_MIGRATIONS[-1].split("_",1)[0])
+
 errors=[]
 def require(condition,message):
     if not condition: errors.append(message)
@@ -63,8 +68,7 @@ require(checkpoint.get("version")==EXPECTED_VERSION,f"checkpoint version mismatc
 require(manifest.get("version")==EXPECTED_VERSION,f"manifest version mismatch: {manifest.get('version')!r}")
 require(checkpoint.get("schema_version")==EXPECTED_SCHEMA,f"checkpoint schema mismatch: {checkpoint.get('schema_version')!r}")
 require(manifest.get("schema_version")==EXPECTED_SCHEMA,f"manifest schema mismatch: {manifest.get('schema_version')!r}")
-require(checkpoint.get("migrations",[])[-1:] == ["023_signal_operational_custody.sql"], "checkpoint migration tail mismatch")
-require(len(checkpoint.get("migrations",[]))==EXPECTED_SCHEMA,"checkpoint migration count mismatch")
+require(checkpoint.get("migrations",[])==EXPECTED_MIGRATIONS,"checkpoint migration set mismatch")
 require(checkpoint.get("last_completed_milestone")==EXPECTED_MILESTONE,"checkpoint milestone mismatch")
 require(manifest.get("baseline_patch")==EXPECTED_PATCH,"0.4 baseline patch mismatch")
 require(manifest.get("program")==EXPECTED_PROGRAM,"0.4 manifest program mismatch")
@@ -89,6 +93,9 @@ require(manifest.get("release_invariants",{}).get("signal_facts_require_material
 require(manifest.get("release_invariants",{}).get("signal_daemon_degradation_is_durable") is True,"Signal durable degradation invariant missing")
 require(manifest.get("release_invariants",{}).get("secret_values_exported_to_environment") is False,"secret values must not be exported to environment")
 require(manifest.get("release_invariants",{}).get("deployment_releases_immutable") is True,"immutable deployment invariant missing")
+require(manifest.get("release_invariants",{}).get("acquired_resource_possession_is_not_authorization") is True,"acquired-resource possession/authority separation invariant missing")
+require(manifest.get("release_invariants",{}).get("acquired_resource_activation_requires_current_warrant") is True,"acquired-resource warrant activation invariant missing")
+require(manifest.get("release_invariants",{}).get("acquired_resource_terminal_states_do_not_revive") is True,"acquired-resource terminal non-revival invariant missing")
 require(latest_documented_patch is not None,"no numbered patch documentation found")
 require(EXPECTED_PATCH.startswith(f"{latest_documented_patch:03d}-"),f"0.4 baseline trails latest earned numbered patch: {latest_documented_patch:03d}")
 require(checkpoint.get("known_runtime_defects")==[],"known runtime defects are not empty")

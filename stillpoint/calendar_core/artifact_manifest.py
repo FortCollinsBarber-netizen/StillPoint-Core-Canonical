@@ -14,7 +14,7 @@ from .spec import (
     build_calendar_core_spec,
 )
 
-ARTIFACT_MANIFEST_VERSION = "stillpoint-calendar-artifact-manifest-v1"
+ARTIFACT_MANIFEST_VERSION = "stillpoint-calendar-artifact-manifest-v2"
 
 
 def canonical_export_bytes(document: dict[str, Any]) -> bytes:
@@ -61,17 +61,12 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
                 "bytes": len(vector_bytes),
             },
         ],
-        "compatibilityBridge": {
-            "path":
-                "stillpoint/contracts/calendar_core_contract.json",
-            "authorityStatus": "non-authoritative-compatibility-only",
-            "includedInManifestDigest": False,
-        },
         "invariants": [
             "law-and-proof-have-distinct-roles",
             "proof-vectors-have-no-civic-authority",
             "manifest-does-not-ratify-publication",
-            "compatibility-bridge-is-not-constitutional-law",
+            "fixed-grid-has-no-reconciliation-namespace",
+            "astronomy-and-lunar-data-are-witness-only",
         ],
     }
 

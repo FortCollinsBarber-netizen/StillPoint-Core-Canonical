@@ -93,7 +93,12 @@ def calendar_day_payload(
             "enoch_motion": day.enoch_motion,
         },
         "protected_time": {
-            "is_sabbath": day.is_sabbath_date,
+            "is_sabbath_date": day.is_sabbath_date,
+            "sabbath_opens": "Friday local sunset",
+            "sabbath_closes": "Saturday local sunset",
+            "stillpoint_opens": "Friday local sunset",
+            "stillpoint_releases": "Sunday local sunrise",
+            "boundary_authority": "local-light-overlay-no-grid-mutation",
         },
         "observances": [
             {"id": oid, "name": name}
@@ -102,6 +107,28 @@ def calendar_day_payload(
         "jubilee": {
             "cycle": day.jubilee_cycle,
             "year": day.jubilee_year,
+            "seven_year": {
+                "block": (
+                    ((day.jubilee_year - 1) // 7) + 1
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "year_in_block": (
+                    ((day.jubilee_year - 1) % 7) + 1
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "is_seventh_year": day.is_sabbatical_threshold,
+            },
+            "forty_nine": {
+                "year": (
+                    day.jubilee_year
+                    if day.jubilee_year is not None and day.jubilee_year <= 49
+                    else None
+                ),
+                "is_year_49": day.jubilee_year == 49,
+                "completed": day.jubilee_year == 50,
+            },
             "is_sabbatical_threshold": day.is_sabbatical_threshold,
             "is_jubilee_year": day.is_jubilee_year,
             "is_jubilee_release_day": day.is_jubilee_release_day,

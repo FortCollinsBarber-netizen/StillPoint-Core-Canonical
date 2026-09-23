@@ -131,11 +131,12 @@ class ClockOSTests(unittest.TestCase):
             "2026-07-15",
         )
 
-    def test_clock_os_is_outside_range_before_first_enacted_sunset(self):
-        before = (
-            apparent_sunset_utc(date(2026, 1, 1), TEST_LOCATION)
-            - timedelta(minutes=30)
-        )
+    def test_clock_os_is_outside_range_before_first_enacted_fixed_midnight(self):
+        # 2026-01-01 00:00 at the fixed -07:00 coordination offset
+        # is 2026-01-01 07:00 UTC. One second earlier is still outside
+        # the enacted Common Calendar publication even if local solar events
+        # have already occurred.
+        before = datetime(2026, 1, 1, 6, 59, 59, tzinfo=timezone.utc)
         snapshot = clock_snapshot(before, config=CONFIG)
 
         self.assertEqual(snapshot["calendar_state"], "OUTSIDE_RANGE")

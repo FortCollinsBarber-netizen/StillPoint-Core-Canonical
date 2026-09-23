@@ -1,8 +1,12 @@
 """Clock OS: read-only temporal runtime over the enacted Common Calendar.
 
 Clock OS translates between civil instants and the immutable Calendar Core
-surface. Solar boundaries determine when a named day opens at a supplied
-location; they never alter the 364-day grid, weekday pattern, or publication.
+surface. The familiar 24-hour coordination clock remains intact. The Common
+Calendar date changes at midnight in the enacted fixed standard offset, so DST
+cannot move the date boundary. Local solar boundaries independently govern
+creation-facing Sabbath / StillPoint state. Neither astronomy nor clock policy
+may alter the 364-day grid, weekday pattern, or publication.
+
 No location is embedded in this module. Enactment-specific location and
 standard-time settings are supplied by the caller.
 """
@@ -16,6 +20,11 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from .calendar_core.models import GeoPoint
+from .calendar_core.governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .calendar_core.runtime_surface import (
     calendar_day_payload,
     load_enacted_publication,
@@ -83,6 +92,12 @@ def canonical_civil_window(
 ) -> dict[str, Any]:
     """Return the location-specific sunset window for one canonical address."""
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
+    )
     day = calendar_day_payload(
         int(year),
         int(ordinal),
@@ -96,6 +111,14 @@ def canonical_civil_window(
         "schema": CLOCK_SCHEMA,
         "authority": CLOCK_AUTHORITY,
         "calendar_address": day["calendar_address"],
+        "common_civil_coordinate": day["common_civil_coordinate"],
+        "interop": {
+            "frame": day["civil_window"]["frame"],
+            "role": day["civil_window"]["role"],
+            "grid_authority": day["civil_window"]["grid_authority"],
+            "opening_date": opens_on.isoformat(),
+            "closing_date": closes_on.isoformat(),
+        },
         "opening_civil_date": opens_on.isoformat(),
         "closing_civil_date": closes_on.isoformat(),
         "opens_at_utc": opens_at.isoformat(),
@@ -128,6 +151,23 @@ def clock_snapshot(
     if instant.tzinfo is None:
         raise ValueError("instant must be timezone-aware")
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
+    )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OBSERVE,
+            source="clock-os-solar-lunar-observation",
+            annotation={
+                "solar_boundaries": True,
+                "lunar_witness": True,
+            },
+        )
+    )
+
     document = load_enacted_publication(config.publication_path)
     instant_utc = instant.astimezone(timezone.utc)
     civil_timestamp = instant_utc.astimezone(ZoneInfo(config.local_zone))
@@ -146,7 +186,10 @@ def clock_snapshot(
         location=config.location,
         local_zone=config.local_zone,
     )
-    position = _publication_position(pair.previous_civil_date, document)
+    # Calendar labels belong to the fixed 24-hour coordination layer.
+    # Sunset has jurisdiction over protected/creation-facing time, not over
+    # the named Common Calendar date itself.
+    position = _publication_position(common_timestamp.date(), document)
 
     current: dict[str, Any] | None = None
     following: dict[str, Any] | None = None
@@ -163,8 +206,32 @@ def clock_snapshot(
             publication_path=config.publication_path,
         )
 
+    common_calendar_coordinate: dict[str, Any] | None = None
+    if current is not None:
+        common_date_value = current["common_date"]
+        common_time = common_timestamp.strftime("%H:%M:%S")
+        common_calendar_coordinate = {
+            "year": int(common_date_value["year"]),
+            "month": int(common_date_value["month"]),
+            "day": int(common_date_value["day"]),
+            "weekday": str(common_date_value["weekday"]),
+            "time": common_time,
+            "display": (
+                f"{int(common_date_value['year']):04d}-"
+                f"{int(common_date_value['month']):02d}-"
+                f"{int(common_date_value['day']):02d} "
+                f"{common_time}"
+            ),
+            "calendar_address": current["calendar_address"],
+        }
+
     authority = document["authority"]
     rows = document["years"]
+    next_common_midnight = datetime.combine(
+        common_timestamp.date() + timedelta(days=1),
+        datetime.min.time(),
+        tzinfo=common_zone,
+    )
     next_begins: dict[str, Any] | None = None
     if following is not None:
         next_begins = {
@@ -187,6 +254,7 @@ def clock_snapshot(
                 config.common_standard_offset_seconds
             ),
             "common_clock": common_timestamp.strftime("%H:%M:%S"),
+            "common_calendar": common_calendar_coordinate,
         },
         "location": {
             "id": config.location.id,
@@ -204,6 +272,12 @@ def clock_snapshot(
             "is_stillpoint": weekly.is_stillpoint,
         },
         "boundaries": {
+            "coordination_date_source": "fixed-standard-midnight",
+            "coordination_date": common_timestamp.date().isoformat(),
+            "next_coordination_midnight": next_common_midnight.isoformat(),
+            "creation_day_opened_at": pair.previous.isoformat(),
+            "creation_day_closes_at": pair.next.isoformat(),
+            # Compatibility aliases retained for existing clients.
             "current_day_opened_at": pair.previous.isoformat(),
             "current_day_closes_at": pair.next.isoformat(),
             "opening_civil_date": pair.previous_civil_date.isoformat(),
@@ -230,8 +304,17 @@ def clock_snapshot(
             "year_days": 364,
             "weeks_per_year": 52,
             "december_31_exists": False,
+            "february_29_exists": False,
+            "coordination_clock": "24-hour",
+            "coordination_date_boundary": "fixed-standard-midnight",
+            "common_standard_uses_dst": False,
+            "protected_time_boundary": "local-apparent-sunset",
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
+            "calendar_date_changes_at_common_standard_midnight": True,
+            "solar_boundary_mutates_calendar_date": False,
+            "daylight_saving_mutates_common_clock": False,
+            "interop_calendar_is_translation_only": True,
         },
     }

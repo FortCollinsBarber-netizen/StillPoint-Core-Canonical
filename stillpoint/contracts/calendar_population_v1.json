@@ -366,6 +366,19 @@
     },
     {
       "assembly": false,
+      "day": 14,
+      "endDay": null,
+      "endMonth": null,
+      "id": "valentines-day",
+      "jurisdiction": "civic-family",
+      "month": 2,
+      "name": "Valentine's Day",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 19,
       "endDay": null,
       "endMonth": null,
@@ -388,6 +401,32 @@
       "name": "Washington's Birthday",
       "note": null,
       "rule": "third-monday-february-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 3,
+      "endDay": null,
+      "endMonth": null,
+      "id": "good-friday",
+      "jurisdiction": "christian-civic",
+      "month": 4,
+      "name": "Good Friday",
+      "note": null,
+      "rule": "2026-seed-position-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 5,
+      "endDay": null,
+      "endMonth": null,
+      "id": "easter-sunday",
+      "jurisdiction": "christian-civic",
+      "month": 4,
+      "name": "Easter Sunday",
+      "note": null,
+      "rule": "2026-seed-position-on-fixed-common-grid",
       "sourceRefs": []
     },
     {
@@ -483,6 +522,19 @@
     },
     {
       "assembly": false,
+      "day": 31,
+      "endDay": null,
+      "endMonth": null,
+      "id": "halloween",
+      "jurisdiction": "civic-family",
+      "month": 10,
+      "name": "Halloween",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 11,
       "endDay": null,
       "endMonth": null,
@@ -509,6 +561,19 @@
     },
     {
       "assembly": false,
+      "day": 24,
+      "endDay": null,
+      "endMonth": null,
+      "id": "christmas-eve",
+      "jurisdiction": "christian-civic",
+      "month": 12,
+      "name": "Christmas Eve",
+      "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 25,
       "endDay": null,
       "endMonth": null,
@@ -518,6 +583,19 @@
       "name": "Christmas Day",
       "note": null,
       "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 30,
+      "endDay": null,
+      "endMonth": null,
+      "id": "new-years-eve",
+      "jurisdiction": "civic",
+      "month": 12,
+      "name": "New Year's Eve",
+      "note": "December 31 does not exist in the Common Calendar.",
+      "rule": "final-day-of-common-year",
       "sourceRefs": []
     }
   ],

@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from .calendar import CANONICAL_DAY001_WEEKDAY
+from .governor import (
+    CanonicalDate,
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .population import address_from_ordinal
 from .publication import validate_publication_document
 
@@ -51,6 +57,13 @@ def calendar_day_payload(
         jubilee_epoch_common_year=first_year,
         jubilee_epoch_cycle=1,
     )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="calendar-runtime-surface",
+            canonical_date=CanonicalDate(day.year, day.month, day.day),
+        )
+    )
 
     authority = document.get("authority") or {}
     return {
@@ -66,9 +79,19 @@ def calendar_day_payload(
             "day_in_week": day.day_in_week,
             "weekday": day.weekday,
         },
+        "common_civil_coordinate": {
+            "date": f"{day.year:04d}-{day.month:02d}-{day.day:02d}",
+            "clock": "24-hour",
+            "date_boundary": "00:00",
+            "daylight_saving_time": False,
+            "role": "coordination-coordinate",
+        },
         "civil_window": {
             "opens": day.opening_civil_date.isoformat(),
             "closes": day.closes_on_civil_date.isoformat(),
+            "frame": "proleptic-gregorian",
+            "role": "external-translation-only",
+            "grid_authority": False,
         },
         "season": {
             "number": day.quarter,

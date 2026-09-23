@@ -8,6 +8,12 @@ from .calendar import (
     ordinal_day,
     weekday_for_ordinal,
 )
+from .governor import (
+    CanonicalDate,
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 
 
 @dataclass(frozen=True)
@@ -55,6 +61,21 @@ def project_appointed_time(
     if calendar_state != "ORDINARY":
         return None
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OVERLAY,
+            source=f"appointed-time:{appointed_time.id}",
+            canonical_date=CanonicalDate(
+                common_year,
+                appointed_time.month,
+                appointed_time.day,
+            ),
+            annotation={
+                "name": appointed_time.name,
+                "authority_status": appointed_time.authority_status,
+            },
+        )
+    )
     ordinal = ordinal_day(
         appointed_time.month,
         appointed_time.day,

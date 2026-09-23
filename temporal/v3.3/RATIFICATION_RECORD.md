@@ -1,3 +1,6 @@
+> **HISTORICAL / SUPERSEDED / NON-OPERATIVE — 2026-09-23**  
+> This v3.3 decision surface is preserved as development history only. It has no current Calendar authority. The enacted successor is `docs/CALENDAR_RATIFICATION_364.md` plus `stillpoint/contracts/calendar_ratification_v1.json`. The operative calendar has exactly 364 days / 52 weeks, January 1 through December 30, no December 31, no February 29, no leap years, and no interannual reconciliation. Astronomy, lunar data, seasons, and external civil projections are witness/translation layers only and cannot move the grid.
+
 # StillPoint Temporal v3.3 — Ratification Record
 
 **Status:** UNRATIFIED  

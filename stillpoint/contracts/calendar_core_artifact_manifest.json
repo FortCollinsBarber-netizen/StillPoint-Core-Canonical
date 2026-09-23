@@ -8,17 +8,17 @@
       "version": "stillpoint-calendar-core-spec-v2"
     },
     {
-      "bytes": 7512,
+      "bytes": 7490,
       "path": "stillpoint/contracts/calendar_projection_vectors.json",
       "role": "conformance-proof-only",
-      "sha256": "26952361015ff01352cd12b51c687152e75b31006e41bbe8747f9f2bdc22db8f",
+      "sha256": "3b4ae7ea5e45b1ea88e09a81c4ce3fead10f580dccdf66af50a1d99d3f4493f1",
       "version": "stillpoint-calendar-projection-vectors-v2"
     },
     {
-      "bytes": 12707,
+      "bytes": 14550,
       "path": "stillpoint/contracts/calendar_population_v1.json",
       "role": "calendar-population-no-grid-authority",
-      "sha256": "228c63dbe8f5732bcae2254a15d77284f6bf80122984944e0ac1a82392a5f54c",
+      "sha256": "f6185da3318c65202967cca5daa87485f955188b75e98ee7402bd0645ba8ef67",
       "version": "stillpoint-calendar-population-v1"
     }
   ],

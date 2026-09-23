@@ -1,9 +1,8 @@
-"""StillPoint platform-neutral calendar and clock domain.
+"""StillPoint platform-neutral fixed calendar and clock domain.
 
-Calendar Core owns temporal geometry and calendar-domain mathematics. It is
-separate from stillpoint.temporal, which owns continuing-evidence and action
-authority. A finite calendar publication is an evidence object; importing this
-package does not ratify one.
+Calendar Core owns the ratified 364-day / 52-week sacred-civic address grid.
+Astronomy, civil translation, witness layers, Jubilee, and historical reference
+rules may describe the grid but cannot move it or add an interannual day.
 """
 
 from .address import (
@@ -11,6 +10,11 @@ from .address import (
     format_ordinary_address,
     format_reconciliation_address,
     parse_calendar_address,
+)
+from .appointments import (
+    AppointedTime,
+    AppointedTimeOccurrence,
+    project_appointed_time,
 )
 from .artifact_manifest import (
     ARTIFACT_MANIFEST_VERSION,
@@ -25,6 +29,7 @@ from .astronomy import (
     MappingAstronomyProvider,
 )
 from .calendar import (
+    DAY001_WEEKDAY,
     MONTH_LENGTHS,
     boundary_dates_for_common_date,
     common_date,
@@ -32,11 +37,6 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
-from .appointments import (
-    AppointedTime,
-    AppointedTimeOccurrence,
-    project_appointed_time,
-)
 from .gates import GATE_SEQUENCE, PHASE_LENGTHS, phase_for_base_day
 from .jubilee import (
     JubileeReleaseGate,
@@ -111,25 +111,23 @@ from .witness import (
 )
 
 __all__ = [
-    "DAY001_WEEKDAY",\n    "MONTH_LENGTHS",\n    "MAP_VERSION",\n    "DEFAULT_CYCLE_YEARS",
+    "DAY001_WEEKDAY",
+    "MONTH_LENGTHS",
     "GATE_SEQUENCE",
     "PHASE_LENGTHS",
     "SPRING_GATE_ORDINAL",
     "SPEC_VERSION",
+    "MAP_VERSION",
+    "DEFAULT_CYCLE_YEARS",
     "PROJECTION_VECTOR_VERSION",
     "PUBLICATION_VERSION",
     "ALLOWED_AUTHORITY_STATUSES",
     "ALLOWED_RECONCILIATION_DAYS",
     "CalendarAddress",
     "AppointedTime",
-    "AppointedTimeOccurrence",\n    "Observance",
-    "format_ordinary_address",
-    "format_reconciliation_address",
-    "parse_calendar_address",
+    "AppointedTimeOccurrence",
+    "Observance",
     "ARTIFACT_MANIFEST_VERSION",
-    "build_calendar_core_artifact_manifest",
-    "canonical_export_bytes",
-    "export_calendar_core_artifact_manifest",
     "AstronomyEvidence",
     "AstronomyEvidenceError",
     "AstronomyProvider",
@@ -152,31 +150,41 @@ __all__ = [
     "PublicationValidationError",
     "ReconciliationDecision",
     "WeeklyProtectedState",
+    "address_for",
     "apparent_sunrise_utc",
     "apparent_sunset_utc",
-    "address_for",\n    "audit_reconciliation_schedule",\n    "build_sacred_civic_map",
+    "audit_reconciliation_schedule",
     "boundary_dates_for_common_date",
     "bracket_sunset",
+    "build_calendar_core_artifact_manifest",
     "build_calendar_core_spec",
     "build_calendar_projection_vectors",
+    "build_sacred_civic_map",
+    "canonical_export_bytes",
     "canonical_publication_bytes",
     "common_date",
-    "export_sacred_civic_map",\n    "forecast_reconciliation_weeks",
+    "export_calendar_core_artifact_manifest",
+    "export_sacred_civic_map",
+    "forecast_reconciliation_weeks",
+    "format_ordinary_address",
+    "format_reconciliation_address",
     "get_calendar_snapshot",
+    "jubilee_release_gate",
     "jubilee_state",
     "month_day_from_ordinal",
     "ordinal_day",
+    "parse_calendar_address",
     "phase_for_base_day",
     "project_dual_stamp",
     "project_appointed_time",
-    "jubilee_release_gate",
-    "as_march_equinox_evidence",
     "protected_time_state",
     "publication_digest",
-    "resolved_observances",\n    "select_v32_nearest_legal",
+    "resolved_observances",
+    "select_v32_nearest_legal",
     "select_v33_nearest_spring_gate",
     "select_v33_nearest_spring_gate_from_evidence",
     "select_v33_nearest_spring_gate_from_provider",
+    "as_march_equinox_evidence",
     "validate_calendar_core_spec",
     "validate_publication_document",
     "validate_publication_rows",

@@ -242,7 +242,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testCalendarDoesNotInventAnnualDateWithoutPublishedTable() {
         let snapshot = CivicClockSnapshot.unavailable
-        XCTAssertEqual(snapshot.commonCalendarDetail, "PUBLISHED TABLE PENDING")
+        XCTAssertEqual(snapshot.commonCalendarDetail, "PUBLICATION UNAVAILABLE")
     }
 
     func testAnnualDayChangesAtSunsetNotMidnight() throws {
@@ -280,17 +280,10 @@ final class CivicCalendarTests: XCTestCase {
 
     func testPublishedYearExpiresInsteadOfClaimingAuthorityForever() {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20"
-                )
-            ]
-        )
+        let published = fiftyYearFixture()
 
         let farOutside = calendar.date(from: DateComponents(
-            year: 2027, month: 4, day: 1, hour: 12
+            year: 2080, month: 4, day: 1, hour: 12
         ))!
 
         let snapshot = CivicCalendarEngine.snapshot(
@@ -327,20 +320,13 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertEqual(
             snapshot.commonCalendarDetail,
-            "OUTSIDE PUBLISHED TABLE"
+            "OUTSIDE PUBLISHED 50-YEAR MAP"
         )
     }
 
     func testExampleAnnualDayMathIsBoundedTo364() {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20"
-                )
-            ]
-        )
+        let published = fiftyYearFixture()
 
         let now = calendar.date(from: DateComponents(
             year: 2026, month: 4, day: 1, hour: 12
@@ -381,24 +367,6 @@ final class CivicCalendarTests: XCTestCase {
         calendar.timeZone = try XCTUnwrap(TimeZone(
             identifier: document.fixture.legalCivilZone
         ))
-
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.isLenient = false
-
-        let firstOpening = try XCTUnwrap(
-            formatter.date(from: document.fixture.openingCivilDate)
-        )
-        let secondOpening = try XCTUnwrap(
-            calendar.date(
-                byAdding: .day,
-                value: spec.ordinaryCalendar.baseYearDays,
-                to: firstOpening
-            )
-        )
 
         let published = fiftyYearFixture(
             startYear: document.fixture.commonYear,

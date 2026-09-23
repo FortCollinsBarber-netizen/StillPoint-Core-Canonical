@@ -1,4 +1,5 @@
 import CoreLocation
+import Foundation
 import SwiftUI
 
 struct CivicClockView: View {
@@ -8,6 +9,7 @@ struct CivicClockView: View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             let now = timeline.date
             let snapshot = makeSnapshot(now: now)
+            let lunar = LunarPhaseCalculator.state(at: now)
 
             ScrollView {
                 VStack(spacing: 7) {
@@ -74,6 +76,22 @@ struct CivicClockView: View {
                         }
                     }
 
+                    Divider()
+
+                    VStack(spacing: 2) {
+                        Text("\(lunar.phaseName) · \(lunar.illuminationPercent)%")
+                            .font(.caption.weight(.semibold))
+                        Text(lunar.isWaxing ? "WAXING" : "WANING")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.0)
+                        Text(String(format: "LUNAR AGE %.2f DAYS", lunar.ageDays))
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary)
+                        Text(lunar.evidenceLabel)
+                            .font(.system(size: 7))
+                            .foregroundStyle(.tertiary)
+                    }
+
                     if let protectedBoundary = snapshot.nextProtectedBoundary {
                         Divider()
 
@@ -103,8 +121,32 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    if locationService.coordinate == nil {
+                    Divider()
+
+                    if let groundZero = locationService.groundZero {
+                        Text("GROUND ZERO LOCKED")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1.0)
+                        Text(
+                            String(
+                                format: "%.6f, %.6f · ±%.0f m",
+                                groundZero.latitude,
+                                groundZero.longitude,
+                                groundZero.horizontalAccuracyMeters
+                            )
+                        )
+                        .font(.system(size: 8, design: .monospaced))
+                        .multilineTextAlignment(.center)
+                        Text(groundZero.capturedAt, style: .date)
+                            .font(.system(size: 8))
+                            .foregroundStyle(.secondary)
+                    } else if locationService.coordinate == nil {
                         Text("LOCATION NEEDED FOR LOCAL HORIZON BOUNDARIES")
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("MEASURING GROUND ZERO · NEED ≤25 m FIX")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)

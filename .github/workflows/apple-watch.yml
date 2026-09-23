@@ -10,6 +10,7 @@ on:
       - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
       - "tools/export_calendar_core_artifacts.py"
+      - "tools/generate_common_calendar_v2.py"
       - "tools/generate_common_calendar_v33.py"
       - ".github/workflows/apple-watch.yml"
   pull_request:

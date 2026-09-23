@@ -17,34 +17,16 @@ class AppointedTimeTests(unittest.TestCase):
         )
         occurrence = project_appointed_time(
             atonement,
-            common_year=2026,
+            common_year=1,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Friday",
+            day001_weekday="Thursday",
         )
         self.assertIsNotNone(occurrence)
         self.assertEqual(occurrence.calendar_state, "ORDINARY")
-        self.assertEqual(occurrence.common_year, 2026)
-        self.assertEqual(occurrence.opens_at if hasattr(occurrence, "opens_at") else atonement.opens_at, "local-apparent-sunset")
+        self.assertEqual(occurrence.common_year, 1)
         self.assertEqual(
             (occurrence.closes_on_civil_date - occurrence.opens_on_civil_date).days,
             1,
-        )
-
-    def test_reconciliation_inherits_no_appointment(self):
-        feast = AppointedTime(
-            id="fixed",
-            name="Fixed",
-            month=1,
-            day=1,
-        )
-        self.assertIsNone(
-            project_appointed_time(
-                feast,
-                common_year=2026,
-                opening_civil_date=date(2026, 1, 1),
-                day001_weekday="Friday",
-                calendar_state="RECONCILIATION",
-            )
         )
 
     def test_outside_range_inherits_no_appointment(self):
@@ -57,9 +39,9 @@ class AppointedTimeTests(unittest.TestCase):
         self.assertIsNone(
             project_appointed_time(
                 feast,
-                common_year=2026,
+                common_year=1,
                 opening_civil_date=date(2026, 1, 1),
-                day001_weekday="Friday",
+                day001_weekday="Thursday",
                 calendar_state="OUTSIDE_RANGE",
             )
         )
@@ -69,7 +51,7 @@ class AppointedTimeTests(unittest.TestCase):
             AppointedTime(
                 id="bad",
                 name="Bad",
-                month=2,
+                month=12,
                 day=31,
             )
 
@@ -84,16 +66,17 @@ class AppointedTimeTests(unittest.TestCase):
             feast,
             common_year=1,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Friday",
+            day001_weekday="Thursday",
         )
         later = project_appointed_time(
             feast,
-            common_year=9000,
+            common_year=50,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Friday",
+            day001_weekday="Thursday",
         )
         self.assertEqual(one.ordinal, later.ordinal)
         self.assertEqual(one.weekday, later.weekday)
+        self.assertEqual(one.weekday, "Friday")
 
 
 if __name__ == "__main__":

@@ -4,8 +4,8 @@ from datetime import date, timedelta
 
 from .models import CommonDate
 
-# Ratified immutable Common Calendar surface:
-# familiar non-leap civil month lengths, except December ends on Day 30.
+# Ratified immutable civil-name surface:
+# familiar non-leap month lengths, except December ends at Day 30.
 # 365 - December 31 = 364 = 52 * 7.
 MONTH_LENGTHS = (
     31, 28, 31,
@@ -13,10 +13,12 @@ MONTH_LENGTHS = (
     31, 31, 30,
     31, 30, 30,
 )
-QUARTER_LENGTHS = tuple(
-    sum(MONTH_LENGTHS[index:index + 3])
-    for index in range(0, 12, 3)
-)
+
+# Seasonal/quarter geometry remains its own jurisdiction: four exact
+# 91-day / 13-week quarters independent of civil month triples.
+QUARTER_DAYS = 91
+QUARTERS = 4
+
 WEEKDAYS = (
     "Sunday",
     "Monday",
@@ -27,6 +29,8 @@ WEEKDAYS = (
     "Saturday",
 )
 
+CANONICAL_DAY001_WEEKDAY = "Thursday"
+
 
 def validate_grid() -> None:
     if sum(MONTH_LENGTHS) != 364:
@@ -36,6 +40,10 @@ def validate_grid() -> None:
     if 364 % 7 != 0:
         raise RuntimeError(
             "Common year must contain complete seven-day weeks"
+        )
+    if QUARTER_DAYS * QUARTERS != 364:
+        raise RuntimeError(
+            "seasonal quarters must total exactly 364 days"
         )
     if MONTH_LENGTHS[1] != 28:
         raise RuntimeError(
@@ -80,7 +88,7 @@ def month_day_from_ordinal(
 
 def weekday_for_ordinal(
     ordinal: int,
-    day001_weekday: str,
+    day001_weekday: str = CANONICAL_DAY001_WEEKDAY,
 ) -> str:
     if day001_weekday not in WEEKDAYS:
         raise ValueError(
@@ -96,31 +104,18 @@ def common_date(
     *,
     year: int,
     ordinal: int,
-    day001_weekday: str,
+    day001_weekday: str = CANONICAL_DAY001_WEEKDAY,
 ) -> CommonDate:
     month, day = month_day_from_ordinal(
         ordinal
-    )
-    quarter = ((month - 1) // 3) + 1
-    quarter_start_ordinal = (
-        sum(
-            QUARTER_LENGTHS[
-                :quarter - 1
-            ]
-        )
-        + 1
     )
     return CommonDate(
         year=year,
         ordinal=ordinal,
         month=month,
         day=day,
-        quarter=quarter,
-        day_of_quarter=(
-            ordinal
-            - quarter_start_ordinal
-            + 1
-        ),
+        quarter=((ordinal - 1) // QUARTER_DAYS) + 1,
+        day_of_quarter=((ordinal - 1) % QUARTER_DAYS) + 1,
         week=((ordinal - 1) // 7) + 1,
         day_in_week=((ordinal - 1) % 7) + 1,
         weekday=weekday_for_ordinal(

@@ -15,7 +15,7 @@ class AppointedTime:
     """A supplied observance projected onto Calendar Core law.
 
     Appointed times are downstream expressions. Creating one cannot alter the
-    ordinary-year grid, weekday sequence, Reconciliation, or reference rule.
+    immutable annual grid, weekday sequence, witness layer, or translation epoch.
     """
 
     id: str
@@ -57,13 +57,7 @@ def project_appointed_time(
     day001_weekday: str,
     calendar_state: str = "ORDINARY",
 ) -> AppointedTimeOccurrence | None:
-    """Project a fixed appointed time only into ordinary calendar space.
-
-    Reconciliation has its own R-address namespace and intentionally inherits
-    no ordinary month/day appointments.
-    """
-    if calendar_state == "RECONCILIATION":
-        return None
+    """Project a fixed appointed time only into the immutable ordinary grid."""
     if calendar_state != "ORDINARY":
         return None
 

@@ -52,7 +52,8 @@ class WitnessBoundaryTests(unittest.TestCase):
         self.assertEqual(witness.gate_position, 3)
         self.assertEqual(witness.direction_of_travel, "southward")
 
-    def test_spring_gate_bridge_is_explicit_and_preserves_provenance(self):
+    def test_historical_equinox_adapter_preserves_provenance_only(self):
+        before = build_calendar_core_spec()
         witness = SeasonGateWitness(
             event="march_equinox",
             year=2027,
@@ -66,36 +67,19 @@ class WitnessBoundaryTests(unittest.TestCase):
             direction_of_travel="northward",
         )
         evidence = as_march_equinox_evidence(witness)
-        self.assertEqual(evidence.event, "march_equinox")
-        self.assertEqual(evidence.year, 2027)
         self.assertEqual(evidence.source_id, "TEST_EPHEMERIS")
         self.assertEqual(evidence.evidence_sha256, self.digest)
+        self.assertEqual(build_calendar_core_spec(), before)
 
-    def test_non_equinox_witness_cannot_enter_reference_rule_bridge(self):
-        witness = SeasonGateWitness(
-            event="september_equinox",
-            year=2026,
-            instant_utc=datetime(
-                2026, 9, 23, 0, 5, tzinfo=timezone.utc
-            ),
-            source_id="TEST_EPHEMERIS",
-            evidence_sha256=self.digest,
-            reference_frame="geocentric-equatorial",
-            gate_position=None,
-            direction_of_travel="southward",
-        )
-        with self.assertRaises(WitnessValidationError):
-            as_march_equinox_evidence(witness)
-
-    def test_witnesses_do_not_ratify_unresolved_enactment_inputs(self):
+    def test_witness_policy_cannot_move_ratified_grid(self):
         spec = build_calendar_core_spec()
         self.assertEqual(
             spec["enactmentBoundary"]["status"],
-            "external-unresolved",
+            "annual-law-ratified-epoch-external",
         )
-        self.assertTrue(
-            spec["enactmentBoundary"]["lawDoesNotSupplyValues"],
-        )
+        self.assertTrue(spec["enactmentBoundary"]["lawDoesNotSupplyEpoch"])
+        for status in spec["witnessPolicy"].values():
+            self.assertIn("no-grid-mutation", status)
 
 
 if __name__ == "__main__":

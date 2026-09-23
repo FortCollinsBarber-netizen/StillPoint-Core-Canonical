@@ -67,6 +67,8 @@ class WeeklyProtectedState:
 
 @dataclass(frozen=True)
 class ReconciliationDecision:
+    """Historical v3.2/v3.3 research record; never an operative v2 address."""
+
     version: str
     reconciliation_days: int
     immediate_candidate_opening: date
@@ -82,35 +84,6 @@ class ReconciliationDecision:
     evidence_event: Optional[str] = None
     evidence_year: Optional[int] = None
     evidence_instant_utc: Optional[datetime] = None
-
-    @property
-    def legacy_elapsed_span_days(self) -> int:
-        """Elapsed opening-to-opening span. Not a v3.3 ordinary-year length."""
-        return 364 + self.reconciliation_days
-
-    @property
-    def selected_candidate_opening(self) -> date:
-        return (
-            self.immediate_candidate_opening
-            if self.reconciliation_days == 0
-            else self.delayed_candidate_opening
-        )
-
-    @property
-    def selected_target_date(self) -> date:
-        return (
-            self.immediate_target_date
-            if self.reconciliation_days == 0
-            else self.delayed_target_date
-        )
-
-    @property
-    def selected_error_seconds(self) -> float:
-        return (
-            self.immediate_error_seconds
-            if self.reconciliation_days == 0
-            else self.delayed_error_seconds
-        )
 
 
 @dataclass(frozen=True)
@@ -131,8 +104,6 @@ class DualStamp:
     continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
-    reconciliation_day: Optional[int]
-    reconciliation_address: Optional[str]
     calendar_address: Optional[str] = None
 
 
@@ -146,8 +117,6 @@ class CalendarSnapshot:
     continuous_k: Optional[int]
     state: str
     common_date: Optional[CommonDate]
-    reconciliation_day: Optional[int]
-    reconciliation_address: Optional[str]
     named_day: str
     sabbath_active: bool
     lords_day_active: bool

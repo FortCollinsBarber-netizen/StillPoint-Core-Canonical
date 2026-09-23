@@ -130,7 +130,6 @@ def _config(
         day001_weekday="Thursday",
         common_standard_offset_seconds=
             -7 * 3600,
-        reconciliation_days_after_completion=0,
         continuous_k_at_opening=
             continuous_k,
         reference_rule_version=

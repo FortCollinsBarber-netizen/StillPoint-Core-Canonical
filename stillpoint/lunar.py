@@ -8,7 +8,7 @@ without rewriting calendar law.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import math
 from typing import Any
 
@@ -47,8 +47,14 @@ def lunar_phase_witness(instant: datetime) -> dict[str, Any]:
     elapsed_days = (
         instant_utc - REFERENCE_NEW_MOON
     ).total_seconds() / 86_400.0
+    lunation_index = math.floor(elapsed_days / SYNODIC_MONTH_DAYS)
     age = elapsed_days % SYNODIC_MONTH_DAYS
     angle = 2.0 * math.pi * (age / SYNODIC_MONTH_DAYS)
+    previous_new_moon = REFERENCE_NEW_MOON + timedelta(
+        days=lunation_index * SYNODIC_MONTH_DAYS
+    )
+    next_new_moon = previous_new_moon + timedelta(days=SYNODIC_MONTH_DAYS)
+    full_moon = previous_new_moon + timedelta(days=SYNODIC_MONTH_DAYS / 2.0)
     illumination = 0.5 * (1.0 - math.cos(angle))
     waxing = age < SYNODIC_MONTH_DAYS / 2.0
 
@@ -57,7 +63,13 @@ def lunar_phase_witness(instant: datetime) -> dict[str, Any]:
         "model": "mean-lunation-v1",
         "reference_new_moon_utc": REFERENCE_NEW_MOON.isoformat(),
         "synodic_month_days": SYNODIC_MONTH_DAYS,
+        "lunation_index": lunation_index,
         "age_days": age,
+        "phase_fraction": age / SYNODIC_MONTH_DAYS,
+        "phase_angle_degrees": math.degrees(angle) % 360.0,
+        "previous_mean_new_moon_utc": previous_new_moon.isoformat(),
+        "next_mean_new_moon_utc": next_new_moon.isoformat(),
+        "mean_full_moon_utc": full_moon.isoformat(),
         "illumination_fraction": illumination,
         "illumination_percent": int(round(illumination * 100.0)),
         "is_waxing": waxing,

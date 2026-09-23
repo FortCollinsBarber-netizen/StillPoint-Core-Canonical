@@ -14,6 +14,7 @@ from .doctor import run_doctor
 from .adapters.production import build_production_registry, reconcile_gmail_send
 from .office_runtime import OfficeRuntimeCoordinator
 from .calendar_core.runtime_surface import calendar_day_payload
+from .temporal.continuity_ingress import record_robertos_continuity_receipt
 
 
 def _root() -> Path:
@@ -88,6 +89,7 @@ def main(argv=None) -> int:
     sub.add_parser("approvals")
     sub.add_parser("offices")
     sub.add_parser("capabilities")
+    continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
@@ -129,6 +131,8 @@ def main(argv=None) -> int:
             offices=OfficeRuntimeCoordinator(rt.db);_json({"offices":offices.get_office_states(),"active_assignment_counts":offices.assignment_counts(),"active_assignments":offices.list_assignments(state="active")})
         elif args.cmd=="capabilities":
             _json(rt.capability_broker.snapshot(include_events=True))
+        elif args.cmd=="record-continuity-receipt":
+            receipt=json.loads(args.receipt_json);_json(record_robertos_continuity_receipt(rt.db,receipt))
         elif args.cmd=="doctor":return cmd_doctor(rt,root)
         return 0
     finally:rt.db.close()

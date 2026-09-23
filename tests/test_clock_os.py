@@ -101,6 +101,18 @@ class ClockOSTests(unittest.TestCase):
             next_snapshot["boundaries"]["calendar_date_boundary"],
             "common-standard-midnight",
         )
+        self.assertEqual(
+            end_snapshot["instant"]["common_calendar"]["display"],
+            "2026-12-30 23:59:59",
+        )
+        self.assertEqual(
+            next_snapshot["instant"]["common_calendar"]["display"],
+            "2027-01-01 00:00:00",
+        )
+        self.assertEqual(
+            next_snapshot["instant"]["common_calendar"]["weekday"],
+            "Thursday",
+        )
 
     def test_common_clock_uses_fixed_standard_offset_during_dst(self):
         instant = datetime(2026, 7, 15, 18, 0, tzinfo=timezone.utc)

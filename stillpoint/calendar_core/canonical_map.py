@@ -101,11 +101,36 @@ def address(
     assert jubilee is not None
 
     observances = observances_for_ordinal(ordinal)
-    provenance: list[str] = []
+    provenance: list[str] = [
+        "1 Enoch 72-82",
+        "Jubilees 6:29-32",
+    ]
     for observance in observances:
         for ref in observance.source_refs:
             if ref not in provenance:
                 provenance.append(ref)
+
+    is_sabbath = common.weekday == "Saturday"
+    if is_sabbath:
+        for ref in (
+            "Exodus 20:8-11",
+            "Leviticus 23:3",
+            "Numbers 28:9-10",
+        ):
+            if ref not in provenance:
+                provenance.append(ref)
+
+    if jubilee.is_sabbatical_threshold:
+        for ref in (
+            "Leviticus 25:1-7",
+            "Deuteronomy 15:1-18",
+        ):
+            if ref not in provenance:
+                provenance.append(ref)
+
+    if jubilee.is_jubilee_year:
+        if "Leviticus 25:8-24" not in provenance:
+            provenance.append("Leviticus 25:8-24")
 
     release_day = (
         jubilee.is_jubilee_year
@@ -132,7 +157,7 @@ def address(
         enoch_phase=phase.phase,
         enoch_gate=phase.gate,
         enoch_motion=phase.motion,
-        is_sabbath=(common.weekday == "Saturday"),
+        is_sabbath=is_sabbath,
         observance_ids=tuple(o.id for o in observances),
         observance_names=tuple(o.name for o in observances),
         provenance=tuple(provenance),

@@ -38,7 +38,7 @@ struct PublishedCivicCalendar: Equatable {
                 authorityID: "CONFORMANCE_ONLY",
                 authorityStatus: "conformance-only",
                 referencePointID: "CONFORMANCE_ONLY",
-                referenceRuleVersion: "CONFORMANCE_ONLY",
+                referenceRuleVersion: "fixed-364-v1",
                 ephemerisSource: "CONFORMANCE_ONLY",
                 ephemerisSHA256: String(repeating: "0", count: 64),
                 publicationDigest: String(repeating: "0", count: 64),
@@ -76,7 +76,7 @@ struct PublishedCalendarPolicy: Equatable {
             let authorityStatus,
             ["pilot", "enacted"].contains(authorityStatus),
             let referencePointID, !referencePointID.isEmpty,
-            let referenceRuleVersion, !referenceRuleVersion.isEmpty,
+            let referenceRuleVersion, referenceRuleVersion == "fixed-364-v1",
             let ephemerisSource, !ephemerisSource.isEmpty,
             let ephemerisSHA256,
             PublishedCalendarLoader.isSHA256(ephemerisSHA256),
@@ -98,19 +98,6 @@ private struct PublishedCalendarEnvelope: Decodable {
 
     struct ReferencePoint: Decodable {
         let id: String
-        let coordinateCustodyDigest: String
-    }
-
-    struct DuskProtocol: Decodable {
-        let id: String
-        let sunCenterAltitudeDegrees: Double
-    }
-
-    struct SeasonalAnchor: Decodable {
-        let event: String
-        let commonMonth: Int
-        let commonDay: Int
-        let ordinal: Int
     }
 
     struct EphemerisEvidence: Decodable {
@@ -122,27 +109,13 @@ private struct PublishedCalendarEnvelope: Decodable {
         let year: Int
         let openingCivilDate: String
         let reconciliationDaysAfterCompletion: Int
-        let reconciliationReasonCode: String
-        let governingMarchEquinoxYear: Int
-        let governingMarchEquinoxUTC: String
-        let immediateCandidateOpeningCivilDate: String
-        let delayedCandidateOpeningCivilDate: String
-        let immediateSpringGateCivilDate: String
-        let delayedSpringGateCivilDate: String
-        let immediateErrorSeconds: Double
-        let delayedErrorSeconds: Double
-        let nextYearSpringGateCivilDate: String
     }
 
     let publicationVersion: String
     let calendarCoreSpecVersion: String
-    let version: String
     let authority: Authority
     let referenceRuleVersion: String
     let referencePoint: ReferencePoint
-    let duskProtocol: DuskProtocol
-    let seasonalAnchor: SeasonalAnchor
-    let snapOperator: String
     let ephemerisEvidence: EphemerisEvidence
     let years: [YearRow]
     let publicationDigest: String
@@ -151,8 +124,6 @@ private struct PublishedCalendarEnvelope: Decodable {
 enum PublishedCalendarLoader {
     static let supportedPublicationVersion =
         "stillpoint-calendar-publication-v1"
-    static let supportedTemporalVersion =
-        "stillpoint-temporal-v3.3"
 
     static func load(
         bundle: Bundle = .main,
@@ -188,11 +159,7 @@ enum PublishedCalendarLoader {
                 PublishedCalendarEnvelope.self,
                 from: data
             ),
-            validate(
-                envelope,
-                policy: policy,
-                spec: spec
-            )
+            validate(envelope, policy: policy, spec: spec)
         else { return nil }
 
         let receipt = PublishedCalendarValidationReceipt(
@@ -204,11 +171,11 @@ enum PublishedCalendarLoader {
             ephemerisSHA256: envelope.ephemerisEvidence.sha256.lowercased(),
             publicationDigest: envelope.publicationDigest.lowercased(),
             resourceSHA256: sha256(data),
-            source: "validated-finite-publication"
+            source: "validated-fixed-grid-translation"
         )
 
         return PublishedCivicCalendar(
-            version: envelope.version,
+            version: envelope.publicationVersion,
             years: envelope.years.map {
                 PublishedCivicYear(
                     year: $0.year,
@@ -222,10 +189,7 @@ enum PublishedCalendarLoader {
     }
 
     static func isSHA256(_ value: String) -> Bool {
-        value.count == 64
-            && value.allSatisfy {
-                $0.isHexDigit
-            }
+        value.count == 64 && value.allSatisfy { $0.isHexDigit }
     }
 
     private static func sha256(_ data: Data) -> String {
@@ -239,20 +203,14 @@ enum PublishedCalendarLoader {
         policy: PublishedCalendarPolicy,
         spec: CalendarCoreSpec
     ) -> Bool {
-        let v33 = spec.referenceRules.v33Candidate
-        let geometryAltitude =
-            -(spec.boundary.apparentHorizonZenithDegrees - 90.0)
-
         guard
             envelope.publicationVersion == supportedPublicationVersion,
             envelope.calendarCoreSpecVersion == spec.version,
-            envelope.version == supportedTemporalVersion,
             envelope.authority.id == policy.authorityID,
             envelope.authority.status == policy.authorityStatus,
+            envelope.referenceRuleVersion == "fixed-364-v1",
             envelope.referenceRuleVersion == policy.referenceRuleVersion,
-            envelope.referenceRuleVersion == "v3.3-candidate",
             envelope.referencePoint.id == policy.referencePointID,
-            isSHA256(envelope.referencePoint.coordinateCustodyDigest),
             envelope.ephemerisEvidence.source == policy.ephemerisSource,
             envelope.ephemerisEvidence.sha256.lowercased()
                 == policy.ephemerisSHA256?.lowercased(),
@@ -260,21 +218,8 @@ enum PublishedCalendarLoader {
             envelope.publicationDigest.lowercased()
                 == policy.publicationDigest?.lowercased(),
             isSHA256(envelope.publicationDigest),
-            envelope.snapOperator == v33.operation,
-            envelope.seasonalAnchor.event == "march_equinox",
-            envelope.seasonalAnchor.commonMonth == v33.springGateMonth,
-            envelope.seasonalAnchor.commonDay == v33.springGateDay,
-            envelope.seasonalAnchor.ordinal == v33.springGateOrdinal,
-            envelope.duskProtocol.sunCenterAltitudeDegrees.isFinite,
-            abs(
-                envelope.duskProtocol.sunCenterAltitudeDegrees
-                    - geometryAltitude
-            ) < 0.0000001,
             !envelope.years.isEmpty,
-            validateRows(
-                envelope.years,
-                spec: spec
-            )
+            validateRows(envelope.years, spec: spec)
         else { return false }
 
         return true
@@ -295,65 +240,32 @@ enum PublishedCalendarLoader {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.isLenient = false
 
-        let allowed = Set(spec.reconciliation.allowedDays)
+        guard spec.reconciliation.enabled == false,
+              spec.reconciliation.allowedDays == [0]
+        else { return false }
 
         for index in rows.indices {
             let row = rows[index]
-
             guard
-                allowed.contains(
-                    row.reconciliationDaysAfterCompletion
-                ),
-                [
-                    "IMMEDIATE_CLOSER_OR_TIE",
-                    "RECONCILIATION_WEEK_CLOSER"
-                ].contains(row.reconciliationReasonCode),
-                row.immediateErrorSeconds >= 0,
-                row.delayedErrorSeconds >= 0,
-                formatter.date(from: row.openingCivilDate) != nil,
-                formatter.date(
-                    from: row.immediateCandidateOpeningCivilDate
-                ) != nil,
-                formatter.date(
-                    from: row.delayedCandidateOpeningCivilDate
-                ) != nil,
-                formatter.date(
-                    from: row.immediateSpringGateCivilDate
-                ) != nil,
-                formatter.date(
-                    from: row.delayedSpringGateCivilDate
-                ) != nil,
-                formatter.date(
-                    from: row.nextYearSpringGateCivilDate
-                ) != nil,
-                ISO8601DateFormatter().date(
-                    from: row.governingMarchEquinoxUTC
-                ) != nil
+                row.reconciliationDaysAfterCompletion == 0,
+                formatter.date(from: row.openingCivilDate) != nil
             else { return false }
 
             if rows.indices.contains(index + 1) {
                 let next = rows[index + 1]
-
                 guard
                     next.year == row.year + 1,
-                    let opening = formatter.date(
-                        from: row.openingCivilDate
-                    ),
-                    let nextOpening = formatter.date(
-                        from: next.openingCivilDate
-                    ),
+                    let opening = formatter.date(from: row.openingCivilDate),
+                    let nextOpening = formatter.date(from: next.openingCivilDate),
                     let span = calendar.dateComponents(
                         [.day],
                         from: opening,
                         to: nextOpening
                     ).day,
-                    span
-                        == spec.ordinaryCalendar.baseYearDays
-                        + row.reconciliationDaysAfterCompletion
+                    span == spec.ordinaryCalendar.baseYearDays
                 else { return false }
             }
         }
-
         return true
     }
 }

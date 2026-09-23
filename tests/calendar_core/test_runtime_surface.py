@@ -22,7 +22,12 @@ class CalendarRuntimeSurfaceTests(unittest.TestCase):
         self.assertEqual(value["common_date"]["year"], 2026)
         self.assertEqual(value["common_date"]["ordinal"], 1)
         self.assertEqual(value["common_date"]["weekday"], "Thursday")
+        self.assertEqual(value["common_civil_coordinate"]["date"], "2026-01-01")
+        self.assertEqual(value["common_civil_coordinate"]["clock"], "24-hour")
+        self.assertFalse(value["common_civil_coordinate"]["daylight_saving_time"])
         self.assertEqual(value["civil_window"]["opens"], "2026-01-01")
+        self.assertEqual(value["civil_window"]["role"], "external-translation-only")
+        self.assertFalse(value["civil_window"]["grid_authority"])
         self.assertEqual(value["map"]["year_days"], 364)
         self.assertEqual(value["map"]["weeks_per_year"], 52)
         self.assertFalse(value["map"]["december_31_exists"])
@@ -32,6 +37,7 @@ class CalendarRuntimeSurfaceTests(unittest.TestCase):
     def test_year_fifty_remains_same_grid_and_reports_jubilee(self):
         value = calendar_day_payload(2075, 1)
         self.assertEqual(value["calendar_address"], "Y_2075-001")
+        self.assertEqual(value["common_civil_coordinate"]["date"], "2075-01-01")
         self.assertTrue(value["jubilee"]["is_jubilee_year"])
         self.assertEqual(value["publication"]["authority_status"], "enacted")
 

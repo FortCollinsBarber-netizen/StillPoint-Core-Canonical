@@ -69,7 +69,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: python -m pip install .
-      - name: Prove finite v3.3 publication compiler
+      - name: Prove fixed-364 finite publication compiler
         run: python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q
 
   calendar-contract-integrity:
@@ -105,7 +105,7 @@ jobs:
           /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl
           tmpdir="$(mktemp -d)"
           cd "$tmpdir"
-          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"
+          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert s['canonicalCycle']['yearCount']==50; assert s['reconciliation']['allowedDays']==[0]; assert not any('reconciliation' in x['id'] and x['id']!='legacy-reconciliation-rejected' for x in v['vectors']); print('calendar wheel smoke: PASS')"
 
 
   calendar-release-identity:
@@ -159,17 +159,17 @@ jobs:
               "tree": tree,
               "artifacts": verified,
               "unresolvedCivicInputs": [
-                  "firstOpening",
                   "referencePoint",
-                  "ephemerisEvidence",
                   "publicationAuthority",
               ],
               "invariants": [
                   "ordinary-year-is-364",
-                  "reconciliation-is-interannual-0-or-7",
-                  "week-is-unbroken",
+                  "year-is-52-exact-weeks",
+                  "december-31-does-not-exist",
+                  "reconciliation-is-prohibited",
+                  "fifty-year-map-is-fixed",
+                  "astronomy-is-witness-only",
                   "law-publication-proof-client-are-separate",
-                  "ground-zero-is-pilot-not-national-authority",
               ],
           }
           print("CALENDAR_CORE_RELEASE_CANDIDATE_IDENTITY")

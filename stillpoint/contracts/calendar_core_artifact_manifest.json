@@ -22,11 +22,11 @@
       "version": "stillpoint-calendar-population-v1"
     },
     {
+      "bytes": 11750,
       "path": "stillpoint/contracts/calendar_external_witnesses_2026.json",
       "role": "external-calendar-witnesses-no-grid-authority",
-      "version": "stillpoint-external-calendar-witnesses-v1",
-      "sha256": "a32ec0dc6c23d75acd4cba182d72e5f22fd10d140d18349654ff9ce8fdabe6bc",
-      "bytes": 9196
+      "sha256": "696ec23d110830fa3d4a30a8f106c809d8499504283e676dfc972ffd250e6db9",
+      "version": "stillpoint-external-calendar-witnesses-v1"
     }
   ],
   "authorityStatus": "custody-only",

@@ -192,11 +192,8 @@ class DualStampTests(unittest.TestCase):
             "Thursday",
         )
 
-    def test_reconciliation_parameter_fails_closed(self):
-        with self.assertRaisesRegex(
-            ValueError,
-            "not operative",
-        ):
+    def test_removed_reconciliation_parameter_is_not_part_of_v2_api(self):
+        with self.assertRaises(TypeError):
             project_dual_stamp(
                 datetime(
                     2026,

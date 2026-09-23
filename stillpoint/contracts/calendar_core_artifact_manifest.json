@@ -1,17 +1,17 @@
 {
   "artifacts": [
     {
-      "bytes": 2163,
+      "bytes": 1960,
       "path": "stillpoint/contracts/calendar_core_spec.json",
       "role": "calendar-law",
-      "sha256": "51cf44d8190f3e4b9dac63fbd331fba4b8a2af698b7798892b974ba17cf252a4",
+      "sha256": "0c5fe4ba044c9678c24b55a4974d47831b08cb6ec8d5f84c5d04cf4fef18f73e",
       "version": "stillpoint-calendar-core-spec-v2"
     },
     {
-      "bytes": 7506,
+      "bytes": 7304,
       "path": "stillpoint/contracts/calendar_projection_vectors.json",
       "role": "conformance-proof-only",
-      "sha256": "80b99ad1039fd03630234b591b2b39c44ba9dd659449c1cdd0ba0d8952c9b783",
+      "sha256": "a4d7a3a2cb9ee550e580eb4d50100a6db82993110386f044ed1709cdbf51568d",
       "version": "stillpoint-calendar-projection-vectors-v2"
     },
     {
@@ -40,7 +40,7 @@
     "proof-vectors-have-no-civic-authority",
     "manifest-does-not-ratify-projection-epoch",
     "compatibility-bridge-is-not-constitutional-law",
-    "no-reconciliation-artifact-has-operative-authority",
+    "calendar-surface-is-exactly-364-and-nonextensible",
     "population-layer-cannot-mutate-grid",
     "external-witness-layer-cannot-mutate-grid"
   ],

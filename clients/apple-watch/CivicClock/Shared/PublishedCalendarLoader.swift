@@ -78,6 +78,28 @@ struct PublishedCalendarPolicy: Equatable {
 }
 
 private struct PublishedCalendarEnvelope: Decodable {
+    struct ProjectionSemantics: Decodable {
+        struct OpeningCivilDate: Decodable {
+            let frame: String
+            let role: String
+            let gridAuthority: Bool
+        }
+
+        struct CommonYear: Decodable {
+            struct MonthDay: Decodable {
+                let month: Int
+                let day: Int
+            }
+
+            let opening: MonthDay
+            let closing: MonthDay
+            let dateLabels: String
+        }
+
+        let openingCivilDate: OpeningCivilDate
+        let commonYear: CommonYear
+    }
+
     struct Authority: Decodable {
         let id: String
         let status: String
@@ -91,6 +113,7 @@ private struct PublishedCalendarEnvelope: Decodable {
     let publicationVersion: String
     let calendarCoreSpecVersion: String
     let authority: Authority
+    let projectionSemantics: ProjectionSemantics
     let years: [YearRow]
     let publicationDigest: String
 }
@@ -194,6 +217,18 @@ enum PublishedCalendarLoader {
             envelope.publicationDigest.lowercased()
                 == expectedPublicationDigest,
             isSHA256(envelope.publicationDigest),
+            envelope.projectionSemantics.openingCivilDate.frame
+                == "proleptic-gregorian",
+            envelope.projectionSemantics.openingCivilDate.role
+                == "external-translation-only",
+            envelope.projectionSemantics.openingCivilDate.gridAuthority
+                == false,
+            envelope.projectionSemantics.commonYear.opening.month == 1,
+            envelope.projectionSemantics.commonYear.opening.day == 1,
+            envelope.projectionSemantics.commonYear.closing.month == 12,
+            envelope.projectionSemantics.commonYear.closing.day == 30,
+            envelope.projectionSemantics.commonYear.dateLabels
+                == "canonical-common-calendar",
             !envelope.years.isEmpty,
             validateRows(
                 envelope.years,

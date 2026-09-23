@@ -81,6 +81,7 @@ def main(argv=None) -> int:
     approve=sub.add_parser("approve");approve.add_argument("task_id");approve.add_argument("--note",default="")
     reject=sub.add_parser("reject");reject.add_argument("task_id");reject.add_argument("--note",default="")
     resume=sub.add_parser("resume");resume.add_argument("task_id");resume.add_argument("--note",default="")
+    repair=sub.add_parser("repair");repair.add_argument("task_id");repair.add_argument("--note",required=True);repair.add_argument("--preserve-completed-steps",type=int,default=0)
     task=sub.add_parser("task");task.add_argument("task_id")
     actions=sub.add_parser("actions");actions.add_argument("task_id",nargs="?")
     artifacts=sub.add_parser("artifacts");artifacts.add_argument("task_id")
@@ -112,6 +113,8 @@ def main(argv=None) -> int:
         elif args.cmd=="reject":_json(rt.reject(args.task_id,args.note))
         elif args.cmd=="resume":
             out=rt.resume(args.task_id,args.note);_json({"task_id":out.task_id,"status":out.status.value,"primary":out.plan.primary})
+        elif args.cmd=="repair":
+            out=rt.repair(args.task_id,args.note,preserve_completed_steps=args.preserve_completed_steps);_json({"task_id":out.task_id,"status":out.status.value,"primary":out.plan.primary,"preserve_completed_steps":args.preserve_completed_steps})
         elif args.cmd=="task":
             task=rt.db.get_task(args.task_id)
             if not task:raise KeyError(args.task_id)

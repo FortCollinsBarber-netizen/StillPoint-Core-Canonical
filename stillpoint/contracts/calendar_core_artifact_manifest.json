@@ -20,6 +20,13 @@
       "role": "calendar-population-no-grid-authority",
       "sha256": "f6185da3318c65202967cca5daa87485f955188b75e98ee7402bd0645ba8ef67",
       "version": "stillpoint-calendar-population-v1"
+    },
+    {
+      "path": "stillpoint/contracts/calendar_external_witnesses_2026.json",
+      "role": "external-calendar-witnesses-no-grid-authority",
+      "version": "stillpoint-external-calendar-witnesses-v1",
+      "sha256": "a32ec0dc6c23d75acd4cba182d72e5f22fd10d140d18349654ff9ce8fdabe6bc",
+      "bytes": 9196
     }
   ],
   "authorityStatus": "custody-only",
@@ -34,7 +41,8 @@
     "manifest-does-not-ratify-projection-epoch",
     "compatibility-bridge-is-not-constitutional-law",
     "no-reconciliation-artifact-has-operative-authority",
-    "population-layer-cannot-mutate-grid"
+    "population-layer-cannot-mutate-grid",
+    "external-witness-layer-cannot-mutate-grid"
   ],
   "version": "stillpoint-calendar-artifact-manifest-v1"
 }

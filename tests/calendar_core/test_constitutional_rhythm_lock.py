@@ -16,7 +16,10 @@ from stillpoint.calendar_core.observances import (
     CIVIC_OBSERVANCES,
     SACRED_OBSERVANCES,
 )
-from stillpoint.calendar_core.runtime_surface import load_enacted_publication
+from stillpoint.calendar_core.runtime_surface import (
+    calendar_day_payload,
+    load_enacted_publication,
+)
 
 
 class ConstitutionalRhythmLockTests(unittest.TestCase):
@@ -156,12 +159,31 @@ class ConstitutionalRhythmLockTests(unittest.TestCase):
         self.assertEqual(int(rows[0]["year"]), 2026)
         self.assertEqual(int(rows[-1]["year"]), 2075)
 
+        # openingCivilDate is retained only as a host/ISO interoperability
+        # translation. It is not the Common Calendar's named-date coordinate.
         openings = [
             date.fromisoformat(str(row["openingCivilDate"]))
             for row in rows
         ]
         for left, right in zip(openings, openings[1:]):
             self.assertEqual((right - left).days, 364)
+
+        first_2027 = calendar_day_payload(2027, 1)
+        self.assertEqual(
+            first_2027["canonical_coordinate"]["label"],
+            "2027-01-01",
+        )
+        self.assertEqual(
+            first_2027["canonical_coordinate"]["weekday"],
+            "Thursday",
+        )
+        self.assertEqual(
+            first_2027["interop_window"]["opens"],
+            "2026-12-31",
+        )
+        self.assertFalse(
+            first_2027["interop_window"]["mutates_calendar"]
+        )
 
         self.assertEqual(50 * 364, 18_200)
 

@@ -75,7 +75,7 @@ class RobertOSContinuityEvidenceTests(unittest.TestCase):
     def test_tampered_receipt_fails_closed(self):
         db = self._db()
         receipt = _receipt()
-        receipt["candidate_hash"] = "d" * 64
+        receipt["authority_context"] = {"role": "tampered"}
 
         with self.assertRaisesRegex(ValueError, "receipt hash mismatch"):
             record_robertos_continuity_receipt(db, receipt)

@@ -1,0 +1,294 @@
+{
+  "authorityStatus": "witness-layer-no-grid-authority",
+  "events": [
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-03-02",
+      "grid_authority": false,
+      "id": "jewish-purim-2026",
+      "name": "Purim begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-04-01",
+      "grid_authority": false,
+      "id": "jewish-passover-2026",
+      "name": "Passover begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-05-21",
+      "grid_authority": false,
+      "id": "jewish-shavuot-2026",
+      "name": "Shavuot begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-07-22",
+      "grid_authority": false,
+      "id": "jewish-tisha-bav-2026",
+      "name": "Tisha B'Av begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-09-11",
+      "grid_authority": false,
+      "id": "jewish-rosh-hashanah-2026",
+      "name": "Rosh Hashanah begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-09-20",
+      "grid_authority": false,
+      "id": "jewish-yom-kippur-2026",
+      "name": "Yom Kippur begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-09-25",
+      "grid_authority": false,
+      "id": "jewish-sukkot-2026",
+      "name": "Sukkot begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-10-02",
+      "grid_authority": false,
+      "id": "jewish-shemini-atzeret-2026",
+      "name": "Shemini Atzeret begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-10-03",
+      "grid_authority": false,
+      "id": "jewish-simchat-torah-2026",
+      "name": "Simchat Torah begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-12-04",
+      "grid_authority": false,
+      "id": "jewish-hanukkah-2026",
+      "name": "Hanukkah begins",
+      "qualification": null,
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "jewish",
+      "source_refs": [
+        "Hebcal 2026 Jewish calendar"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "sunset",
+      "calendar_effect": "none",
+      "external_date": "2026-02-17",
+      "grid_authority": false,
+      "id": "islamic-ramadan-begins-2026",
+      "name": "Ramadan begins",
+      "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-02-18",
+      "grid_authority": false,
+      "id": "islamic-first-fast-2026",
+      "name": "First fasting day of Ramadan",
+      "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-03-20",
+      "grid_authority": false,
+      "id": "islamic-eid-al-fitr-2026",
+      "name": "Eid al-Fitr",
+      "qualification": "Date may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-05-18",
+      "grid_authority": false,
+      "id": "islamic-dhul-hijjah-2026",
+      "name": "Dhul Hijjah begins",
+      "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-05-26",
+      "grid_authority": false,
+      "id": "islamic-arafah-2026",
+      "name": "Day of Arafah",
+      "qualification": "Date may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-05-27",
+      "grid_authority": false,
+      "id": "islamic-eid-al-adha-2026",
+      "name": "Eid al-Adha",
+      "qualification": "Date may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-06-16",
+      "grid_authority": false,
+      "id": "islamic-new-year-2026",
+      "name": "Islamic New Year / Muharram begins",
+      "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    },
+    {
+      "authority": "witness-only",
+      "begins_at": "date",
+      "calendar_effect": "none",
+      "external_date": "2026-06-25",
+      "grid_authority": false,
+      "id": "islamic-ashura-2026",
+      "name": "Ashura",
+      "qualification": "Date may differ by community/crescent sighting.",
+      "schema": "stillpoint.external-calendar-witness.v1",
+      "source_calendar": "islamic",
+      "source_refs": [
+        "2026 external Islamic calendar witness"
+      ]
+    }
+  ],
+  "invariants": [
+    "external-calendar-witnesses-never-mutate-common-grid",
+    "jewish-calendar-witness-is-not-common-sacred-placement",
+    "islamic-calendar-dates-remain-sighting-qualified",
+    "seed-witnesses-do-not-repeat-as-calendar-law"
+  ],
+  "jurisdiction": {
+    "gridAuthority": false,
+    "mayAlterWeekday": false,
+    "mayInsertDays": false,
+    "mayMoveYearOpening": false,
+    "mayPromoteExternalCalendarToCommonLaw": false
+  },
+  "scope": {
+    "externalProjectionYear": 2026,
+    "repeatIntoLaterCommonYears": false,
+    "role": "comparison-and-observation-only"
+  },
+  "version": "stillpoint-external-calendar-witnesses-v1"
+}

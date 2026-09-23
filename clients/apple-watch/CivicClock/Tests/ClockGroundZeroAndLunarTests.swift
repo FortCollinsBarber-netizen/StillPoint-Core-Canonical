@@ -2,32 +2,40 @@ import XCTest
 @testable import CivicClockWatch
 
 final class ClockGroundZeroAndLunarTests: XCTestCase {
-    func testGroundZeroRequiresFreshPrecisionGradeObservationShape() {
-        let precise = GroundZeroObservation(
+    private func observation(
+        horizontalAccuracy: Double = 8,
+        fullAccuracyAuthorized: Bool = true,
+        simulatedBySoftware: Bool? = false
+    ) -> GroundZeroObservation {
+        GroundZeroObservation(
             id: GroundZeroObservation.canonicalID,
             capturedAt: Date(timeIntervalSince1970: 1_795_433_529),
             latitude: 40.0,
             longitude: -105.0,
             altitudeMeters: 1500,
-            horizontalAccuracyMeters: 8,
+            horizontalAccuracyMeters: horizontalAccuracy,
             verticalAccuracyMeters: 12,
             timeZoneIdentifier: "America/Denver",
-            source: GroundZeroObservation.sourceID
+            source: GroundZeroObservation.sourceID,
+            coordinateSystem: GroundZeroObservation.coordinateReferenceSystem,
+            fullAccuracyAuthorized: fullAccuracyAuthorized,
+            simulatedBySoftware: simulatedBySoftware,
+            producedByAccessory: false
         )
-        XCTAssertTrue(precise.isValid)
+    }
 
-        let coarse = GroundZeroObservation(
-            id: GroundZeroObservation.canonicalID,
-            capturedAt: precise.capturedAt,
-            latitude: precise.latitude,
-            longitude: precise.longitude,
-            altitudeMeters: nil,
-            horizontalAccuracyMeters: 100,
-            verticalAccuracyMeters: nil,
-            timeZoneIdentifier: precise.timeZoneIdentifier,
-            source: GroundZeroObservation.sourceID
+    func testGroundZeroRequiresPrecisionGradeObservationShape() {
+        XCTAssertTrue(observation().isValid)
+        XCTAssertFalse(observation(horizontalAccuracy: 100).isValid)
+    }
+
+    func testGroundZeroRejectsReducedAccuracyAndSoftwareSimulation() {
+        XCTAssertFalse(
+            observation(fullAccuracyAuthorized: false).isValid
         )
-        XCTAssertFalse(coarse.isValid)
+        XCTAssertFalse(
+            observation(simulatedBySoftware: true).isValid
+        )
     }
 
     func testSeptember23ObservationIsWaxingGibbous() throws {

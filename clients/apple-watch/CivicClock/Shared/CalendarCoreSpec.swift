@@ -14,8 +14,8 @@ struct CalendarCoreSpec: Codable, Equatable {
     }
 
     struct MonthDay: Codable, Equatable {
-        let day: Int
         let month: Int
+        let day: Int
     }
 
     struct OrdinaryCalendar: Codable, Equatable {
@@ -39,33 +39,11 @@ struct CalendarCoreSpec: Codable, Equatable {
         let rule: String
     }
 
-    struct WitnessPolicy: Codable, Equatable {
-        let astronomy: String
-        let enochicGates: String
-        let lunar: String
-        let seasonal: String
-    }
-
-    struct HistoricalModels: Codable, Equatable {
-        let nearestLegalSpringGateV33: String
-        let nearestLegalV32: String
-    }
-
-    struct Jurisdiction: Codable, Equatable {
-        let authorityNamespace: String
-        let calendarNamespace: String
-        let translationAuthority: String
-    }
-
+    let version: String
     let annualTransition: AnnualTransition
     let boundary: Boundary
     let enactmentBoundary: EnactmentBoundary
-    let historicalModels: HistoricalModels
-    let invariants: [String]
-    let jurisdiction: Jurisdiction
     let ordinaryCalendar: OrdinaryCalendar
-    let version: String
-    let witnessPolicy: WitnessPolicy
 }
 
 enum CalendarCoreSpecLoader {
@@ -100,12 +78,14 @@ enum CalendarCoreSpecLoader {
             ),
             validate(spec)
         else { return nil }
+
         return spec
     }
 
     private static func validate(_ spec: CalendarCoreSpec) -> Bool {
         let calendar = spec.ordinaryCalendar
         let enactment = spec.enactmentBoundary
+        let transition = spec.annualTransition
 
         guard
             spec.version == supportedVersion,
@@ -128,19 +108,17 @@ enum CalendarCoreSpecLoader {
             calendar.quarterDays == 91,
             calendar.quarters == 4,
             calendar.quarterDays * calendar.quarters == 364,
-            calendar.yearOpening == MonthDay(day: 1, month: 1),
-            calendar.yearClosing == MonthDay(day: 30, month: 12),
+            calendar.quarterRelation
+                == "ordinal-seasonal-not-civil-month-triples",
+            calendar.yearOpening
+                == CalendarCoreSpec.MonthDay(month: 1, day: 1),
+            calendar.yearClosing
+                == CalendarCoreSpec.MonthDay(month: 12, day: 30),
             calendar.hasFebruary29 == false,
             calendar.hasDecember31 == false,
-            spec.annualTransition.interannualDays == 0,
-            spec.annualTransition.reconciliationAllowed == false,
-            spec.annualTransition.rule == "DAY_364_TO_NEXT_YEAR_DAY_001",
-            spec.witnessPolicy.astronomy == "witness-only-no-grid-mutation",
-            spec.witnessPolicy.lunar == "witness-only-no-grid-mutation",
-            spec.witnessPolicy.seasonal == "witness-only-no-grid-mutation",
-            spec.witnessPolicy.enochicGates == "witness-metadata-no-grid-mutation",
-            spec.historicalModels.nearestLegalV32 == "superseded-non-operative",
-            spec.historicalModels.nearestLegalSpringGateV33 == "superseded-non-operative"
+            transition.rule == "DAY_364_TO_NEXT_YEAR_DAY_001",
+            transition.interannualDays == 0,
+            transition.reconciliationAllowed == false
         else { return false }
 
         return true

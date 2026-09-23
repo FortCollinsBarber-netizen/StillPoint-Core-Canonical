@@ -101,7 +101,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 3, 2),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-passover-2026",
@@ -109,7 +109,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 4, 1),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-shavuot-2026",
@@ -117,7 +117,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 5, 21),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-tisha-bav-2026",
@@ -125,7 +125,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 7, 22),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-rosh-hashanah-2026",
@@ -133,7 +133,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 9, 11),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-yom-kippur-2026",
@@ -141,7 +141,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 9, 20),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-sukkot-2026",
@@ -149,7 +149,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 9, 25),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-shemini-atzeret-2026",
@@ -157,7 +157,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 10, 2),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-simchat-torah-2026",
@@ -165,7 +165,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 10, 3),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
     ExternalCalendarWitness(
         "jewish-hanukkah-2026",
@@ -173,7 +173,7 @@ JEWISH_2026: tuple[ExternalCalendarWitness, ...] = (
         "jewish",
         date(2026, 12, 4),
         begins_at="sunset",
-        source_refs=("Hebcal 2026 Jewish calendar",),
+        source_refs=("Hebcal Jewish Holidays 2026 (Diaspora)",),
     ),
 )
 
@@ -185,7 +185,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "islamic",
         date(2026, 2, 17),
         begins_at="sunset",
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("Islamic Relief Worldwide Ramadan Timetable 2026",),
         qualification="Actual month opening may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -201,7 +201,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Eid al-Fitr",
         "islamic",
         date(2026, 3, 20),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("IslamicFinder Islamic Calendar 2026",),
         qualification="Date may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -209,7 +209,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Dhul Hijjah begins",
         "islamic",
         date(2026, 5, 18),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("Islamic Relief Worldwide Eid al-Adha 2026",),
         qualification="Actual month opening may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -217,7 +217,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Day of Arafah",
         "islamic",
         date(2026, 5, 26),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("Islamic Relief Worldwide Eid al-Adha 2026",),
         qualification="Date may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -225,7 +225,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Eid al-Adha",
         "islamic",
         date(2026, 5, 27),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("Islamic Relief Worldwide Eid al-Adha 2026",),
         qualification="Date may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -233,7 +233,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Islamic New Year / Muharram begins",
         "islamic",
         date(2026, 6, 16),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("IslamicFinder Special Islamic Days 2026",),
         qualification="Actual month opening may differ by community/crescent sighting.",
     ),
     ExternalCalendarWitness(
@@ -241,7 +241,7 @@ ISLAMIC_2026: tuple[ExternalCalendarWitness, ...] = (
         "Ashura",
         "islamic",
         date(2026, 6, 25),
-        source_refs=("2026 external Islamic calendar witness",),
+        source_refs=("IslamicFinder Special Islamic Days 2026",),
         qualification="Date may differ by community/crescent sighting.",
     ),
 )

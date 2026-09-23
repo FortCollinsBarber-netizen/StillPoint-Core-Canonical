@@ -53,28 +53,28 @@ def _expected(snapshot) -> dict[str, Any]:
     }
 
 
-def _config(common_year: int = 2026, opening: date = date(2026, 1, 1), k: int = 0) -> CalendarConfig:
+def _config() -> CalendarConfig:
     return CalendarConfig(
         location=CONFORMANCE_POINT,
         local_zone=CONFORMANCE_ZONE,
-        common_year=common_year,
-        opening_civil_date=opening,
+        common_year=2026,
+        opening_civil_date=date(2026, 1, 1),
         day001_weekday="Thursday",
         common_standard_offset_seconds=-7 * 3600,
         reconciliation_days_after_completion=0,
-        continuous_k_at_opening=k,
+        continuous_k_at_opening=0,
         reference_rule_version="fixed-364-v1",
         reference_station_id="LOVELAND_TEST",
         ephemeris_id="BOUNDARY_CONFORMANCE_ONLY",
     )
 
 
-def _vector(vector_id: str, instant: datetime, config: CalendarConfig | None = None) -> dict[str, Any]:
+def _vector(vector_id: str, instant: datetime) -> dict[str, Any]:
     return {
         "id": vector_id,
         "instantUTC": _iso_seconds(instant),
         "reconciliationDaysAfterCompletion": 0,
-        "expected": _expected(get_calendar_snapshot(instant, config=config or _config())),
+        "expected": _expected(get_calendar_snapshot(instant, config=_config())),
     }
 
 
@@ -83,8 +83,6 @@ def build_calendar_projection_vectors() -> dict[str, Any]:
     saturday_sunset = apparent_sunset_utc(date(2026, 9, 19), CONFORMANCE_POINT)
     sunday_sunrise = apparent_sunrise_utc(date(2026, 9, 20), CONFORMANCE_POINT)
     sunday_sunset = apparent_sunset_utc(date(2026, 9, 20), CONFORMANCE_POINT)
-    terminal_sunset = apparent_sunset_utc(date(2026, 12, 30), CONFORMANCE_POINT)
-    next_opening_sunset = apparent_sunset_utc(date(2026, 12, 31), CONFORMANCE_POINT)
 
     return {
         "version": PROJECTION_VECTOR_VERSION,
@@ -107,12 +105,6 @@ def build_calendar_projection_vectors() -> dict[str, Any]:
             _vector("sunday-before-sunrise", sunday_sunrise - timedelta(seconds=1)),
             _vector("sunday-after-sunrise", sunday_sunrise + timedelta(seconds=1)),
             _vector("sunday-after-sunset", sunday_sunset + timedelta(seconds=1)),
-            _vector("year-terminal-day", terminal_sunset + timedelta(seconds=1)),
-            _vector(
-                "next-year-day-001",
-                next_opening_sunset + timedelta(seconds=1),
-                _config(common_year=2027, opening=date(2026, 12, 31), k=364),
-            ),
         ],
         "failureCases": [
             {

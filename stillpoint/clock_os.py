@@ -19,9 +19,17 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from .calendar_core.governor import CalendarAuthority, RhythmGovernor
+from .calendar_core.governor import RHYTHM_GOVERNOR, RhythmAuthority, RhythmRequest
 from .calendar_core.models import GeoPoint
-from .calendar_core.runtime_surface import load_enacted_publication
+from .calendar_core.governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
+from .calendar_core.runtime_surface import (
+    calendar_day_payload,
+    load_enacted_publication,
+)
 from .calendar_core.sunset import apparent_sunset_utc, bracket_sunset
 from .calendar_core.week import protected_time_state
 from .lunar import lunar_phase_witness
@@ -29,6 +37,25 @@ from .lunar import lunar_phase_witness
 
 CLOCK_SCHEMA = "stillpoint.clock-os.v1"
 CLOCK_AUTHORITY = "read-only-temporal-projection"
+
+
+def _governed_calendar_day(
+    year: int,
+    ordinal: int,
+    *,
+    publication_path: Path | str | None,
+) -> dict[str, Any]:
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            RhythmAuthority.READ,
+            "clock-os",
+        )
+    )
+    return calendar_day_payload(
+        int(year),
+        int(ordinal),
+        publication_path=publication_path,
+    )
 
 
 @dataclass(frozen=True)
@@ -68,9 +95,11 @@ def _next_calendar_day(
     else:
         next_year, next_ordinal = year + 1, 1
     try:
-        return RhythmGovernor(
+        return _governed_calendar_day(
+            next_year,
+            next_ordinal,
             publication_path=publication_path,
-        ).read_day(next_year, next_ordinal)
+        )
     except ValueError:
         return None
 
@@ -83,12 +112,24 @@ def canonical_civil_window(
 ) -> dict[str, Any]:
     """Return the location-specific sunset window for one canonical address."""
 
-    governor = RhythmGovernor(publication_path=config.publication_path)
-    governor.require(
-        CalendarAuthority.OBSERVE,
-        payload={"event": "location-specific-solar-window"},
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
     )
-    day = governor.read_day(int(year), int(ordinal))
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            RhythmAuthority.OBSERVE,
+            "clock-os-local-light",
+            annotation={"event_family": "local-light"},
+        )
+    )
+    day = _governed_calendar_day(
+        int(year),
+        int(ordinal),
+        publication_path=config.publication_path,
+    )
     opens_on = date.fromisoformat(day["civil_window"]["opens"])
     closes_on = date.fromisoformat(day["civil_window"]["closes"])
     opens_at = apparent_sunset_utc(opens_on, config.location)
@@ -137,14 +178,23 @@ def clock_snapshot(
     if instant.tzinfo is None:
         raise ValueError("instant must be timezone-aware")
 
-    governor = RhythmGovernor(publication_path=config.publication_path)
-    governor.require(
-        CalendarAuthority.COORDINATE,
-        payload={
-            "clock": "24-hour",
-            "common_standard_uses_dst": False,
-        },
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
     )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OBSERVE,
+            source="clock-os-solar-lunar-observation",
+            annotation={
+                "solar_boundaries": True,
+                "lunar_witness": True,
+            },
+        )
+    )
+
     document = load_enacted_publication(config.publication_path)
     instant_utc = instant.astimezone(timezone.utc)
     civil_timestamp = instant_utc.astimezone(ZoneInfo(config.local_zone))
@@ -152,6 +202,23 @@ def clock_snapshot(
         timedelta(seconds=int(config.common_standard_offset_seconds))
     )
     common_timestamp = instant_utc.astimezone(common_zone)
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            RhythmAuthority.COORDINATE,
+            "clock-os",
+            clock_time=common_timestamp.strftime("%H:%M:%S"),
+        )
+    )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            RhythmAuthority.OBSERVE,
+            "clock-os-witnesses",
+            annotation={
+                "local_light": True,
+                "lunar_witness": True,
+            },
+        )
+    )
 
     pair = bracket_sunset(
         instant_utc,
@@ -172,7 +239,11 @@ def clock_snapshot(
     following: dict[str, Any] | None = None
     if position is not None:
         year, ordinal = position
-        current = governor.read_day(year, ordinal)
+        current = _governed_calendar_day(
+            year,
+            ordinal,
+            publication_path=config.publication_path,
+        )
         following = _next_calendar_day(
             year,
             ordinal,
@@ -289,7 +360,7 @@ def clock_snapshot(
             "solar_boundary_mutates_calendar_date": False,
             "daylight_saving_mutates_common_clock": False,
             "interop_calendar_is_translation_only": True,
-            "calendar_reads_governed": True,
-            "ordinary_calendar_mutation_authority_exists": False,
+            "rhythm_governor_enforced": True,
+            "overlay_rule": "inhabit-the-surface-never-rewrite-the-surface",
         },
     }

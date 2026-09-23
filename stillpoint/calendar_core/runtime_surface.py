@@ -12,6 +12,12 @@ from pathlib import Path
 from typing import Any
 
 from .calendar import CANONICAL_DAY001_WEEKDAY
+from .governor import (
+    CanonicalDate,
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .population import address_from_ordinal
 from .publication import validate_publication_document
 
@@ -50,6 +56,13 @@ def calendar_day_payload(
         ordinal=int(ordinal),
         jubilee_epoch_common_year=first_year,
         jubilee_epoch_cycle=1,
+    )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="calendar-runtime-surface",
+            canonical_date=CanonicalDate(day.year, day.month, day.day),
+        )
     )
 
     authority = document.get("authority") or {}

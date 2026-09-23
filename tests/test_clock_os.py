@@ -53,9 +53,10 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(snapshot["location"]["longitude"], TEST_LOCATION.longitude)
         self.assertFalse(snapshot["invariants"]["astronomy_mutates_grid"])
         self.assertFalse(snapshot["invariants"]["lunar_witness_mutates_grid"])
-        self.assertTrue(snapshot["invariants"]["calendar_reads_governed"])
-        self.assertFalse(
-            snapshot["invariants"]["ordinary_calendar_mutation_authority_exists"]
+        self.assertTrue(snapshot["invariants"]["rhythm_governor_enforced"])
+        self.assertEqual(
+            snapshot["invariants"]["overlay_rule"],
+            "inhabit-the-surface-never-rewrite-the-surface",
         )
         self.assertEqual(
             snapshot["lunar_witness"]["calendar_effect"],

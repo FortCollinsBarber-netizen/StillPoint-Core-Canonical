@@ -62,7 +62,10 @@
     "astronomy": "witness-only-no-grid-mutation",
     "lunar": "witness-only-no-grid-mutation",
     "seasons": "witness-only-no-grid-mutation",
-    "historicalSources": "source-and-provenance-no-silent-grid-mutation"
+    "historicalSources": "source-and-provenance-no-silent-grid-mutation",
+    "jewishCalendar": "witness-only-no-grid-mutation",
+    "islamicCalendar": "witness-only-no-grid-mutation",
+    "localLight": "creation-event-witness-no-grid-mutation"
   },
   "externalProjection": {
     "purpose": "interoperability-with-existing-gregorian-systems",
@@ -77,5 +80,35 @@
     "intercalation": "none",
     "nearestLegalV32": "historical-only",
     "nearestLegalSpringGateV33": "historical-only"
+  },
+  "overlayPolicy": {
+    "rule": "inhabit-the-surface-never-rewrite-the-surface",
+    "gridAuthority": false,
+    "canonicalOverlays": [
+      "feast",
+      "sabbath",
+      "stillpoint",
+      "seven-year",
+      "forty-nine-year",
+      "jubilee"
+    ],
+    "witnessOverlays": [
+      "season",
+      "lunar",
+      "jewish-calendar",
+      "islamic-calendar",
+      "local-light"
+    ],
+    "prohibitions": {
+      "mayInsertDays": false,
+      "mayDeleteDays": false,
+      "mayMoveNamedDates": false,
+      "mayChangeWeekday": false,
+      "mayChangeYearOpening": false,
+      "mayChangeYearClosing": false,
+      "mayChangeYearLength": false,
+      "mayCreateLeapDay": false,
+      "mayCreateDecember31": false
+    }
   }
 }

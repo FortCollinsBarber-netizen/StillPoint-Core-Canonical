@@ -624,6 +624,50 @@ class CompanyDB:
         del reason
         self.update_action_request_status(action_id, "stale")
 
+    def invalidate_task_action_authority(
+        self,
+        task_id: str,
+        *,
+        reason: str = "plan repaired",
+    ) -> list[str]:
+        """Atomically stale unspent action requests and revoke their active warrants.
+
+        A repaired plan must never inherit authority merely because an earlier
+        plan reached approval. Completed/uncertain dispatch history is left
+        untouched; only authority that has not crossed the external boundary is
+        withdrawn.
+        """
+        conn = self._connection()
+        invalidated: list[str] = []
+        now = utcnow()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            rows = conn.execute(
+                """SELECT id,warrant_id,status FROM action_requests
+                   WHERE task_id=? AND status IN ('waiting_approval','ready_for_action')""",
+                (task_id,),
+            ).fetchall()
+            for row in rows:
+                action_id = str(row["id"])
+                invalidated.append(action_id)
+                conn.execute(
+                    "UPDATE action_requests SET status='stale',updated_at=? WHERE id=?",
+                    (now, action_id),
+                )
+                warrant_id = row["warrant_id"]
+                if warrant_id:
+                    conn.execute(
+                        """UPDATE temporal_warrants
+                           SET status='revoked',revoked_reason=?,updated_at=?
+                           WHERE warrant_id=? AND status='active'""",
+                        (reason, now, warrant_id),
+                    )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        return invalidated
+
     def bind_action_approval(self, action_id: str, approval_id: str) -> None:
         conn = self._connection()
         row = conn.execute(

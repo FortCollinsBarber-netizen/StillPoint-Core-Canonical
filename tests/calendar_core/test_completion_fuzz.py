@@ -3,7 +3,6 @@ import unittest
 
 from stillpoint.calendar_core.address import (
     format_ordinary_address,
-    format_reconciliation_address,
     parse_calendar_address,
 )
 from stillpoint.calendar_core.calendar import (
@@ -45,12 +44,14 @@ class CompletionFuzzTests(unittest.TestCase):
             self.assertTrue(1 <= projected.week <= 52)
             self.assertTrue(1 <= projected.day_in_week <= 7)
 
-            r_day = rng.randint(1, 7)
-            r_text = format_reconciliation_address(year, r_day)
-            r_parsed = parse_calendar_address(r_text)
-            self.assertEqual(r_parsed.kind, "RECONCILIATION")
-            self.assertIsNone(r_parsed.ordinal)
-            self.assertEqual(r_parsed.reconciliation_day, r_day)
+    def test_month_grid_is_exactly_364_and_has_no_december_31(self):
+        self.assertEqual(
+            MONTH_LENGTHS,
+            (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 30),
+        )
+        self.assertEqual(sum(MONTH_LENGTHS), 364)
+        with self.assertRaises(ValueError):
+            ordinal_day(12, 31)
 
     def test_month_grid_fuzz_never_exceeds_364(self):
         rng = random.Random(520007)

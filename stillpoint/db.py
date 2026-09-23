@@ -747,7 +747,9 @@ class CompanyDB:
         try:
             conn.execute("BEGIN IMMEDIATE")
             action = conn.execute(
-                "SELECT warrant_id,authority_revision,approval_id FROM action_requests WHERE id=?",
+                """SELECT warrant_id,authority_revision,approval_id,task_id,
+                          action_type,status
+                   FROM action_requests WHERE id=?""",
                 (action_id,),
             ).fetchone()
             if not action:
@@ -758,6 +760,24 @@ class CompanyDB:
                 raise RuntimeError("authority revision changed")
             if approval_id and action["approval_id"] != approval_id:
                 raise RuntimeError("approval binding changed")
+            if action["status"] != "ready_for_action":
+                raise RuntimeError(
+                    f"action is not dispatchable from status={action['status']}"
+                )
+            task = conn.execute(
+                "SELECT plan_json FROM tasks WHERE id=?",
+                (action["task_id"],),
+            ).fetchone()
+            if not task or not task["plan_json"]:
+                raise RuntimeError("current task plan is unavailable")
+            try:
+                current_plan = json.loads(task["plan_json"])
+            except Exception as exc:
+                raise RuntimeError("current task plan is invalid") from exc
+            if current_plan.get("authority_revision") != authority_revision:
+                raise RuntimeError("action authority revision is no longer current")
+            if action["action_type"] not in set(current_plan.get("restricted_actions") or []):
+                raise RuntimeError("action intent is no longer present in current plan")
             # Replace a prior null_probe reservation so a real dispatch can proceed
             conn.execute(
                 "DELETE FROM action_warrant_consumptions WHERE action_id=? AND disposition='null_probe'",
@@ -840,7 +860,7 @@ class CompanyDB:
 
             action = conn.execute(
                 """SELECT id,task_id,warrant_id,idempotency_key,authority_revision,
-                          approval_id,status
+                          approval_id,status,action_type
                    FROM action_requests WHERE id=?""",
                 (action_id,),
             ).fetchone()
@@ -854,6 +874,24 @@ class CompanyDB:
                 raise RuntimeError("authority revision changed")
             if (action["approval_id"] or "") != (approval_id or ""):
                 raise RuntimeError("approval binding changed")
+            if action["status"] != "ready_for_action":
+                raise RuntimeError(
+                    f"action is not dispatchable from status={action['status']}"
+                )
+            task = conn.execute(
+                "SELECT plan_json FROM tasks WHERE id=?",
+                (action["task_id"],),
+            ).fetchone()
+            if not task or not task["plan_json"]:
+                raise RuntimeError("current task plan is unavailable")
+            try:
+                current_plan = json.loads(task["plan_json"])
+            except Exception as exc:
+                raise RuntimeError("current task plan is invalid") from exc
+            if current_plan.get("authority_revision") != authority_revision:
+                raise RuntimeError("action authority revision is no longer current")
+            if action["action_type"] not in set(current_plan.get("restricted_actions") or []):
+                raise RuntimeError("action intent is no longer present in current plan")
 
             warrant = conn.execute(
                 "SELECT status FROM temporal_warrants WHERE warrant_id=?",

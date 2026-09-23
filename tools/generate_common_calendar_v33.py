@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate a finite StillPoint Temporal v3.3 Common Calendar publication.
+"""Generate a finite fixed-364 Common Calendar publication.
 
-Calendar Core owns astronomy geometry and reference-rule mathematics. This
-compiler consumes explicit enactment/evidence inputs and does not duplicate
-sunset or Reconciliation law.
+The filename is retained as a compatibility entry point for the former v3.3
+toolchain. Reconciliation and equinox snapping are no longer operative law.
+Astronomical evidence may be carried as witness provenance only.
 """
 
 from __future__ import annotations
@@ -15,42 +15,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from stillpoint.calendar_core.astronomy import (
-    AstronomyEvidence,
-    AstronomyEvidenceError,
-    MappingAstronomyProvider,
-)
-from stillpoint.calendar_core.models import GeoPoint, ReconciliationDecision
 from stillpoint.calendar_core.publication import (
     PUBLICATION_VERSION,
     publication_digest as core_publication_digest,
     validate_publication_document,
 )
-from stillpoint.calendar_core.reference_rule import (
-    BASE_YEAR_DAYS,
-    SPRING_GATE_ORDINAL,
-    select_v33_nearest_spring_gate_from_provider,
-    spring_gate_date as core_spring_gate_date,
-)
 from stillpoint.calendar_core.spec import SPEC_VERSION
-from stillpoint.calendar_core.sunset import apparent_sunset_utc
-
-UTC = dt.timezone.utc
-
-
-def sunset_utc(
-    civil_date: dt.date,
-    latitude: float,
-    longitude: float,
-) -> dt.datetime:
-    return apparent_sunset_utc(
-        civil_date,
-        GeoPoint(
-            latitude,
-            longitude,
-            "PUBLICATION_REFERENCE",
-        ),
-    )
 
 
 def parse_utc(value: str) -> dt.datetime:
@@ -61,7 +31,7 @@ def parse_utc(value: str) -> dt.datetime:
         raise ValueError(
             f"UTC instant lacks timezone: {value}"
         )
-    return parsed.astimezone(UTC)
+    return parsed.astimezone(dt.timezone.utc)
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -96,99 +66,6 @@ def load_json(path: Path) -> Any:
     )
 
 
-def equinox_map(
-    document: dict[str, Any],
-) -> dict[int, dt.datetime]:
-    return {
-        int(row["year"]): parse_utc(
-            row["instantUTC"]
-        )
-        for row in document.get(
-            "marchEquinoxes",
-            [],
-        )
-    }
-
-
-def spring_gate_date(
-    opening: dt.date,
-) -> dt.date:
-    return core_spring_gate_date(
-        opening,
-        SPRING_GATE_ORDINAL,
-    )
-
-
-def governing_equinox_year(
-    current_opening: dt.date,
-) -> int:
-    immediate_opening = (
-        current_opening
-        + dt.timedelta(days=BASE_YEAR_DAYS)
-    )
-    delayed_opening = (
-        immediate_opening
-        + dt.timedelta(days=7)
-    )
-    immediate_gate = spring_gate_date(
-        immediate_opening
-    )
-    delayed_gate = spring_gate_date(
-        delayed_opening
-    )
-
-    if immediate_gate.year != delayed_gate.year:
-        raise ValueError(
-            "candidate Spring Gates cross civil years; "
-            "governing equinox year must be explicitly resolved"
-        )
-
-    return immediate_gate.year
-
-
-def astronomy_provider(
-    *,
-    ephemerides: dict[int, dt.datetime],
-    ephemeris_source: str,
-    ephemeris_sha256: str,
-) -> MappingAstronomyProvider:
-    evidence = {
-        year: AstronomyEvidence(
-            event="march_equinox",
-            year=year,
-            instant_utc=instant,
-            source_id=ephemeris_source,
-            evidence_sha256=ephemeris_sha256,
-        )
-        for year, instant in ephemerides.items()
-    }
-    return MappingAstronomyProvider(
-        provider_id=ephemeris_source,
-        evidence_by_year=evidence,
-    )
-
-
-def choose_reconciliation(
-    *,
-    current_opening: dt.date,
-    evidence_year: int,
-    provider: MappingAstronomyProvider,
-    latitude: float,
-    longitude: float,
-) -> ReconciliationDecision:
-    return select_v33_nearest_spring_gate_from_provider(
-        current_opening=current_opening,
-        evidence_year=evidence_year,
-        provider=provider,
-        reference_point=GeoPoint(
-            latitude,
-            longitude,
-            "PUBLICATION_REFERENCE",
-        ),
-        spring_gate_ordinal=SPRING_GATE_ORDINAL,
-    )
-
-
 def generate(
     *,
     latitude: float,
@@ -205,69 +82,21 @@ def generate(
     authority_status: str = "pilot",
     reference_point_id: str = "GROUND_ZERO",
 ) -> dict[str, Any]:
+    del ephemerides
     if count < 1:
         raise ValueError("count must be >= 1")
 
-    provider = astronomy_provider(
-        ephemerides=ephemerides,
-        ephemeris_source=ephemeris_source,
-        ephemeris_sha256=ephemeris_sha256,
-    )
-
-    years: list[dict[str, Any]] = []
-    opening = first_opening
-
-    for offset in range(count):
-        label = first_year_label + offset
-        evidence_year = governing_equinox_year(
-            opening
-        )
-        decision = choose_reconciliation(
-            current_opening=opening,
-            evidence_year=evidence_year,
-            provider=provider,
-            latitude=latitude,
-            longitude=longitude,
-        )
-
-        years.append(
-            {
-                "year": label,
-                "openingCivilDate": opening.isoformat(),
-                "reconciliationDaysAfterCompletion":
-                    decision.reconciliation_days,
-                "reconciliationReasonCode":
-                    decision.reason_code,
-                "governingMarchEquinoxYear":
-                    evidence_year,
-                "governingMarchEquinoxUTC":
-                    decision.evidence_instant_utc
-                    .astimezone(UTC)
-                    .isoformat()
-                    .replace("+00:00", "Z"),
-                "immediateCandidateOpeningCivilDate":
-                    decision.immediate_candidate_opening
-                    .isoformat(),
-                "delayedCandidateOpeningCivilDate":
-                    decision.delayed_candidate_opening
-                    .isoformat(),
-                "immediateSpringGateCivilDate":
-                    decision.immediate_target_date
-                    .isoformat(),
-                "delayedSpringGateCivilDate":
-                    decision.delayed_target_date
-                    .isoformat(),
-                "immediateErrorSeconds":
-                    decision.immediate_error_seconds,
-                "delayedErrorSeconds":
-                    decision.delayed_error_seconds,
-                "nextYearSpringGateCivilDate":
-                    decision.selected_target_date
-                    .isoformat(),
-            }
-        )
-
-        opening = decision.selected_candidate_opening
+    years = [
+        {
+            "year": first_year_label + offset,
+            "openingCivilDate": (
+                first_opening
+                + dt.timedelta(days=364 * offset)
+            ).isoformat(),
+            "reconciliationDaysAfterCompletion": 0,
+        }
+        for offset in range(count)
+    ]
 
     reference: dict[str, Any] = {
         "id": reference_point_id,
@@ -278,49 +107,33 @@ def generate(
                 coordinate_custody_nonce,
             ),
     }
-
     if publish_coordinates:
         reference["latitude"] = latitude
         reference["longitude"] = longitude
 
     document: dict[str, Any] = {
-        "publicationVersion":
-            PUBLICATION_VERSION,
-        "calendarCoreSpecVersion":
-            SPEC_VERSION,
-        "version":
-            "stillpoint-temporal-v3.3",
+        "publicationVersion": PUBLICATION_VERSION,
+        "calendarCoreSpecVersion": SPEC_VERSION,
+        "version": "stillpoint-fixed-364-v1",
         "authority": {
             "id": authority_id,
             "status": authority_status,
         },
-        "referenceRuleVersion":
-            "v3.3-candidate",
+        "referenceRuleVersion": "fixed-364-v1",
         "referencePoint": reference,
-        "duskProtocol": {
-            "id":
-                "apparent-sunset-0.8333",
-            "sunCenterAltitudeDegrees":
-                -0.8333,
+        "gridRule": {
+            "yearDays": 364,
+            "weekDays": 7,
+            "yearCount": count,
+            "reconciliationDays": 0,
         },
-        "seasonalAnchor": {
-            "event": "march_equinox",
-            "commonMonth": 3,
-            "commonDay": 20,
-            "ordinal":
-                SPRING_GATE_ORDINAL,
-        },
-        "snapOperator":
-            "NearestLegalSpringGate",
         "ephemerisEvidence": {
-            "source":
-                ephemeris_source,
-            "sha256":
-                ephemeris_sha256,
+            "source": ephemeris_source,
+            "sha256": ephemeris_sha256,
+            "role": "witness-only-no-grid-authority",
         },
         "years": years,
     }
-
     document["publicationDigest"] = (
         publication_digest(document)
     )
@@ -342,16 +155,20 @@ def validate_output(
             "publication digest mismatch"
         )
 
-    if (
-        document.get(
-            "seasonalAnchor",
-            {},
-        ).get("ordinal")
-        != SPRING_GATE_ORDINAL
-    ):
+    if document.get(
+        "referenceRuleVersion"
+    ) != "fixed-364-v1":
         raise ValueError(
-            "unexpected seasonal anchor"
+            "publication must use fixed-364-v1"
         )
+
+    for row in document.get("years", []):
+        if row.get(
+            "reconciliationDaysAfterCompletion"
+        ) != 0:
+            raise ValueError(
+                "reconciliation is prohibited"
+            )
 
     validate_publication_document(
         document
@@ -369,11 +186,15 @@ def main() -> None:
         "--equinoxes",
         required=True,
         type=Path,
+        help=(
+            "astronomical witness file; retained for provenance "
+            "but cannot alter the fixed grid"
+        ),
     )
     parser.add_argument(
         "--count",
         type=int,
-        default=100,
+        default=50,
     )
     parser.add_argument(
         "--output",
@@ -392,7 +213,6 @@ def main() -> None:
     point = ref["referencePoint"]
     latitude = point.get("latitude")
     longitude = point.get("longitude")
-
     if latitude is None or longitude is None:
         raise SystemExit(
             "referencePoint latitude/longitude "
@@ -419,7 +239,6 @@ def main() -> None:
     authority_status = authority.get(
         "status"
     )
-
     if (
         not isinstance(authority_id, str)
         or not authority_id.strip()
@@ -427,7 +246,6 @@ def main() -> None:
         raise SystemExit(
             "publicationAuthority.id is required"
         )
-
     if authority_status not in (
         "pilot",
         "enacted",
@@ -450,9 +268,10 @@ def main() -> None:
             first["civilDate"]
         ),
         count=args.count,
-        ephemerides=equinox_map(eph_doc),
+        ephemerides={},
         ephemeris_source=str(
-            eph_doc["source"]
+            eph_doc.get("source")
+            or "UNSPECIFIED_WITNESS"
         ),
         ephemeris_sha256=sha256_bytes(
             eph_bytes

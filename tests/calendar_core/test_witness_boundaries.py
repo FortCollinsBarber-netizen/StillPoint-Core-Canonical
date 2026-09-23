@@ -91,7 +91,7 @@ class WitnessBoundaryTests(unittest.TestCase):
         spec = build_calendar_core_spec()
         self.assertEqual(
             spec["enactmentBoundary"]["status"],
-            "external-unresolved",
+            "annual-cycle-ratified",
         )
         self.assertTrue(
             spec["enactmentBoundary"]["lawDoesNotSupplyValues"],

@@ -372,7 +372,7 @@ class RhythmGovernor:
                         "DST adjustment is forbidden on the Common Clock",
                         reopening=True,
                     )
-                if normalized in _DST_SHIFT_KEYS and float(value or 0) != 0:
+                if normalized in _DST_SHIFT_KEYS and _truthy(value):
                     return self._reject(
                         requested,
                         "clock jump/DST shift is forbidden on the Common Clock",

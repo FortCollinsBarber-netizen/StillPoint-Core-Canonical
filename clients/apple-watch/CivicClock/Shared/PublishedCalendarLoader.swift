@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-struct PublishedCivicYear: Codable, Equatable {
+struct PublishedCivicYear: Equatable {
     let year: Int
     let openingCivilDate: String
 }
@@ -15,8 +15,7 @@ struct PublishedCalendarValidationReceipt: Equatable {
 }
 
 struct PublishedCivicCalendar: Equatable {
-    let publicationVersion: String
-    let calendarCoreSpecVersion: String
+    let version: String
     let years: [PublishedCivicYear]
     let validationReceipt: PublishedCalendarValidationReceipt?
 
@@ -28,8 +27,7 @@ struct PublishedCivicCalendar: Equatable {
         years: [PublishedCivicYear]
     ) -> PublishedCivicCalendar {
         PublishedCivicCalendar(
-            publicationVersion: "CONFORMANCE-ONLY",
-            calendarCoreSpecVersion: "stillpoint-calendar-core-spec-v2",
+            version: "CONFORMANCE-ONLY",
             years: years,
             validationReceipt: PublishedCalendarValidationReceipt(
                 authorityID: "CONFORMANCE_ONLY",
@@ -42,16 +40,58 @@ struct PublishedCivicCalendar: Equatable {
     }
 }
 
+struct PublishedCalendarPolicy: Equatable {
+    let authorityID: String?
+    let authorityStatus: String?
+    let publicationDigest: String?
+    let resourceSHA256: String?
+
+    static let unratified = PublishedCalendarPolicy(
+        authorityID: nil,
+        authorityStatus: nil,
+        publicationDigest: nil,
+        resourceSHA256: nil
+    )
+
+    static let enactedStillPoint = PublishedCalendarPolicy(
+        authorityID: "ROBERT_EMMANUEL_LADAY",
+        authorityStatus: "enacted",
+        publicationDigest:
+            "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a",
+        resourceSHA256:
+            "889dd29e84b867db093ee0a981d171c96c1378b070d7e7bc223fe9b108b33012"
+    )
+
+    var isExplicitlyAuthorized: Bool {
+        guard
+            let authorityID, !authorityID.isEmpty,
+            let authorityStatus,
+            ["pilot", "enacted"].contains(authorityStatus),
+            let publicationDigest,
+            PublishedCalendarLoader.isSHA256(publicationDigest),
+            let resourceSHA256,
+            PublishedCalendarLoader.isSHA256(resourceSHA256)
+        else { return false }
+
+        return true
+    }
+}
+
 private struct PublishedCalendarEnvelope: Decodable {
     struct Authority: Decodable {
         let id: String
         let status: String
     }
 
+    struct YearRow: Decodable {
+        let year: Int
+        let openingCivilDate: String
+    }
+
     let publicationVersion: String
     let calendarCoreSpecVersion: String
     let authority: Authority
-    let years: [PublishedCivicYear]
+    let years: [YearRow]
     let publicationDigest: String
 }
 
@@ -61,42 +101,41 @@ enum PublishedCalendarLoader {
 
     static func load(
         bundle: Bundle = .main,
+        policy: PublishedCalendarPolicy = .unratified,
         calendarCoreSpec: CalendarCoreSpec? = CalendarCoreSpecLoader.load()
     ) -> PublishedCivicCalendar? {
-        guard let spec = calendarCoreSpec else { return nil }
+        guard
+            policy.isExplicitlyAuthorized,
+            let calendarCoreSpec,
+            let url = bundle.url(
+                forResource: "published_calendar",
+                withExtension: "json"
+            )
+        else { return nil }
 
-        if let url = bundle.url(
-            forResource: "published_calendar",
-            withExtension: "json"
-        ), let publication = load(url: url, calendarCoreSpec: spec) {
-            return publication
-        }
-
-        #if DEBUG
-        let sourceURL = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources")
-            .appendingPathComponent("published_calendar.json")
-        return load(url: sourceURL, calendarCoreSpec: spec)
-        #else
-        return nil
-        #endif
+        return load(
+            url: url,
+            policy: policy,
+            calendarCoreSpec: calendarCoreSpec
+        )
     }
 
     static func load(
         url: URL,
+        policy: PublishedCalendarPolicy,
         calendarCoreSpec spec: CalendarCoreSpec
     ) -> PublishedCivicCalendar? {
         guard
+            policy.isExplicitlyAuthorized,
             let data = try? Data(contentsOf: url),
+            sha256(data) == policy.resourceSHA256?.lowercased(),
             let envelope = try? JSONDecoder().decode(
                 PublishedCalendarEnvelope.self,
                 from: data
             ),
             validate(
                 envelope,
-                rawData: data,
+                policy: policy,
                 spec: spec
             )
         else { return nil }
@@ -106,13 +145,17 @@ enum PublishedCalendarLoader {
             authorityStatus: envelope.authority.status,
             publicationDigest: envelope.publicationDigest.lowercased(),
             resourceSHA256: sha256(data),
-            source: "validated-enacted-v2-publication"
+            source: "validated-finite-immutable-projection"
         )
 
         return PublishedCivicCalendar(
-            publicationVersion: envelope.publicationVersion,
-            calendarCoreSpecVersion: envelope.calendarCoreSpecVersion,
-            years: envelope.years,
+            version: envelope.publicationVersion,
+            years: envelope.years.map {
+                PublishedCivicYear(
+                    year: $0.year,
+                    openingCivilDate: $0.openingCivilDate
+                )
+            },
             validationReceipt: receipt
         )
     }
@@ -128,40 +171,20 @@ enum PublishedCalendarLoader {
             .joined()
     }
 
-    private static func computedPublicationDigest(
-        _ data: Data
-    ) -> String? {
-        guard
-            var object = try? JSONSerialization.jsonObject(
-                with: data
-            ) as? [String: Any]
-        else { return nil }
-
-        object.removeValue(forKey: "publicationDigest")
-        guard
-            let canonical = try? JSONSerialization.data(
-                withJSONObject: object,
-                options: [.sortedKeys]
-            )
-        else { return nil }
-
-        return sha256(canonical)
-    }
-
     private static func validate(
         _ envelope: PublishedCalendarEnvelope,
-        rawData: Data,
+        policy: PublishedCalendarPolicy,
         spec: CalendarCoreSpec
     ) -> Bool {
         guard
             envelope.publicationVersion == supportedPublicationVersion,
             envelope.calendarCoreSpecVersion == spec.version,
-            envelope.authority.status == "enacted",
-            !envelope.authority.id.isEmpty,
+            envelope.authority.id == policy.authorityID,
+            envelope.authority.status == policy.authorityStatus,
+            envelope.publicationDigest.lowercased()
+                == policy.publicationDigest?.lowercased(),
             isSHA256(envelope.publicationDigest),
-            computedPublicationDigest(rawData)
-                == envelope.publicationDigest.lowercased(),
-            envelope.years.count == 50,
+            !envelope.years.isEmpty,
             validateRows(
                 envelope.years,
                 baseYearDays: spec.ordinaryCalendar.baseYearDays
@@ -171,35 +194,69 @@ enum PublishedCalendarLoader {
         return true
     }
 
+    private static func parseCivilDate(
+        _ value: String,
+        calendar: Calendar
+    ) -> Date? {
+        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
+        guard
+            parts.count == 3,
+            parts[0].count == 4,
+            parts[1].count == 2,
+            parts[2].count == 2,
+            let year = Int(parts[0]),
+            let month = Int(parts[1]),
+            let day = Int(parts[2]),
+            (1...12).contains(month),
+            (1...31).contains(day),
+            let parsed = calendar.date(
+                from: DateComponents(
+                    timeZone: calendar.timeZone,
+                    year: year,
+                    month: month,
+                    day: day
+                )
+            )
+        else { return nil }
+
+        let components = calendar.dateComponents(
+            [.year, .month, .day],
+            from: parsed
+        )
+        guard
+            components.year == year,
+            components.month == month,
+            components.day == day
+        else { return nil }
+
+        return parsed
+    }
+
     private static func validateRows(
-        _ rows: [PublishedCivicYear],
+        _ rows: [PublishedCalendarEnvelope.YearRow],
         baseYearDays: Int
     ) -> Bool {
-        guard !rows.isEmpty else { return false }
-
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
 
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.isLenient = false
-
         for index in rows.indices {
             let row = rows[index]
-            guard formatter.date(from: row.openingCivilDate) != nil else {
-                return false
-            }
+            guard
+                let opening = parseCivilDate(
+                    row.openingCivilDate,
+                    calendar: calendar
+                )
+            else { return false }
 
             if rows.indices.contains(index + 1) {
                 let next = rows[index + 1]
                 guard
                     next.year == row.year + 1,
-                    let opening = formatter.date(from: row.openingCivilDate),
-                    let nextOpening = formatter.date(from: next.openingCivilDate),
+                    let nextOpening = parseCivilDate(
+                        next.openingCivilDate,
+                        calendar: calendar
+                    ),
                     let span = calendar.dateComponents(
                         [.day],
                         from: opening,

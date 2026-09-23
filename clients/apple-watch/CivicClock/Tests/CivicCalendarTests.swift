@@ -89,6 +89,13 @@ final class CivicCalendarTests: XCTestCase {
         return .conformanceFixture(years: years)
     }
 
+    private func seedFixture() -> PublishedCivicCalendar {
+        fiftyYearFixture(
+            startYear: 2026,
+            openingCivilDate: "2026-01-01"
+        )
+    }
+
     func testV2SpecFreezesImmutableCalendarIdentity() throws {
         let spec = try XCTUnwrap(CalendarCoreSpecLoader.load())
         XCTAssertEqual(spec.version, "stillpoint-calendar-core-spec-v2")
@@ -143,6 +150,7 @@ final class CivicCalendarTests: XCTestCase {
             now: boundary,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: seedFixture(),
             calendar: calendar
         )
 
@@ -168,6 +176,7 @@ final class CivicCalendarTests: XCTestCase {
             now: boundary,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: seedFixture(),
             calendar: calendar
         )
 
@@ -197,12 +206,14 @@ final class CivicCalendarTests: XCTestCase {
             now: sunrise.addingTimeInterval(-1),
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: seedFixture(),
             calendar: calendar
         )
         let at = CivicCalendarEngine.snapshot(
             now: sunrise,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: seedFixture(),
             calendar: calendar
         )
 
@@ -232,6 +243,7 @@ final class CivicCalendarTests: XCTestCase {
             now: sunset,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: seedFixture(),
             calendar: calendar
         )
 

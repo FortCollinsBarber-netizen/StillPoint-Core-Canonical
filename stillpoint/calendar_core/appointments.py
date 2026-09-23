@@ -12,11 +12,7 @@ from .calendar import (
 
 @dataclass(frozen=True)
 class AppointedTime:
-    """A supplied observance projected onto Calendar Core law.
-
-    Appointed times are downstream expressions. Creating one cannot alter the
-    immutable annual grid, weekday sequence, witness layer, or translation epoch.
-    """
+    """A supplied observance projected onto immutable Calendar Core law."""
 
     id: str
     name: str
@@ -54,10 +50,8 @@ def project_appointed_time(
     *,
     common_year: int,
     opening_civil_date: date,
-    day001_weekday: str,
     calendar_state: str = "ORDINARY",
 ) -> AppointedTimeOccurrence | None:
-    """Project a fixed appointed time only into the immutable ordinary grid."""
     if calendar_state != "ORDINARY":
         return None
 
@@ -74,10 +68,7 @@ def project_appointed_time(
         appointed_time=appointed_time,
         common_year=common_year,
         ordinal=ordinal,
-        weekday=weekday_for_ordinal(
-            ordinal,
-            day001_weekday,
-        ),
+        weekday=weekday_for_ordinal(ordinal),
         opens_on_civil_date=opens_on,
         closes_on_civil_date=closes_on,
     )

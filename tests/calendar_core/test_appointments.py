@@ -19,13 +19,15 @@ class AppointedTimeTests(unittest.TestCase):
             atonement,
             common_year=1,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Thursday",
         )
         self.assertIsNotNone(occurrence)
         self.assertEqual(occurrence.calendar_state, "ORDINARY")
         self.assertEqual(occurrence.common_year, 1)
         self.assertEqual(
-            (occurrence.closes_on_civil_date - occurrence.opens_on_civil_date).days,
+            (
+                occurrence.closes_on_civil_date
+                - occurrence.opens_on_civil_date
+            ).days,
             1,
         )
 
@@ -41,7 +43,6 @@ class AppointedTimeTests(unittest.TestCase):
                 feast,
                 common_year=1,
                 opening_civil_date=date(2026, 1, 1),
-                day001_weekday="Thursday",
                 calendar_state="OUTSIDE_RANGE",
             )
         )
@@ -66,17 +67,30 @@ class AppointedTimeTests(unittest.TestCase):
             feast,
             common_year=1,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Thursday",
         )
         later = project_appointed_time(
             feast,
             common_year=50,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Thursday",
         )
         self.assertEqual(one.ordinal, later.ordinal)
         self.assertEqual(one.weekday, later.weekday)
         self.assertEqual(one.weekday, "Friday")
+
+    def test_observance_projection_cannot_override_weekday_epoch(self):
+        feast = AppointedTime(
+            id="fixed",
+            name="Fixed",
+            month=1,
+            day=1,
+        )
+        with self.assertRaises(TypeError):
+            project_appointed_time(
+                feast,
+                common_year=1,
+                opening_civil_date=date(2026, 1, 1),
+                day001_weekday="Friday",
+            )
 
 
 if __name__ == "__main__":

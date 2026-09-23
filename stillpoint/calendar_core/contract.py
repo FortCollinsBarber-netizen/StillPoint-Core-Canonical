@@ -105,7 +105,6 @@ def build_calendar_core_contract() -> dict[str, Any]:
         local_zone=CONFORMANCE_ZONE,
         common_year=1,
         opening_civil_date=date(2026, 1, 1),
-        day001_weekday=CANONICAL_DAY001_WEEKDAY,
         common_standard_offset_seconds=-7 * 3600,
         reference_rule_version="immutable-364-v1",
         reference_station_id=None,

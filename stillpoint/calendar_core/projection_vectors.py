@@ -127,7 +127,6 @@ def _config(
         local_zone=CONFORMANCE_ZONE,
         common_year=common_year,
         opening_civil_date=opening,
-        day001_weekday="Thursday",
         common_standard_offset_seconds=
             -7 * 3600,
         continuous_k_at_opening=

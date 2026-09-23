@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Optional
 
-from .calendar import CANONICAL_DAY001_WEEKDAY
 from .dual_stamp import project_dual_stamp
 from .gates import phase_for_base_day
 from .jubilee import jubilee_state
@@ -20,7 +19,6 @@ class CalendarConfig:
     common_year: int
     opening_civil_date: date
     common_standard_offset_seconds: int
-    day001_weekday: str = CANONICAL_DAY001_WEEKDAY
     continuous_k_at_opening: int = 0
     reference_rule_version: str = "immutable-364-v1"
     reference_station_id: Optional[str] = None
@@ -30,9 +28,7 @@ class CalendarConfig:
 
 
 def get_calendar_snapshot(
-    instant: datetime,
-    *,
-    config: CalendarConfig,
+    instant: datetime, *, config: CalendarConfig
 ) -> CalendarSnapshot:
     dual = project_dual_stamp(
         instant,
@@ -40,34 +36,26 @@ def get_calendar_snapshot(
         local_zone=config.local_zone,
         common_year=config.common_year,
         opening_civil_date=config.opening_civil_date,
-        day001_weekday=config.day001_weekday,
         common_standard_offset_seconds=config.common_standard_offset_seconds,
         continuous_k_at_opening=config.continuous_k_at_opening,
     )
-
     pair = bracket_sunset(
-        instant,
-        config.location,
-        config.local_zone,
+        instant, config.location, config.local_zone
     )
     weekly = protected_time_state(
         instant,
         location=config.location,
         local_zone=config.local_zone,
     )
-
     phase = (
         phase_for_base_day(dual.common_date.ordinal)
-        if dual.common_date
-        else None
+        if dual.common_date else None
     )
-
     jubilee = jubilee_state(
         common_year=config.common_year,
         epoch_common_year=config.jubilee_epoch_common_year,
         epoch_cycle=config.jubilee_epoch_cycle,
     )
-
     return CalendarSnapshot(
         instant_utc=dual.instant_utc,
         civil_timestamp=dual.civil_timestamp,

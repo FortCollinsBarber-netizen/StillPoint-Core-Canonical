@@ -57,6 +57,14 @@ class WeekIntegrityTests(unittest.TestCase):
         }
         self.assertEqual(weekdays, {"Thursday"})
 
+    def test_abstract_api_cannot_override_day001_weekday(self):
+        with self.assertRaises(TypeError):
+            common_date(
+                year=1,
+                ordinal=1,
+                day001_weekday="Friday",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

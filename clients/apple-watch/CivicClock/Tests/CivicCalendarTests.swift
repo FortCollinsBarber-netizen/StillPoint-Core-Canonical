@@ -106,8 +106,10 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertEqual(spec.ordinaryCalendar.yearClosing.day, 30)
         XCTAssertFalse(spec.ordinaryCalendar.hasDecember31)
         XCTAssertFalse(spec.ordinaryCalendar.hasFebruary29)
-        XCTAssertEqual(spec.annualTransition.interannualDays, 0)
-        XCTAssertFalse(spec.annualTransition.reconciliationAllowed)
+        XCTAssertEqual(
+            spec.annualTransition.rule,
+            "DAY_364_TO_NEXT_YEAR_DAY_001"
+        )
     }
 
     func testSunriseAndSunsetStayOnRequestedLocalCivilDate() throws {

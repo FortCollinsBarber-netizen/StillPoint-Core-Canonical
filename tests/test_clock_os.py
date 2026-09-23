@@ -18,6 +18,11 @@ from stillpoint.clock_os import (
 )
 from stillpoint.calendar_core.models import GeoPoint
 from stillpoint.calendar_core.sunset import apparent_sunset_utc
+from stillpoint.lunar import (
+    REFERENCE_NEW_MOON,
+    SYNODIC_MONTH_DAYS,
+    lunar_phase_witness,
+)
 
 
 TEST_LOCATION = GeoPoint(latitude=40.0, longitude=-105.0, id="CLOCK_TEST")
@@ -44,6 +49,11 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(snapshot["calendar"]["map"]["year_count"], 50)
         self.assertEqual(snapshot["calendar"]["map"]["total_days"], 18_200)
         self.assertFalse(snapshot["invariants"]["astronomy_mutates_grid"])
+        self.assertFalse(snapshot["invariants"]["lunar_witness_mutates_grid"])
+        self.assertEqual(
+            snapshot["lunar_witness"]["calendar_effect"],
+            "none",
+        )
 
     def test_clock_os_is_outside_range_before_first_enacted_sunset(self):
         before = (
@@ -112,6 +122,34 @@ class ClockOSTests(unittest.TestCase):
                 local_zone="Not/A_Real_Zone",
                 common_standard_offset_seconds=-7 * 3600,
             )
+
+    def test_lunar_witness_matches_reference_and_phase_progression(self):
+        reference = lunar_phase_witness(REFERENCE_NEW_MOON)
+        self.assertAlmostEqual(reference["age_days"], 0.0, places=8)
+        self.assertEqual(reference["phase_name"], "NEW MOON")
+        self.assertTrue(reference["is_waxing"])
+        self.assertEqual(reference["calendar_effect"], "none")
+
+        first_quarter = lunar_phase_witness(
+            REFERENCE_NEW_MOON
+            + timedelta(days=SYNODIC_MONTH_DAYS / 4.0)
+        )
+        self.assertEqual(first_quarter["phase_name"], "FIRST QUARTER")
+        self.assertTrue(first_quarter["is_waxing"])
+        self.assertGreater(first_quarter["illumination_percent"], 45)
+        self.assertLess(first_quarter["illumination_percent"], 55)
+
+    def test_lunar_state_cannot_change_calendar_address(self):
+        instant = _after_sunset(date(2026, 1, 1))
+        snapshot = clock_snapshot(instant, config=CONFIG)
+        direct = address_for_instant(instant, config=CONFIG)
+
+        self.assertEqual(direct, "Y_2026-001")
+        self.assertEqual(snapshot["calendar"]["calendar_address"], direct)
+        self.assertEqual(
+            snapshot["lunar_witness"]["evidence_label"],
+            "MEAN LUNATION · WITNESS ONLY",
+        )
 
     def test_clock_cli_read_does_not_construct_company_state(self):
         instant = _after_sunset(date(2026, 1, 1))

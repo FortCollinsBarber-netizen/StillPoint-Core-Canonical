@@ -15,6 +15,11 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .calendar_core.governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .calendar_core.models import GeoPoint
 from .calendar_core.runtime_surface import (
     calendar_day_payload,
@@ -83,6 +88,12 @@ def canonical_civil_window(
 ) -> dict[str, Any]:
     """Return the location-specific sunset window for one canonical address."""
 
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
+    )
     day = calendar_day_payload(
         int(year),
         int(ordinal),
@@ -137,6 +148,23 @@ def clock_snapshot(
 
     if instant.tzinfo is None:
         raise ValueError("instant must be timezone-aware")
+
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.COORDINATE,
+            source="clock-os",
+        )
+    )
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OBSERVE,
+            source="clock-os-solar-lunar-observation",
+            annotation={
+                "solar_boundaries": True,
+                "lunar_witness": True,
+            },
+        )
+    )
 
     document = load_enacted_publication(config.publication_path)
     instant_utc = instant.astimezone(timezone.utc)

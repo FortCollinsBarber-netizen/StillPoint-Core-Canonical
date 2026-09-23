@@ -18,6 +18,10 @@ from stillpoint.calendar_core.spec import (
     SPEC_VERSION,
     build_calendar_core_spec,
 )
+from stillpoint.calendar_core.witness_overlays import (
+    EXTERNAL_WITNESS_ARTIFACT_VERSION,
+    build_external_witness_artifact,
+)
 
 
 class CalendarArtifactTests(unittest.TestCase):
@@ -66,6 +70,24 @@ class CalendarArtifactTests(unittest.TestCase):
         self.assertNotIn("LOVELAND_TEST", serialized)
         self.assertNotIn("openingCivilDate", serialized)
         self.assertNotIn("jubileeEpoch", serialized)
+
+    def test_external_witness_artifact_has_zero_grid_authority(self):
+        document = build_external_witness_artifact()
+        self.assertEqual(
+            document["version"],
+            EXTERNAL_WITNESS_ARTIFACT_VERSION,
+        )
+        self.assertEqual(
+            document["authorityStatus"],
+            "witness-layer-no-grid-authority",
+        )
+        self.assertFalse(document["jurisdiction"]["gridAuthority"])
+        self.assertFalse(document["jurisdiction"]["mayInsertDays"])
+        self.assertFalse(document["scope"]["repeatIntoLaterCommonYears"])
+        self.assertTrue(document["events"])
+        self.assertTrue(
+            all(event["calendar_effect"] == "none" for event in document["events"])
+        )
 
     def test_projection_vectors_prove_direct_year_transition(self):
         doc = build_calendar_projection_vectors()

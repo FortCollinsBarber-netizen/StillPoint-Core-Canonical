@@ -185,6 +185,44 @@ enum PublishedCalendarLoader {
         return true
     }
 
+    private static func parseCivilDate(
+        _ value: String,
+        calendar: Calendar
+    ) -> Date? {
+        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
+        guard
+            parts.count == 3,
+            parts[0].count == 4,
+            parts[1].count == 2,
+            parts[2].count == 2,
+            let year = Int(parts[0]),
+            let month = Int(parts[1]),
+            let day = Int(parts[2]),
+            (1...12).contains(month),
+            (1...31).contains(day),
+            let parsed = calendar.date(
+                from: DateComponents(
+                    timeZone: calendar.timeZone,
+                    year: year,
+                    month: month,
+                    day: day
+                )
+            )
+        else { return nil }
+
+        let components = calendar.dateComponents(
+            [.year, .month, .day],
+            from: parsed
+        )
+        guard
+            components.year == year,
+            components.month == month,
+            components.day == day
+        else { return nil }
+
+        return parsed
+    }
+
     private static func validateRows(
         _ rows: [PublishedCalendarEnvelope.YearRow],
         baseYearDays: Int
@@ -193,27 +231,22 @@ enum PublishedCalendarLoader {
         calendar.locale = Locale(identifier: "en_US_POSIX")
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
 
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.isLenient = false
-
         for index in rows.indices {
             let row = rows[index]
-            guard formatter.date(from: row.openingCivilDate) != nil
+            guard
+                let opening = parseCivilDate(
+                    row.openingCivilDate,
+                    calendar: calendar
+                )
             else { return false }
 
             if rows.indices.contains(index + 1) {
                 let next = rows[index + 1]
                 guard
                     next.year == row.year + 1,
-                    let opening = formatter.date(
-                        from: row.openingCivilDate
-                    ),
-                    let nextOpening = formatter.date(
-                        from: next.openingCivilDate
+                    let nextOpening = parseCivilDate(
+                        next.openingCivilDate,
+                        calendar: calendar
                     ),
                     let span = calendar.dateComponents(
                         [.day],

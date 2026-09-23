@@ -10,6 +10,12 @@ from stillpoint.calendar_core.calendar import (
     common_date,
     ordinal_day,
 )
+from stillpoint.calendar_core.gates import phase_for_base_day
+from stillpoint.calendar_core.jubilee import jubilee_state
+from stillpoint.calendar_core.observances import (
+    CIVIC_OBSERVANCES,
+    SACRED_OBSERVANCES,
+)
 from stillpoint.calendar_core.runtime_surface import load_enacted_publication
 
 
@@ -158,6 +164,66 @@ class ConstitutionalRhythmLockTests(unittest.TestCase):
             self.assertEqual((right - left).days, 364)
 
         self.assertEqual(50 * 364, 18_200)
+
+    def test_seasons_and_enochic_gate_positions_repeat_without_year_input(self):
+        # Seasonal/gate architecture is a function of immutable ordinal
+        # position, not an external civil year label.
+        checkpoints = (1, 31, 61, 92, 122, 152, 183, 213, 243, 274, 304, 334, 364)
+        baseline = {
+            ordinal: phase_for_base_day(ordinal)
+            for ordinal in checkpoints
+        }
+        for year in range(2026, 2076):
+            for ordinal, phase in baseline.items():
+                projected = common_date(year=year, ordinal=ordinal)
+                self.assertEqual(projected.ordinal, ordinal)
+                again = phase_for_base_day(projected.ordinal)
+                self.assertEqual(again, phase)
+
+    def test_sacred_and_civic_observance_weekdays_do_not_migrate(self):
+        for observance in SACRED_OBSERVANCES + CIVIC_OBSERVANCES:
+            ordinal = ordinal_day(observance.month, observance.day)
+            weekdays = {
+                common_date(year=year, ordinal=ordinal).weekday
+                for year in range(2026, 2076)
+            }
+            self.assertEqual(
+                len(weekdays),
+                1,
+                (observance.id, weekdays),
+            )
+
+    def test_seven_year_49_and_jubilee_positions_run_on_same_calendar_surface(self):
+        thresholds = []
+        for year in range(2026, 2075):
+            state = jubilee_state(
+                common_year=year,
+                epoch_common_year=2026,
+            )
+            self.assertIsNotNone(state)
+            if state.is_sabbatical_threshold:
+                thresholds.append(state.cycle_year)
+
+        self.assertEqual(thresholds, [7, 14, 21, 28, 35, 42, 49])
+
+        jubilee = jubilee_state(
+            common_year=2075,
+            epoch_common_year=2026,
+        )
+        self.assertIsNotNone(jubilee)
+        self.assertEqual(jubilee.cycle_year, 50)
+        self.assertTrue(jubilee.is_jubilee_year)
+
+        # The annual address beneath Jubilee is still the same Thursday Jan 1
+        # and the same Wednesday Dec 30; the larger cycle does not mutate it.
+        self.assertEqual(
+            common_date(year=2075, ordinal=1).weekday,
+            "Thursday",
+        )
+        self.assertEqual(
+            common_date(year=2075, ordinal=364).weekday,
+            "Wednesday",
+        )
 
     def test_invalid_extra_dates_fail_closed(self):
         with self.assertRaises(ValueError):

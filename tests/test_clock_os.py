@@ -58,6 +58,79 @@ class ClockOSTests(unittest.TestCase):
             "none",
         )
 
+    def test_named_calendar_date_stays_on_day_one_after_sunset_until_fixed_midnight(self):
+        after_sunset = _after_sunset(date(2026, 1, 1))
+        snapshot = clock_snapshot(after_sunset, config=CONFIG)
+
+        self.assertEqual(
+            snapshot["calendar"]["calendar_address"],
+            "Y_2026-001",
+        )
+        self.assertEqual(snapshot["protected_time"]["named_day"], "Friday")
+        self.assertEqual(
+            snapshot["boundaries"]["coordination_date_source"],
+            "fixed-standard-midnight",
+        )
+        self.assertEqual(
+            snapshot["invariants"]["coordination_clock"],
+            "24-hour",
+        )
+        self.assertFalse(snapshot["invariants"]["common_standard_uses_dst"])
+        self.assertEqual(
+            snapshot["invariants"]["protected_time_boundary"],
+            "local-apparent-sunset",
+        )
+
+    def test_december_30_rolls_directly_to_january_1_at_fixed_midnight(self):
+        before = datetime(2026, 12, 31, 6, 59, 59, tzinfo=timezone.utc)
+        after = datetime(2026, 12, 31, 7, 0, 0, tzinfo=timezone.utc)
+
+        before_snapshot = clock_snapshot(before, config=CONFIG)
+        after_snapshot = clock_snapshot(after, config=CONFIG)
+
+        self.assertEqual(
+            before_snapshot["calendar"]["calendar_address"],
+            "Y_2026-364",
+        )
+        self.assertEqual(
+            before_snapshot["calendar"]["common_date"]["month"],
+            12,
+        )
+        self.assertEqual(
+            before_snapshot["calendar"]["common_date"]["day"],
+            30,
+        )
+        self.assertEqual(
+            after_snapshot["calendar"]["calendar_address"],
+            "Y_2027-001",
+        )
+        self.assertEqual(
+            after_snapshot["calendar"]["common_date"]["month"],
+            1,
+        )
+        self.assertEqual(
+            after_snapshot["calendar"]["common_date"]["day"],
+            1,
+        )
+        self.assertEqual(
+            after_snapshot["calendar"]["common_date"]["weekday"],
+            "Thursday",
+        )
+
+    def test_dst_cannot_advance_common_date_early(self):
+        # 00:30 MDT is still 23:30 on the fixed -07:00 coordination clock.
+        instant = datetime(2026, 7, 16, 6, 30, tzinfo=timezone.utc)
+        snapshot = clock_snapshot(instant, config=CONFIG)
+
+        civil = datetime.fromisoformat(snapshot["instant"]["civil"])
+        common = datetime.fromisoformat(snapshot["instant"]["common_standard"])
+        self.assertEqual(civil.date(), date(2026, 7, 16))
+        self.assertEqual(common.date(), date(2026, 7, 15))
+        self.assertEqual(
+            snapshot["boundaries"]["coordination_date"],
+            "2026-07-15",
+        )
+
     def test_clock_os_is_outside_range_before_first_enacted_sunset(self):
         before = (
             apparent_sunset_utc(date(2026, 1, 1), TEST_LOCATION)

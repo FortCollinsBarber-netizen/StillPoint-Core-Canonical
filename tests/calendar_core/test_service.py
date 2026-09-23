@@ -12,9 +12,9 @@ class CalendarServiceTests(unittest.TestCase):
             local_zone="America/Denver",
             common_year=2026,
             opening_civil_date=date(2026, 1, 1),
-            day001_weekday="Friday",
+            day001_weekday="Thursday",
             common_standard_offset_seconds=-7 * 3600,
-            reference_rule_version="v3.3-candidate",
+            reference_rule_version="fixed-364-v1",
             jubilee_epoch_common_year=2026,
         )
         snap = get_calendar_snapshot(
@@ -22,11 +22,11 @@ class CalendarServiceTests(unittest.TestCase):
             config=config,
         )
         self.assertEqual(snap.common_date.ordinal, 260)
-        self.assertEqual(snap.common_date.weekday, "Friday")
+        self.assertEqual(snap.common_date.weekday, "Thursday")
         self.assertEqual(snap.annual_phase, 9)
         self.assertEqual(snap.solar_gate, 1)
         self.assertEqual(snap.jubilee.cycle_year, 1)
-        self.assertEqual(snap.reference_rule_version, "v3.3-candidate")
+        self.assertEqual(snap.reference_rule_version, "fixed-364-v1")
 
 
 if __name__ == "__main__":

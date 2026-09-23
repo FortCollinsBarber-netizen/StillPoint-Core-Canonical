@@ -31,6 +31,25 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .governor import (
+    ANCHOR_WEEKDAY,
+    CANONICAL_FIRST_YEAR,
+    CANONICAL_LAST_YEAR,
+    CANONICAL_TOTAL_DAYS,
+    CANONICAL_WEEKS,
+    CANONICAL_YEAR_COUNT,
+    CANONICAL_YEAR_DAYS,
+    FORBIDDEN_DATES,
+    RHYTHM_GOVERNOR,
+    CalendarInvariantViolation,
+    CanonicalDate,
+    RhythmAuthority,
+    RhythmDecision,
+    RhythmGovernor,
+    RhythmRequest,
+    assert_canonical_surface,
+    validate_transition,
+)
 from .observances import (
     ALL_OBSERVANCES,
     CIVIC_OBSERVANCES,
@@ -110,6 +129,21 @@ from .witness import (
 
 __all__ = [
     "MONTH_LENGTHS",
+    "ANCHOR_WEEKDAY",
+    "CANONICAL_FIRST_YEAR",
+    "CANONICAL_LAST_YEAR",
+    "CANONICAL_TOTAL_DAYS",
+    "CANONICAL_WEEKS",
+    "CANONICAL_YEAR_COUNT",
+    "CANONICAL_YEAR_DAYS",
+    "FORBIDDEN_DATES",
+    "RHYTHM_GOVERNOR",
+    "CalendarInvariantViolation",
+    "CanonicalDate",
+    "RhythmAuthority",
+    "RhythmDecision",
+    "RhythmGovernor",
+    "RhythmRequest",
     "GATE_SEQUENCE",
     "PHASE_LENGTHS",
     "SPEC_VERSION",
@@ -183,4 +217,6 @@ __all__ = [
     "iter_fifty_year_map",
     "build_calendar_population_artifact",
     "export_calendar_population_artifact",
+    "assert_canonical_surface",
+    "validate_transition",
 ]

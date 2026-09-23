@@ -89,27 +89,27 @@ enum SolarBoundaryCalculator {
         guard let spec else { return nil }
         let day = calendar.startOfDay(for: now)
         guard
-            let dawn = civilDawn(
+            let dawn = Self.civilDawn(
                 on: day,
                 latitude: latitude,
                 longitude: longitude,
                 calendar: calendar
             ),
-            let sunrise = sunrise(
+            let sunrise = Self.sunrise(
                 on: day,
                 latitude: latitude,
                 longitude: longitude,
                 calendar: calendar,
                 spec: spec
             ),
-            let sunset = sunset(
+            let sunset = Self.sunset(
                 on: day,
                 latitude: latitude,
                 longitude: longitude,
                 calendar: calendar,
                 spec: spec
             ),
-            let dusk = civilDusk(
+            let dusk = Self.civilDusk(
                 on: day,
                 latitude: latitude,
                 longitude: longitude,
@@ -144,7 +144,7 @@ enum SolarBoundaryCalculator {
                 value: 1,
                 to: day
             )!
-            guard let nextDawn = civilDawn(
+            guard let nextDawn = Self.civilDawn(
                 on: tomorrow,
                 latitude: latitude,
                 longitude: longitude,

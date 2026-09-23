@@ -99,7 +99,6 @@ from .models import (
     EnochPhase,
     GeoPoint,
     JubileeState,
-    ReconciliationDecision,
     WeeklyProtectedState,
 )
 from .projection_vectors import (
@@ -217,7 +216,6 @@ __all__ = [
     "PublicationEnvelope",
     "PublicationRange",
     "PublicationValidationError",
-    "ReconciliationDecision",
     "WeeklyProtectedState",
     "apparent_sunrise_utc",
     "apparent_sunset_utc",

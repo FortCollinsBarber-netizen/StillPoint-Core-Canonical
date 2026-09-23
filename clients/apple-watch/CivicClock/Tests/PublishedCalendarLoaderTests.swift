@@ -23,30 +23,52 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
 
     private func fixtureData(
-        secondOpening: String = "2026-12-31"
+        secondOpening: String? = nil
     ) -> Data {
-        Data(
-            """
-            {
-              "publicationVersion": "stillpoint-calendar-publication-v2",
-              "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v2",
-              "authority": {
-                "id": "TEST_PILOT_AUTHORITY",
-                "status": "pilot"
-              },
-              "years": [
-                {
-                  "year": 7,
-                  "openingCivilDate": "2026-01-01"
-                },
-                {
-                  "year": 8,
-                  "openingCivilDate": "(secondOpening)"
-                }
-              ],
-              "publicationDigest": "(publicationDigest)"
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+
+        let first = formatter.date(from: "2026-01-01")!
+        var years: [[String: Any]] = []
+        for index in 0..<50 {
+            let opening: String
+            if index == 1, let secondOpening {
+                opening = secondOpening
+            } else {
+                let date = calendar.date(
+                    byAdding: .day,
+                    value: 364 * index,
+                    to: first
+                )!
+                opening = formatter.string(from: date)
             }
-            """.utf8
+            years.append([
+                "year": 7 + index,
+                "openingCivilDate": opening,
+            ])
+        }
+
+        let document: [String: Any] = [
+            "publicationVersion": "stillpoint-calendar-publication-v2",
+            "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v2",
+            "authority": [
+                "id": "TEST_PILOT_AUTHORITY",
+                "status": "enacted",
+            ],
+            "years": years,
+            "publicationDigest": publicationDigest,
+        ]
+        return try! JSONSerialization.data(
+            withJSONObject: document,
+            options: [.sortedKeys]
         )
     }
 
@@ -67,7 +89,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
     private func policy(for data: Data) -> PublishedCalendarPolicy {
         PublishedCalendarPolicy(
             authorityID: "TEST_PILOT_AUTHORITY",
-            authorityStatus: "pilot",
+            authorityStatus: "enacted",
             publicationDigest: publicationDigest,
             resourceSHA256: rawSHA256(data)
         )
@@ -99,7 +121,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         )
 
         XCTAssertTrue(publication.isValidatedForProjection)
-        XCTAssertEqual(publication.years.count, 2)
+        XCTAssertEqual(publication.years.count, 50)
         XCTAssertEqual(publication.years[0].year, 7)
         XCTAssertEqual(publication.years[1].openingCivilDate, "2026-12-31")
         XCTAssertEqual(
@@ -214,7 +236,7 @@ final class PublishedCalendarLoaderTests: XCTestCase {
 
         XCTAssertEqual(
             snapshot.commonCalendarDetail,
-            "PUBLICATION NOT AUTHORIZED"
+            "PUBLICATION UNAVAILABLE"
         )
     }
 }

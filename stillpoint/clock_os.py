@@ -170,6 +170,25 @@ def clock_snapshot(
             publication_path=config.publication_path,
         )
 
+    common_calendar_coordinate: dict[str, Any] | None = None
+    if current is not None:
+        common_date = current["common_date"]
+        common_time = common_timestamp.strftime("%H:%M:%S")
+        common_calendar_coordinate = {
+            "year": int(common_date["year"]),
+            "month": int(common_date["month"]),
+            "day": int(common_date["day"]),
+            "weekday": str(common_date["weekday"]),
+            "time": common_time,
+            "display": (
+                f"{int(common_date['year']):04d}-"
+                f"{int(common_date['month']):02d}-"
+                f"{int(common_date['day']):02d} "
+                f"{common_time}"
+            ),
+            "calendar_address": current["calendar_address"],
+        }
+
     authority = document["authority"]
     rows = document["years"]
     next_begins: dict[str, Any] | None = None
@@ -194,6 +213,7 @@ def clock_snapshot(
                 config.common_standard_offset_seconds
             ),
             "common_clock": common_timestamp.strftime("%H:%M:%S"),
+            "common_calendar": common_calendar_coordinate,
         },
         "location": {
             "id": config.location.id,

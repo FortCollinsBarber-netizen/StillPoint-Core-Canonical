@@ -105,7 +105,7 @@ jobs:
           /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl
           tmpdir="$(mktemp -d)"
           cd "$tmpdir"
-          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"
+          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert s['reconciliation']['allowedDays']==[0]; assert s['grid']['december31Exists'] is False; print('calendar wheel smoke: PASS')"
 
 
   calendar-release-identity:
@@ -158,15 +158,10 @@ jobs:
               "commit": head,
               "tree": tree,
               "artifacts": verified,
-              "unresolvedCivicInputs": [
-                  "firstOpening",
-                  "referencePoint",
-                  "ephemerisEvidence",
-                  "publicationAuthority",
-              ],
+              "unresolvedCivicInputs": [],
               "invariants": [
                   "ordinary-year-is-364",
-                  "reconciliation-is-interannual-0-or-7",
+                  "no-reconciliation-days",
                   "week-is-unbroken",
                   "law-publication-proof-client-are-separate",
                   "ground-zero-is-pilot-not-national-authority",

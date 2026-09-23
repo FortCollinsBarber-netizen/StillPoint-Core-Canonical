@@ -4,6 +4,7 @@ import unittest
 
 from stillpoint.calendar_core.governor import (
     GOVERNING_RULE,
+    INHABITANT_LAYER_POLICY,
     CalendarAuthority,
     CalendarAuthorityViolation,
     RhythmGovernor,
@@ -167,6 +168,56 @@ class RhythmGovernorTests(unittest.TestCase):
             self.assertEqual(envelope["surface_digest"], baseline)
 
         self.assertEqual(self.governor.surface_digest, baseline)
+
+    def test_every_inhabitant_layer_can_live_on_surface_without_owning_it(self):
+        expected = {
+            "feasts": "OVERLAY",
+            "sabbath": "OVERLAY",
+            "stillpoint": "OVERLAY",
+            "seasons": "OVERLAY",
+            "lunar-witness": "OBSERVE",
+            "jewish-overlay": "OVERLAY",
+            "islamic-overlay": "OVERLAY",
+            "seven-year-cycle": "OVERLAY",
+            "forty-nine-year-cycle": "OVERLAY",
+            "jubilee": "OVERLAY",
+            "local-light": "OBSERVE",
+        }
+        self.assertEqual(
+            {key: value.value for key, value in INHABITANT_LAYER_POLICY.items()},
+            expected,
+        )
+
+        baseline = self.governor.surface_digest
+        for layer, authority in expected.items():
+            envelope = self.governor.inhabit(
+                layer,
+                year=2026,
+                month=9,
+                day=23,
+                payload={"example": layer},
+            )
+            self.assertEqual(envelope["layer_authority"], authority)
+            self.assertEqual(envelope["surface_authority"], "none")
+            self.assertFalse(envelope["grid_mutated"])
+            self.assertEqual(envelope["surface_digest"], baseline)
+
+        self.assertEqual(self.governor.surface_digest, baseline)
+
+    def test_inhabitant_layer_cannot_smuggle_a_surface_rewrite(self):
+        decision = self.governor.decide(
+            CalendarAuthority.OVERLAY,
+            payload={
+                "layer": "jubilee",
+                "layer_payload": {
+                    "surface_patch": {"insert_day": "December 31"},
+                },
+            },
+        )
+
+        self.assertFalse(decision.allowed)
+        self.assertEqual(decision.authority, CalendarAuthority.REJECT)
+        self.assertTrue(decision.canonical_reopening_required)
 
     def test_observation_does_not_gain_authority_by_claiming_a_correction(self):
         decision = self.governor.decide(

@@ -41,7 +41,7 @@ class CalendarArtifactCustodyTests(unittest.TestCase):
             manifest["compatibilityBridge"][
                 "authorityStatus"
             ],
-            "non-authoritative-compatibility-only",
+            "historical-compatibility-only",
         )
 
     def test_manifest_hashes_exact_export_bytes(self):

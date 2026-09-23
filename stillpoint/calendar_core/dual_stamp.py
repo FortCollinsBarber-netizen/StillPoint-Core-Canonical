@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from .address import format_ordinary_address
 from .calendar import common_date
 from .models import DualStamp, GeoPoint
-from .sunset import bracket_sunset
 
 
 def project_dual_stamp(
@@ -25,8 +24,11 @@ def project_dual_stamp(
         raise ValueError("continuous_k_at_opening must be >= 0")
 
     instant_utc = instant.astimezone(timezone.utc)
-    pair = bracket_sunset(instant_utc, location, local_zone)
-    offset = (pair.previous_civil_date - opening_civil_date).days
+    common_tz = timezone(
+        timedelta(seconds=common_standard_offset_seconds)
+    )
+    common_standard = instant_utc.astimezone(common_tz)
+    offset = (common_standard.date() - opening_civil_date).days
     computed_k = continuous_k_at_opening + offset
     continuous_k = computed_k if computed_k >= 0 else None
 
@@ -41,13 +43,10 @@ def project_dual_stamp(
         )
 
     civil = instant_utc.astimezone(ZoneInfo(local_zone))
-    common_tz = timezone(
-        timedelta(seconds=common_standard_offset_seconds)
-    )
     return DualStamp(
         instant_utc=instant_utc,
         civil_timestamp=civil,
-        common_standard_timestamp=instant_utc.astimezone(common_tz),
+        common_standard_timestamp=common_standard,
         continuous_k=continuous_k,
         state=state,
         common_date=current,

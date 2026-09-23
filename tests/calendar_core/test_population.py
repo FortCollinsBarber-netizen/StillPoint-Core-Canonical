@@ -10,6 +10,7 @@ from stillpoint.calendar_core.population_artifact import (
     build_calendar_population_artifact,
 )
 from stillpoint.calendar_core.publication import (
+    PROJECTION_SEMANTICS,
     PUBLICATION_VERSION,
     publication_digest,
 )
@@ -25,6 +26,7 @@ def fifty_year_publication():
             "id": "TEST_ENACTED",
             "status": "enacted",
         },
+        "projectionSemantics": PROJECTION_SEMANTICS,
         "years": [
             {
                 "year": 2026 + offset,

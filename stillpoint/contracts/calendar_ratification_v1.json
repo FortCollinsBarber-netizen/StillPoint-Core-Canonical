@@ -1,0 +1,81 @@
+{
+  "version": "stillpoint-calendar-ratification-v1",
+  "status": "enacted",
+  "authority": {
+    "id": "ROBERT_EMMANUEL_LADAY",
+    "role": "sole-human-ceo-final-authority"
+  },
+  "effectiveAt": "2026-09-23T06:19:46-06:00",
+  "effectiveCommonDate": "2026-09-23",
+  "governingRule": "disrupt-reality-as-little-as-possible-correct-as-much-as-possible",
+  "calendar": {
+    "yearDays": 364,
+    "weekDays": 7,
+    "weeksPerYear": 52,
+    "yearOpening": {
+      "month": 1,
+      "day": 1,
+      "weekday": "Thursday"
+    },
+    "yearClosing": {
+      "month": 12,
+      "day": 30,
+      "weekday": "Wednesday"
+    },
+    "december31Exists": false,
+    "february29Exists": false,
+    "leapYears": false,
+    "annualWeekdayPattern": "identical-every-year",
+    "mapYears": 50,
+    "mapFirstYear": 2026,
+    "mapLastYear": 2075,
+    "totalMappedDays": 18200
+  },
+  "labels": {
+    "monthNames": "preserved-january-through-december",
+    "monthOrder": "preserved",
+    "namedDates": "preserved-january-1-through-december-30",
+    "holidays": "preserve-familiar-date-identity-unless-separately-ratified",
+    "etymologyHasImplementationAuthority": false
+  },
+  "clock": {
+    "format": "24-hour-retained",
+    "daylightSavingTime": false,
+    "commonClockPolicy": "permanent-standard-time",
+    "midnightRole": "civil-coordinate-date-boundary",
+    "ontologicalAuthority": false
+  },
+  "creationBoundaries": {
+    "localLightEvents": [
+      "sunset",
+      "darkness",
+      "dawn",
+      "sunrise",
+      "daylight",
+      "sunset"
+    ],
+    "weeklySacredBoundaries": "local-observed-light-events",
+    "sabbath": "friday-sunset-to-saturday-sunset",
+    "stillPoint": "friday-sunset-to-sunday-dawn"
+  },
+  "witnessPolicy": {
+    "astronomy": "witness-only-no-grid-mutation",
+    "lunar": "witness-only-no-grid-mutation",
+    "seasons": "witness-only-no-grid-mutation",
+    "historicalSources": "source-and-provenance-no-silent-grid-mutation"
+  },
+  "externalProjection": {
+    "purpose": "interoperability-with-existing-gregorian-systems",
+    "field": "openingCivilDate",
+    "frame": "proleptic-gregorian",
+    "gridAuthority": false,
+    "mayMoveCommonDates": false,
+    "mayInsertDays": false
+  },
+  "supersession": {
+    "reconciliation": "non-operative",
+    "intercalation": "none",
+    "nearestLegalV32": "historical-only",
+    "nearestLegalSpringGateV33": "historical-only"
+  }
+}

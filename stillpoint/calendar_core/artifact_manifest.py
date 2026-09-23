@@ -17,6 +17,10 @@ from .spec import (
     SPEC_VERSION,
     build_calendar_core_spec,
 )
+from .witness_overlays import (
+    EXTERNAL_WITNESS_ARTIFACT_VERSION,
+    build_external_witness_artifact,
+)
 
 ARTIFACT_MANIFEST_VERSION = "stillpoint-calendar-artifact-manifest-v1"
 
@@ -45,6 +49,9 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
     )
     population_bytes = canonical_export_bytes(
         build_calendar_population_artifact()
+    )
+    witness_bytes = canonical_export_bytes(
+        build_external_witness_artifact()
     )
 
     return {
@@ -75,6 +82,14 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
                 "sha256": sha256_hex(population_bytes),
                 "bytes": len(population_bytes),
             },
+            {
+                "path":
+                    "stillpoint/contracts/calendar_external_witnesses_2026.json",
+                "role": "external-calendar-witnesses-no-grid-authority",
+                "version": EXTERNAL_WITNESS_ARTIFACT_VERSION,
+                "sha256": sha256_hex(witness_bytes),
+                "bytes": len(witness_bytes),
+            },
         ],
         "compatibilityBridge": {
             "path":
@@ -89,6 +104,7 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
             "compatibility-bridge-is-not-constitutional-law",
             "no-reconciliation-artifact-has-operative-authority",
             "population-layer-cannot-mutate-grid",
+            "external-witness-layer-cannot-mutate-grid",
         ],
     }
 

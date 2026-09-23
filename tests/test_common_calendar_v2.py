@@ -39,18 +39,21 @@ class CommonCalendarV2Tests(unittest.TestCase):
             self.assertEqual((b - a).days, 364)
             self.assertEqual(second["year"], first["year"] + 1)
 
-    def test_no_reconciliation_or_astronomy_fields_are_emitted(self):
+    def test_projection_emits_only_fixed_surface_year_fields(self):
         doc = v2.generate(
             first_year_label=1,
             first_opening=dt.date(2026, 1, 1),
             count=2,
             authority_id="TEST",
         )
-        serialized = str(doc)
-        self.assertNotIn("reconciliation", serialized.lower())
-        self.assertNotIn("equinox", serialized.lower())
-        self.assertNotIn("ephemeris", serialized.lower())
-        self.assertNotIn("referencePoint", serialized)
+        self.assertEqual(
+            set(doc["years"][0]),
+            {"year", "openingCivilDate"},
+        )
+        self.assertEqual(
+            set(doc["years"][1]),
+            {"year", "openingCivilDate"},
+        )
 
     def test_projection_digest_detects_tampering(self):
         doc = v2.generate(

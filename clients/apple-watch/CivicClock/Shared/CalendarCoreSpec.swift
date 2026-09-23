@@ -110,8 +110,10 @@ enum CalendarCoreSpecLoader {
             calendar.quarterDays * calendar.quarters == 364,
             calendar.quarterRelation
                 == "ordinal-seasonal-not-civil-month-triples",
-            calendar.yearOpening == MonthDay(month: 1, day: 1),
-            calendar.yearClosing == MonthDay(month: 12, day: 30),
+            calendar.yearOpening
+                == CalendarCoreSpec.MonthDay(month: 1, day: 1),
+            calendar.yearClosing
+                == CalendarCoreSpec.MonthDay(month: 12, day: 30),
             calendar.hasFebruary29 == false,
             calendar.hasDecember31 == false,
             transition.rule == "DAY_364_TO_NEXT_YEAR_DAY_001",

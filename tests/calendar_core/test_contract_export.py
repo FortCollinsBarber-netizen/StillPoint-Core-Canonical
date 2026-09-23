@@ -39,9 +39,9 @@ class CalendarCoreContractTests(unittest.TestCase):
         )
         expected = observation["expected"]
         common = expected["commonDate"]
-        self.assertEqual(common["ordinal"], 260)
-        self.assertEqual((common["month"], common["day"]), (9, 17))
-        self.assertEqual(common["weekday"], "Thursday")
+        self.assertEqual(common["ordinal"], 261)
+        self.assertEqual((common["month"], common["day"]), (9, 18))
+        self.assertEqual(common["weekday"], "Friday")
         self.assertEqual(expected["namedDay"], "Friday")
         self.assertEqual(expected["annualPhase"], 9)
         self.assertEqual(expected["solarGate"], 1)

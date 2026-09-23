@@ -127,15 +127,23 @@ enum PublishedCalendarLoader {
     ) -> PublishedCivicCalendar? {
         guard
             policy.isExplicitlyAuthorized,
+            let expectedAuthorityID = policy.authorityID,
+            let expectedAuthorityStatus = policy.authorityStatus,
+            let expectedPublicationDigest =
+                policy.publicationDigest?.lowercased(),
+            let expectedResourceSHA256 =
+                policy.resourceSHA256?.lowercased(),
             let data = try? Data(contentsOf: url),
-            sha256(data) == policy.resourceSHA256?.lowercased(),
+            sha256(data) == expectedResourceSHA256,
             let envelope = try? JSONDecoder().decode(
                 PublishedCalendarEnvelope.self,
                 from: data
             ),
             validate(
                 envelope,
-                policy: policy,
+                expectedAuthorityID: expectedAuthorityID,
+                expectedAuthorityStatus: expectedAuthorityStatus,
+                expectedPublicationDigest: expectedPublicationDigest,
                 spec: spec
             )
         else { return nil }
@@ -173,16 +181,18 @@ enum PublishedCalendarLoader {
 
     private static func validate(
         _ envelope: PublishedCalendarEnvelope,
-        policy: PublishedCalendarPolicy,
+        expectedAuthorityID: String,
+        expectedAuthorityStatus: String,
+        expectedPublicationDigest: String,
         spec: CalendarCoreSpec
     ) -> Bool {
         guard
             envelope.publicationVersion == supportedPublicationVersion,
             envelope.calendarCoreSpecVersion == spec.version,
-            envelope.authority.id == policy.authorityID,
-            envelope.authority.status == policy.authorityStatus,
+            envelope.authority.id == expectedAuthorityID,
+            envelope.authority.status == expectedAuthorityStatus,
             envelope.publicationDigest.lowercased()
-                == policy.publicationDigest?.lowercased(),
+                == expectedPublicationDigest,
             isSHA256(envelope.publicationDigest),
             !envelope.years.isEmpty,
             validateRows(
@@ -198,7 +208,10 @@ enum PublishedCalendarLoader {
         _ value: String,
         calendar: Calendar
     ) -> Date? {
-        let parts = value.split(separator: "-", omittingEmptySubsequences: false)
+        let parts = value.split(
+            separator: "-",
+            omittingEmptySubsequences: false
+        )
         guard
             parts.count == 3,
             parts[0].count == 4,

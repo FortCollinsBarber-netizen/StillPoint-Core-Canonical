@@ -1,5 +1,15 @@
 import Foundation
 
+struct LocalLightObservation: Equatable {
+    let phase: String
+    let civilDawn: Date
+    let sunrise: Date
+    let sunset: Date
+    let civilDusk: Date
+    let nextEvent: String
+    let nextEventAt: Date
+}
+
 enum SolarBoundaryCalculator {
     static func sunrise(
         on civilDate: Date,
@@ -34,6 +44,124 @@ enum SolarBoundaryCalculator {
             rising: false,
             zenithDegrees: spec.boundary.apparentHorizonZenithDegrees,
             calendar: calendar
+        )
+    }
+
+    static func civilDawn(
+        on civilDate: Date,
+        latitude: Double,
+        longitude: Double,
+        calendar: Calendar = .current
+    ) -> Date? {
+        solarEvent(
+            on: civilDate,
+            latitude: latitude,
+            longitude: longitude,
+            rising: true,
+            zenithDegrees: 96.0,
+            calendar: calendar
+        )
+    }
+
+    static func civilDusk(
+        on civilDate: Date,
+        latitude: Double,
+        longitude: Double,
+        calendar: Calendar = .current
+    ) -> Date? {
+        solarEvent(
+            on: civilDate,
+            latitude: latitude,
+            longitude: longitude,
+            rising: false,
+            zenithDegrees: 96.0,
+            calendar: calendar
+        )
+    }
+
+    static func localLightObservation(
+        around now: Date,
+        latitude: Double,
+        longitude: Double,
+        calendar: Calendar = .current,
+        spec: CalendarCoreSpec? = CalendarCoreSpecLoader.load()
+    ) -> LocalLightObservation? {
+        guard let spec else { return nil }
+        let day = calendar.startOfDay(for: now)
+        guard
+            let dawn = civilDawn(
+                on: day,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar
+            ),
+            let sunrise = sunrise(
+                on: day,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar,
+                spec: spec
+            ),
+            let sunset = sunset(
+                on: day,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar,
+                spec: spec
+            ),
+            let dusk = civilDusk(
+                on: day,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar
+            )
+        else { return nil }
+
+        let phase: String
+        let nextEvent: String
+        let nextEventAt: Date
+
+        if now < dawn {
+            phase = "DARKNESS"
+            nextEvent = "CIVIL DAWN"
+            nextEventAt = dawn
+        } else if now < sunrise {
+            phase = "DAWN"
+            nextEvent = "SUNRISE"
+            nextEventAt = sunrise
+        } else if now < sunset {
+            phase = "DAYLIGHT"
+            nextEvent = "SUNSET"
+            nextEventAt = sunset
+        } else if now < dusk {
+            phase = "DUSK"
+            nextEvent = "DARKNESS"
+            nextEventAt = dusk
+        } else {
+            phase = "DARKNESS"
+            let tomorrow = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: day
+            )!
+            guard let nextDawn = civilDawn(
+                on: tomorrow,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar
+            ) else { return nil }
+            nextEvent = "CIVIL DAWN"
+            nextEventAt = nextDawn
+        }
+
+        return LocalLightObservation(
+            phase: phase,
+            civilDawn: dawn,
+            sunrise: sunrise,
+            sunset: sunset,
+            civilDusk: dusk,
+            nextEvent: nextEvent,
+            nextEventAt: nextEventAt
         )
     }
 

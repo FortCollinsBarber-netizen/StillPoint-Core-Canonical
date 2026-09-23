@@ -75,6 +75,50 @@ class RhythmGovernorTests(unittest.TestCase):
             self.assertFalse(decision.surface_mutated)
             self.assertEqual(decision.authority, request.authority)
 
+    def test_named_layers_may_inhabit_surface_but_never_rewrite_it(self):
+        layers = [
+            (RhythmAuthority.OVERLAY, "feasts"),
+            (RhythmAuthority.OVERLAY, "sabbath"),
+            (RhythmAuthority.OVERLAY, "stillpoint"),
+            (RhythmAuthority.OVERLAY, "seasons"),
+            (RhythmAuthority.OBSERVE, "lunar-witness"),
+            (RhythmAuthority.OVERLAY, "jewish-overlay"),
+            (RhythmAuthority.OVERLAY, "islamic-overlay"),
+            (RhythmAuthority.OVERLAY, "seven-year-structure"),
+            (RhythmAuthority.OVERLAY, "forty-nine-year-structure"),
+            (RhythmAuthority.OVERLAY, "jubilee"),
+            (RhythmAuthority.OBSERVE, "local-light"),
+        ]
+        canonical = CanonicalDate(2026, 12, 10)
+        for authority, source in layers:
+            decision = RHYTHM_GOVERNOR.authorize(
+                RhythmRequest(
+                    authority=authority,
+                    source=source,
+                    canonical_date=canonical,
+                    annotation={"inhabits_surface": True},
+                )
+            )
+            self.assertTrue(decision.accepted, source)
+            self.assertFalse(decision.surface_mutated, source)
+            self.assertEqual(decision.canonical_date, canonical)
+
+            rejected = RHYTHM_GOVERNOR.authorize(
+                RhythmRequest(
+                    authority=authority,
+                    source=source,
+                    canonical_date=canonical,
+                    annotation={"inhabits_surface": True},
+                    attempts_grid_mutation=True,
+                )
+            )
+            self.assertFalse(rejected.accepted, source)
+            self.assertEqual(
+                rejected.code,
+                "CANONICAL_REOPENING_REQUIRED",
+                source,
+            )
+
     def test_there_is_no_runtime_calendar_mutation_authority(self):
         decision = RHYTHM_GOVERNOR.authorize(
             RhythmRequest(

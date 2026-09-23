@@ -9,6 +9,10 @@ from .projection_vectors import (
     PROJECTION_VECTOR_VERSION,
     build_calendar_projection_vectors,
 )
+from .population_artifact import (
+    POPULATION_ARTIFACT_VERSION,
+    build_calendar_population_artifact,
+)
 from .spec import (
     SPEC_VERSION,
     build_calendar_core_spec,
@@ -39,6 +43,9 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
     vector_bytes = canonical_export_bytes(
         build_calendar_projection_vectors()
     )
+    population_bytes = canonical_export_bytes(
+        build_calendar_population_artifact()
+    )
 
     return {
         "version": ARTIFACT_MANIFEST_VERSION,
@@ -60,6 +67,14 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
                 "sha256": sha256_hex(vector_bytes),
                 "bytes": len(vector_bytes),
             },
+            {
+                "path":
+                    "stillpoint/contracts/calendar_population_v1.json",
+                "role": "calendar-population-no-grid-authority",
+                "version": POPULATION_ARTIFACT_VERSION,
+                "sha256": sha256_hex(population_bytes),
+                "bytes": len(population_bytes),
+            },
         ],
         "compatibilityBridge": {
             "path":
@@ -72,7 +87,7 @@ def build_calendar_core_artifact_manifest() -> dict[str, Any]:
             "proof-vectors-have-no-civic-authority",
             "manifest-does-not-ratify-projection-epoch",
             "compatibility-bridge-is-not-constitutional-law",
-            "no-reconciliation-artifact-has-operative-authority",
+            "no-reconciliation-artifact-has-operative-authority",\n            "population-layer-cannot-mutate-grid",
         ],
     }
 

@@ -278,6 +278,57 @@ def test_terminal_state_and_custody_events_are_database_enforced(tmp_path):
     db.close()
 
 
+
+def test_database_rejects_direct_activated_insert_and_binding_rewrite(tmp_path):
+    db = CompanyDB(tmp_path / "company.sqlite")
+    conn = db._connection()
+
+    with pytest.raises(sqlite3.DatabaseError, match="must enter quarantine"):
+        conn.execute(
+            """INSERT INTO acquired_resources(
+               resource_id,owner_role,kind,status,
+               discovered_capabilities_json,resolved_capabilities_json,
+               authorized_capabilities_json,parent_capabilities_json,
+               activation_warrant_id,one_shot,acquired_at,provenance_json,updated_at
+               ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                "bypass-1","builder","provider_tool","activated",
+                '["web_research"]','["web_research"]','["web_research"]',
+                '["web_research"]',"fake-warrant",0,NOW,"{}",NOW,
+            ),
+        )
+    conn.rollback()
+
+    gate = AcquiredResourceCustody(db)
+    gate.acquire(
+        resource_id="tool-immutable",
+        owner_role="research",
+        kind="provider_tool",
+        discovered_capabilities=("web_research",),
+        now_iso=NOW,
+    )
+    gate.resolve(
+        "tool-immutable",
+        capabilities=("web_research",),
+        authenticated_evidence="verified",
+        now_iso=NOW,
+    )
+    warrant = activation_warrant(db, "tool-immutable")
+    gate.activate(
+        "tool-immutable",
+        warrant_id=warrant.warrant_id,
+        parent_capabilities=("web_research",),
+        now_iso=NOW,
+    )
+    with pytest.raises(sqlite3.DatabaseError, match="authority binding is immutable"):
+        conn.execute(
+            """UPDATE acquired_resources
+               SET authorized_capabilities_json='["send_email"]'
+               WHERE resource_id='tool-immutable'"""
+        )
+    conn.rollback()
+    db.close()
+
 def test_schema_advances_to_acquired_resource_custody(tmp_path):
     db = CompanyDB(tmp_path / "company.sqlite")
     assert db.schema_version == 24

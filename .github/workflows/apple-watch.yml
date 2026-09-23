@@ -6,10 +6,14 @@ on:
       - "clients/apple-watch/**"
       - "stillpoint/calendar_core/**"
       - "stillpoint/contracts/calendar_core_*.json"
+      - "stillpoint/contracts/calendar_population_v1.json"
+      - "stillpoint/contracts/calendar_publication_*.json"
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
       - "tools/export_calendar_core_artifacts.py"
+      - "tools/export_calendar_population.py"
+      - "tools/generate_common_calendar_v2.py"
       - "tools/generate_common_calendar_v33.py"
       - ".github/workflows/apple-watch.yml"
   pull_request:
@@ -17,10 +21,13 @@ on:
       - "clients/apple-watch/**"
       - "stillpoint/calendar_core/**"
       - "stillpoint/contracts/calendar_core_*.json"
+      - "stillpoint/contracts/calendar_population_v1.json"
+      - "stillpoint/contracts/calendar_publication_*.json"
       - "specs/temporal_calendar/**"
       - "temporal/v3.3/**"
       - "temporal/jubilee-v1/**"
       - "tools/export_calendar_core_artifacts.py"
+      - "tools/export_calendar_population.py"
       - "tools/generate_common_calendar_v33.py"
       - ".github/workflows/apple-watch.yml"
 
@@ -45,16 +52,38 @@ jobs:
           python tools/export_calendar_core_artifacts.py \
             --spec-output /tmp/calendar_core_spec.json \
             --vectors-output /tmp/calendar_projection_vectors.json \
+            --population-output /tmp/calendar_population_v1.json \
             --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
           diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
+          diff -u /tmp/calendar_population_v1.json stillpoint/contracts/calendar_population_v1.json
           diff -u /tmp/calendar_core_spec.json clients/apple-watch/CivicClock/Resources/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json clients/apple-watch/CivicClock/Resources/calendar_projection_vectors.json
+          diff -u /tmp/calendar_population_v1.json clients/apple-watch/CivicClock/Resources/calendar_population_v1.json
 
-      - name: Prove no unratified operative calendar publication is bundled
+      - name: Validate enacted 50-year publication and Watch handoff
         run: |
-          test ! -e clients/apple-watch/CivicClock/Resources/published_calendar.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stillpoint.calendar_core.publication import validate_publication_document
+
+          core = Path("stillpoint/contracts/calendar_publication_2026_2075.json")
+          watch = Path("clients/apple-watch/CivicClock/Resources/published_calendar.json")
+          if core.read_bytes() != watch.read_bytes():
+              raise SystemExit("Watch publication drifted from Core custody artifact")
+          document = json.loads(core.read_text(encoding="utf-8"))
+          validate_publication_document(
+              document,
+              require_authority_status="enacted",
+          )
+          years = document["years"]
+          assert len(years) == 50
+          assert years[0] == {"year": 2026, "openingCivilDate": "2026-01-01"}
+          assert years[-1] == {"year": 2075, "openingCivilDate": "2074-11-01"}
+          print("enacted publication handoff: PASS")
+          PY
 
       - name: Test native Watch projection against shared artifacts
         working-directory: clients/apple-watch/CivicClock

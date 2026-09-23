@@ -13,6 +13,7 @@ from .runtime import CompanyRuntime
 from .doctor import run_doctor
 from .adapters.production import build_production_registry, reconcile_gmail_send
 from .office_runtime import OfficeRuntimeCoordinator
+from .calendar_core.runtime_surface import calendar_day_payload
 from .temporal.continuity_ingress import record_robertos_continuity_receipt
 
 
@@ -88,9 +89,13 @@ def main(argv=None) -> int:
     sub.add_parser("approvals")
     sub.add_parser("offices")
     sub.add_parser("capabilities")
+    calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
     continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
+    if args.cmd=="calendar-day":
+        _json(calendar_day_payload(args.year,args.ordinal))
+        return 0
     root=_root();rt=_runtime(root,args.provider)
     try:
         if args.cmd=="status":cmd_status(rt)

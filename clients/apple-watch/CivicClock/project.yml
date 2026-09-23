@@ -20,8 +20,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stillpoint.civicclock.watch
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Civic Clock
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Civic Clock uses your location only to calculate the local sunset boundary.
+        INFOPLIST_KEY_CFBundleDisplayName: StillPoint Common Clock
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: StillPoint Common Clock uses your location only to calculate local sunset and sunrise boundaries; location does not alter the fixed Common Calendar grid.
         CODE_SIGN_ENTITLEMENTS: WatchApp/CivicClockWatch.entitlements
     dependencies:
       - target: CivicClockWidgets
@@ -38,7 +38,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.stillpoint.civicclock.watch.widgets
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Civic Clock
+        INFOPLIST_KEY_CFBundleDisplayName: StillPoint Common Clock
         INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier: com.apple.widgetkit-extension
         CODE_SIGN_ENTITLEMENTS: Widgets/CivicClockWidgets.entitlements
 

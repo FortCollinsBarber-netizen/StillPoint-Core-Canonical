@@ -48,6 +48,9 @@ struct CivicClockView: View {
                     Divider()
 
                     VStack(spacing: 2) {
+                        Text("COMMON · \(snapshot.commonClockLabel)")
+                            .font(.headline.monospacedDigit())
+
                         Text(snapshot.commonCalendarLabel)
                             .font(.caption.weight(.semibold))
                             .multilineTextAlignment(.center)
@@ -56,6 +59,19 @@ struct CivicClockView: View {
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
+
+                        if !snapshot.observanceLabel.isEmpty {
+                            Text(snapshot.observanceLabel)
+                                .font(.caption2.weight(.semibold))
+                                .multilineTextAlignment(.center)
+                        }
+
+                        if !snapshot.jubileeLabel.isEmpty {
+                            Text(snapshot.jubileeLabel)
+                                .font(.system(size: 9, weight: .medium))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     if let protectedBoundary = snapshot.nextProtectedBoundary {
@@ -120,7 +136,8 @@ struct CivicClockView: View {
             now: now,
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
-            publishedCalendar: PublishedCalendarLoader.load()
+            publishedCalendar: PublishedCalendarLoader.load(policy: .enactedStillPoint),
+            population: CalendarPopulationLoader.load()
         )
     }
 }

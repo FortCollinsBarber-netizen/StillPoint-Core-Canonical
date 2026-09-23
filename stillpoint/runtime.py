@@ -376,6 +376,32 @@ class CompanyRuntime:
     def _request_from_row(self,row):
         refs=[ArtifactRef(**{k:v for k,v in item.items() if k in {"name","sha256","kind","media_type","artifact_id","version"}}) for item in json.loads(row["artifact_refs_json"])]
         return ActionRequest(action_id=row["id"],task_id=row["task_id"],action_type=row["action_type"],target=row["target"],scope=json.loads(row["scope_json"]),artifact_refs=refs,approval_required=bool(row["approval_required"]),approval_id=row["approval_id"],expires_at=row["expires_at"],issued_at=row["issued_at"],idempotency_key=row["idempotency_key"],success_criteria=json.loads(row["success_criteria_json"]),click_irreversible=bool(row["click_irreversible"]),authority_revision=row["authority_revision"],warrant_id=row["warrant_id"] if "warrant_id" in row.keys() else None)
+
+    def _require_current_action_authority(self, row, req):
+        """Fail closed unless the request is still authorized by current task state."""
+        if row.get("status") != "ready_for_action":
+            raise NotAuthorized(
+                f"action is not dispatchable from status={row.get('status')}"
+            )
+        task=self.db.get_task(req.task_id)
+        if not task:
+            raise NotAuthorized("action task no longer exists")
+        raw=task.get("plan_json")
+        if not raw:
+            self.db.mark_action_stale(req.action_id)
+            raise NotAuthorized("current task plan is unavailable")
+        try:
+            current=WorkPlan.from_dict(json.loads(raw))
+        except Exception as exc:
+            self.db.mark_action_stale(req.action_id)
+            raise NotAuthorized("current task plan is invalid") from exc
+        if current.authority_revision != req.authority_revision:
+            self.db.mark_action_stale(req.action_id)
+            raise NotAuthorized("action authority revision is no longer current")
+        if req.action_type not in set(current.restricted_actions or []):
+            self.db.mark_action_stale(req.action_id)
+            raise NotAuthorized("action intent is no longer present in current plan")
+        return current
     def execute_action(self,action_id,adapter_registry,*,now_iso=None):
         from .dispatch import is_probe_adapter_name, require_no_prior_real_dispatch
 
@@ -400,6 +426,7 @@ class CompanyRuntime:
             raise RuntimeError("action idempotency prevents duplicate external dispatch")
 
         req=self._request_from_row(row)
+        self._require_current_action_authority(row,req)
         effective_now=now_iso or _now_dt().isoformat()
 
         if req.approval_required and (
@@ -442,6 +469,14 @@ class CompanyRuntime:
         # before a real external adapter is invoked.
         adapter=adapter_registry.resolve(req)
 
+        # Re-read task/action state after adapter selection. Resolution is expected
+        # to be side-effect free, but it is still a scheduling boundary where another
+        # worker may have repaired/replanned the task.
+        current_row=self.db.get_action_request(action_id)
+        if not current_row:
+            raise NotAuthorized("action disappeared before dispatch")
+        self._require_current_action_authority(current_row,req)
+
         if is_probe_adapter_name(adapter.name):
             result=adapter_registry.execute_resolved(req,adapter)
             # Probe results are retained for observability but do not spend the
@@ -459,6 +494,8 @@ class CompanyRuntime:
             return {"action_id":action_id,"status":status,"result":result}
 
         # Reserve one warrant use (re-activate after null_probe if needed).
+        # Database reservation and begin_external_dispatch both re-check current
+        # task-plan authority inside BEGIN IMMEDIATE transactions.
         try:
             self.db.reserve_warrant_for_action(
                 action_id=req.action_id,

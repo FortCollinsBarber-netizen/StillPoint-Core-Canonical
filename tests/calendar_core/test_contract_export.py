@@ -11,41 +11,54 @@ from stillpoint.calendar_core.contract import (
 
 
 class CalendarCoreContractTests(unittest.TestCase):
-    def test_contract_constants_and_observation_zero(self):
+    def test_contract_is_non_authoritative_v2_bridge(self):
         doc = build_calendar_core_contract()
         self.assertEqual(doc["version"], CONTRACT_VERSION)
-        self.assertEqual(doc["constants"]["baseYearDays"], 364)
+        constants = doc["constants"]
+        self.assertEqual(constants["baseYearDays"], 364)
+        self.assertEqual(constants["weeksPerYear"], 52)
+        self.assertEqual(constants["day001Weekday"], "Thursday")
         self.assertEqual(
-            doc["constants"]["gateSequence"],
-            [4, 5, 6, 6, 5, 4, 3, 2, 1, 1, 2, 3],
+            constants["monthLengths"],
+            [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 30],
         )
-        self.assertEqual(doc["constants"]["reconciliationDaysAllowed"], [0, 7])
+        self.assertEqual(constants["seasonalQuarterDays"], 91)
+        self.assertEqual(constants["interannualDays"], 0)
+        self.assertFalse(constants["reconciliationAllowed"])
+        self.assertEqual(
+            doc["jurisdiction"]["authorityStatus"],
+            "non-authoritative-compatibility-only",
+        )
 
+    def test_observation_zero_separates_common_date_from_named_protected_day(self):
+        doc = build_calendar_core_contract()
         observation = next(
-            row for row in doc["goldenVectors"]
+            row
+            for row in doc["goldenVectors"]
             if row["id"] == "observation-zero"
         )
-        common = observation["expected"]["commonDate"]
+        expected = observation["expected"]
+        common = expected["commonDate"]
         self.assertEqual(common["ordinal"], 260)
-        self.assertEqual((common["month"], common["day"]), (9, 18))
-        self.assertEqual(common["weekday"], "Friday")
-        self.assertEqual(observation["expected"]["annualPhase"], 9)
-        self.assertEqual(observation["expected"]["solarGate"], 1)
+        self.assertEqual((common["month"], common["day"]), (9, 17))
+        self.assertEqual(common["weekday"], "Thursday")
+        self.assertEqual(expected["namedDay"], "Friday")
+        self.assertEqual(expected["annualPhase"], 9)
+        self.assertEqual(expected["solarGate"], 1)
 
     def test_weekly_transition_vectors(self):
         doc = build_calendar_core_contract()
-        by_id = {row["id"]: row["expected"] for row in doc["goldenVectors"]}
-
+        by_id = {
+            row["id"]: row["expected"]
+            for row in doc["goldenVectors"]
+        }
         self.assertTrue(by_id["friday-after-sunset"]["sabbath"])
         self.assertTrue(by_id["friday-after-sunset"]["stillPoint"])
-
         self.assertTrue(by_id["saturday-after-sunset"]["lordsDay"])
         self.assertTrue(by_id["saturday-after-sunset"]["stillPoint"])
-
         self.assertTrue(by_id["sunday-before-sunrise"]["stillPoint"])
         self.assertFalse(by_id["sunday-after-sunrise"]["stillPoint"])
         self.assertTrue(by_id["sunday-after-sunrise"]["lordsDay"])
-
         self.assertFalse(by_id["sunday-after-sunset"]["lordsDay"])
 
     def test_export_is_deterministic_json(self):

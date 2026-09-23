@@ -9,7 +9,6 @@ package does not ratify one.
 from .address import (
     CalendarAddress,
     format_ordinary_address,
-    format_reconciliation_address,
     parse_calendar_address,
 )
 from .artifact_manifest import (
@@ -32,6 +31,26 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .observances import (
+    ALL_OBSERVANCES,
+    CIVIC_OBSERVANCES,
+    MONTH_OPENINGS,
+    SACRED_OBSERVANCES,
+    Observance,
+    observances_for_ordinal,
+)
+from .population import (
+    PopulationAddress,
+    address as population_address,
+    address_from_ordinal as population_address_from_ordinal,
+    iter_fifty_year_map,
+    iter_year as iter_population_year,
+)
+from .population_artifact import (
+    POPULATION_ARTIFACT_VERSION,
+    build_calendar_population_artifact,
+    export_calendar_population_artifact,
+)
 from .appointments import (
     AppointedTime,
     AppointedTimeOccurrence,
@@ -60,7 +79,6 @@ from .projection_vectors import (
 )
 from .publication import (
     ALLOWED_AUTHORITY_STATUSES,
-    ALLOWED_RECONCILIATION_DAYS,
     PUBLICATION_VERSION,
     PublicationEnvelope,
     PublicationRange,
@@ -69,17 +87,6 @@ from .publication import (
     publication_digest,
     validate_publication_document,
     validate_publication_rows,
-)
-from .reconciliation import (
-    audit_reconciliation_schedule,
-    forecast_reconciliation_weeks,
-)
-from .reference_rule import (
-    SPRING_GATE_ORDINAL,
-    select_v32_nearest_legal,
-    select_v33_nearest_spring_gate,
-    select_v33_nearest_spring_gate_from_evidence,
-    select_v33_nearest_spring_gate_from_provider,
 )
 from .service import CalendarConfig, get_calendar_snapshot
 from .spec import (
@@ -105,17 +112,21 @@ __all__ = [
     "MONTH_LENGTHS",
     "GATE_SEQUENCE",
     "PHASE_LENGTHS",
-    "SPRING_GATE_ORDINAL",
     "SPEC_VERSION",
     "PROJECTION_VECTOR_VERSION",
     "PUBLICATION_VERSION",
     "ALLOWED_AUTHORITY_STATUSES",
-    "ALLOWED_RECONCILIATION_DAYS",
+    "POPULATION_ARTIFACT_VERSION",
+    "Observance",
+    "PopulationAddress",
+    "ALL_OBSERVANCES",
+    "SACRED_OBSERVANCES",
+    "CIVIC_OBSERVANCES",
+    "MONTH_OPENINGS",
     "CalendarAddress",
     "AppointedTime",
     "AppointedTimeOccurrence",
     "format_ordinary_address",
-    "format_reconciliation_address",
     "parse_calendar_address",
     "ARTIFACT_MANIFEST_VERSION",
     "build_calendar_core_artifact_manifest",
@@ -145,14 +156,12 @@ __all__ = [
     "WeeklyProtectedState",
     "apparent_sunrise_utc",
     "apparent_sunset_utc",
-    "audit_reconciliation_schedule",
     "boundary_dates_for_common_date",
     "bracket_sunset",
     "build_calendar_core_spec",
     "build_calendar_projection_vectors",
     "canonical_publication_bytes",
     "common_date",
-    "forecast_reconciliation_weeks",
     "get_calendar_snapshot",
     "jubilee_state",
     "month_day_from_ordinal",
@@ -164,11 +173,14 @@ __all__ = [
     "as_march_equinox_evidence",
     "protected_time_state",
     "publication_digest",
-    "select_v32_nearest_legal",
-    "select_v33_nearest_spring_gate",
-    "select_v33_nearest_spring_gate_from_evidence",
-    "select_v33_nearest_spring_gate_from_provider",
     "validate_calendar_core_spec",
     "validate_publication_document",
     "validate_publication_rows",
+    "observances_for_ordinal",
+    "population_address",
+    "population_address_from_ordinal",
+    "iter_population_year",
+    "iter_fifty_year_map",
+    "build_calendar_population_artifact",
+    "export_calendar_population_artifact",
 ]

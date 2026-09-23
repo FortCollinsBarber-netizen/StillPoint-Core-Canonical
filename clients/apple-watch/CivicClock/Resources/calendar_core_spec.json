@@ -1,105 +1,83 @@
 {
+  "annualTransition": {
+    "interannualDays": 0,
+    "reconciliationAllowed": false,
+    "rule": "DAY_364_TO_NEXT_YEAR_DAY_001"
+  },
   "boundary": {
     "apparentHorizonZenithDegrees": 90.8333,
     "failurePolicy": "explicit-no-silent-fallback",
     "protocolId": "apparent-sunrise-set-0.8333"
   },
   "enactmentBoundary": {
-    "lawDoesNotSupplyValues": true,
-    "requiredForFinitePublication": [
+    "lawDoesNotSupplyEpoch": true,
+    "requiredForFiniteProjection": [
       "firstOpening",
-      "referencePoint",
-      "ephemerisEvidence",
       "publicationAuthority"
     ],
-    "status": "external-unresolved"
+    "status": "annual-law-ratified-epoch-external"
   },
-  "gates": {
-    "gateSequence": [
-      4,
-      5,
-      6,
-      6,
-      5,
-      4,
-      3,
-      2,
-      1,
-      1,
-      2,
-      3
-    ],
-    "pairedGateCount": 6,
-    "phaseLengths": [
-      30,
-      30,
-      31,
-      30,
-      30,
-      31,
-      30,
-      30,
-      31,
-      30,
-      30,
-      31
-    ]
+  "historicalModels": {
+    "nearestLegalSpringGateV33": "superseded-non-operative",
+    "nearestLegalV32": "superseded-non-operative"
   },
   "invariants": [
-    "continuous-time-never-gaps",
-    "ordinary-year-is-always-364",
-    "reconciliation-is-0-or-7-and-interannual",
-    "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
-    "week-sequence-is-never-broken",
-    "missing-required-evidence-fails-closed",
-    "publication-is-finite-and-does-not-self-ratify"
+    "year-is-always-364",
+    "year-is-always-52-weeks",
+    "january-1-is-day-001",
+    "december-30-is-day-364",
+    "december-31-does-not-exist",
+    "february-29-does-not-exist",
+    "day-001-is-thursday",
+    "day-364-transitions-directly-to-next-day-001",
+    "no-interannual-reconciliation-days",
+    "four-seasonal-quarters-are-91-days-each",
+    "annual-weekday-pattern-repeats-identically",
+    "witness-layers-cannot-mutate-calendar-address"
   ],
   "jurisdiction": {
     "authorityNamespace": "stillpoint.temporal",
     "calendarNamespace": "stillpoint.calendar_core",
-    "publicationAuthority": "external-finite-evidence-object"
+    "translationAuthority": "external-finite-projection-object"
   },
   "ordinaryCalendar": {
     "baseYearDays": 364,
+    "day001Weekday": "Thursday",
+    "hasDecember31": false,
+    "hasFebruary29": false,
     "monthLengths": [
-      30,
+      31,
+      28,
+      31,
       30,
       31,
       30,
+      31,
+      31,
       30,
       31,
       30,
-      30,
-      31,
-      30,
-      30,
-      31
+      30
     ],
     "quarterDays": 91,
+    "quarterRelation": "ordinal-seasonal-not-civil-month-triples",
     "quarters": 4,
-    "weekDays": 7
-  },
-  "reconciliation": {
-    "addressPattern": "Y_n/Y_n+1-R{day}",
-    "allowedDays": [
-      0,
-      7
-    ],
-    "inheritsOrdinaryFields": false,
-    "namespace": "interannual"
-  },
-  "referenceRules": {
-    "v3.2": {
-      "operator": "NearestLegal",
-      "status": "recovered-historical"
+    "weekDays": 7,
+    "weeksPerYear": 52,
+    "yearClosing": {
+      "day": 30,
+      "month": 12
     },
-    "v3.3Candidate": {
-      "operator": "NearestLegalSpringGate",
-      "springGateDay": 20,
-      "springGateMonth": 3,
-      "springGateOrdinal": 80,
-      "status": "candidate-unratified"
+    "yearOpening": {
+      "day": 1,
+      "month": 1
     }
   },
-  "version": "stillpoint-calendar-core-spec-v1"
+  "version": "stillpoint-calendar-core-spec-v2",
+  "witnessPolicy": {
+    "astronomy": "witness-only-no-grid-mutation",
+    "enochicGates": "witness-metadata-no-grid-mutation",
+    "lunar": "witness-only-no-grid-mutation",
+    "seasonal": "witness-only-no-grid-mutation"
+  }
 }

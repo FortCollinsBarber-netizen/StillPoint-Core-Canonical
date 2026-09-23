@@ -69,8 +69,10 @@ jobs:
         with:
           python-version: "3.11"
       - run: python -m pip install .
-      - name: Prove finite v3.3 publication compiler
-        run: python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q
+      - name: Prove immutable v2 finite projection compiler
+        run: |
+          python -m unittest discover -s tests -p 'test_common_calendar_v2.py' -q
+          python -m unittest discover -s tests -p 'test_common_calendar_v33.py' -q
 
   calendar-contract-integrity:
     runs-on: ubuntu-latest
@@ -80,12 +82,33 @@ jobs:
         with:
           python-version: "3.11"
       - run: python -m pip install .
-      - name: Regenerate Calendar Core spec and projection vectors
+      - name: Regenerate Calendar Core law, proof, population and custody
         run: |
-          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --manifest-output /tmp/calendar_core_artifact_manifest.json
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --population-output /tmp/calendar_population_v1.json --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          diff -u /tmp/calendar_population_v1.json stillpoint/contracts/calendar_population_v1.json
           diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
+
+      - name: Validate enacted 50-year publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stillpoint.calendar_core.publication import validate_publication_document
+
+          path = Path("stillpoint/contracts/calendar_publication_2026_2075.json")
+          document = json.loads(path.read_text(encoding="utf-8"))
+          validate_publication_document(
+              document,
+              require_authority_status="enacted",
+          )
+          years = document["years"]
+          assert len(years) == 50
+          assert years[0] == {"year": 2026, "openingCivilDate": "2026-01-01"}
+          assert years[-1] == {"year": 2075, "openingCivilDate": "2074-11-01"}
+          print("enacted 50-year publication: PASS")
+          PY
 
   calendar-package:
     runs-on: ubuntu-latest
@@ -105,7 +128,7 @@ jobs:
           /tmp/stillpoint-calendar-wheel/bin/python -m pip install dist/*.whl
           tmpdir="$(mktemp -d)"
           cd "$tmpdir"
-          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); assert s['ordinaryCalendar']['baseYearDays']==364; assert any(x['id']=='reconciliation-r3' for x in v['vectors']); print('calendar wheel smoke: PASS')"
+          /tmp/stillpoint-calendar-wheel/bin/python -c "from stillpoint.calendar_core import build_calendar_core_spec, build_calendar_projection_vectors; s=build_calendar_core_spec(); v=build_calendar_projection_vectors(); ids={x['id'] for x in v['vectors']}; assert s['version']=='stillpoint-calendar-core-spec-v2'; assert s['ordinaryCalendar']['baseYearDays']==364; assert s['ordinaryCalendar']['weeksPerYear']==52; assert s['ordinaryCalendar']['yearClosing']=={'month':12,'day':30}; assert s['annualTransition']['interannualDays']==0; assert not s['annualTransition']['reconciliationAllowed']; assert 'day-364-december-30' in ids and 'next-year-day-001' in ids; assert not any('reconciliation' in x.lower() for x in ids); print('calendar wheel smoke: PASS')"
 
 
   calendar-release-identity:
@@ -158,18 +181,18 @@ jobs:
               "commit": head,
               "tree": tree,
               "artifacts": verified,
-              "unresolvedCivicInputs": [
+              "projectionInputs": [
                   "firstOpening",
-                  "referencePoint",
-                  "ephemerisEvidence",
                   "publicationAuthority",
               ],
               "invariants": [
-                  "ordinary-year-is-364",
-                  "reconciliation-is-interannual-0-or-7",
-                  "week-is-unbroken",
-                  "law-publication-proof-client-are-separate",
-                  "ground-zero-is-pilot-not-national-authority",
+                  "year-is-exactly-364",
+                  "year-is-exactly-52-weeks",
+                  "december-31-does-not-exist",
+                  "day-364-transitions-directly-to-next-day-001",
+                  "no-interannual-reconciliation-days",
+                  "witness-layers-cannot-mutate-grid",
+                  "law-projection-proof-client-are-separate",
               ],
           }
           print("CALENDAR_CORE_RELEASE_CANDIDATE_IDENTITY")

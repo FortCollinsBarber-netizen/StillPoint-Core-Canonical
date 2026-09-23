@@ -1,0 +1,211 @@
+{
+  "authority": {
+    "id": "ROBERT_EMMANUEL_LADAY",
+    "status": "enacted"
+  },
+  "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v2",
+  "publicationDigest": "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a",
+  "publicationVersion": "stillpoint-calendar-publication-v2",
+  "years": [
+    {
+      "openingCivilDate": "2026-01-01",
+      "year": 2026
+    },
+    {
+      "openingCivilDate": "2026-12-31",
+      "year": 2027
+    },
+    {
+      "openingCivilDate": "2027-12-30",
+      "year": 2028
+    },
+    {
+      "openingCivilDate": "2028-12-28",
+      "year": 2029
+    },
+    {
+      "openingCivilDate": "2029-12-27",
+      "year": 2030
+    },
+    {
+      "openingCivilDate": "2030-12-26",
+      "year": 2031
+    },
+    {
+      "openingCivilDate": "2031-12-25",
+      "year": 2032
+    },
+    {
+      "openingCivilDate": "2032-12-23",
+      "year": 2033
+    },
+    {
+      "openingCivilDate": "2033-12-22",
+      "year": 2034
+    },
+    {
+      "openingCivilDate": "2034-12-21",
+      "year": 2035
+    },
+    {
+      "openingCivilDate": "2035-12-20",
+      "year": 2036
+    },
+    {
+      "openingCivilDate": "2036-12-18",
+      "year": 2037
+    },
+    {
+      "openingCivilDate": "2037-12-17",
+      "year": 2038
+    },
+    {
+      "openingCivilDate": "2038-12-16",
+      "year": 2039
+    },
+    {
+      "openingCivilDate": "2039-12-15",
+      "year": 2040
+    },
+    {
+      "openingCivilDate": "2040-12-13",
+      "year": 2041
+    },
+    {
+      "openingCivilDate": "2041-12-12",
+      "year": 2042
+    },
+    {
+      "openingCivilDate": "2042-12-11",
+      "year": 2043
+    },
+    {
+      "openingCivilDate": "2043-12-10",
+      "year": 2044
+    },
+    {
+      "openingCivilDate": "2044-12-08",
+      "year": 2045
+    },
+    {
+      "openingCivilDate": "2045-12-07",
+      "year": 2046
+    },
+    {
+      "openingCivilDate": "2046-12-06",
+      "year": 2047
+    },
+    {
+      "openingCivilDate": "2047-12-05",
+      "year": 2048
+    },
+    {
+      "openingCivilDate": "2048-12-03",
+      "year": 2049
+    },
+    {
+      "openingCivilDate": "2049-12-02",
+      "year": 2050
+    },
+    {
+      "openingCivilDate": "2050-12-01",
+      "year": 2051
+    },
+    {
+      "openingCivilDate": "2051-11-30",
+      "year": 2052
+    },
+    {
+      "openingCivilDate": "2052-11-28",
+      "year": 2053
+    },
+    {
+      "openingCivilDate": "2053-11-27",
+      "year": 2054
+    },
+    {
+      "openingCivilDate": "2054-11-26",
+      "year": 2055
+    },
+    {
+      "openingCivilDate": "2055-11-25",
+      "year": 2056
+    },
+    {
+      "openingCivilDate": "2056-11-23",
+      "year": 2057
+    },
+    {
+      "openingCivilDate": "2057-11-22",
+      "year": 2058
+    },
+    {
+      "openingCivilDate": "2058-11-21",
+      "year": 2059
+    },
+    {
+      "openingCivilDate": "2059-11-20",
+      "year": 2060
+    },
+    {
+      "openingCivilDate": "2060-11-18",
+      "year": 2061
+    },
+    {
+      "openingCivilDate": "2061-11-17",
+      "year": 2062
+    },
+    {
+      "openingCivilDate": "2062-11-16",
+      "year": 2063
+    },
+    {
+      "openingCivilDate": "2063-11-15",
+      "year": 2064
+    },
+    {
+      "openingCivilDate": "2064-11-13",
+      "year": 2065
+    },
+    {
+      "openingCivilDate": "2065-11-12",
+      "year": 2066
+    },
+    {
+      "openingCivilDate": "2066-11-11",
+      "year": 2067
+    },
+    {
+      "openingCivilDate": "2067-11-10",
+      "year": 2068
+    },
+    {
+      "openingCivilDate": "2068-11-08",
+      "year": 2069
+    },
+    {
+      "openingCivilDate": "2069-11-07",
+      "year": 2070
+    },
+    {
+      "openingCivilDate": "2070-11-06",
+      "year": 2071
+    },
+    {
+      "openingCivilDate": "2071-11-05",
+      "year": 2072
+    },
+    {
+      "openingCivilDate": "2072-11-03",
+      "year": 2073
+    },
+    {
+      "openingCivilDate": "2073-11-02",
+      "year": 2074
+    },
+    {
+      "openingCivilDate": "2074-11-01",
+      "year": 2075
+    }
+  ]
+}

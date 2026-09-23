@@ -29,20 +29,6 @@ def build_projection_semantics() -> dict[str, Any]:
             "dateLabels": "canonical-common-calendar",
         },
     }
-FORBIDDEN_SUPERSEDED_ROW_KEYS = frozenset({
-    "reconciliationDaysAfterCompletion",
-    "reconciliationReasonCode",
-    "governingMarchEquinoxYear",
-    "governingMarchEquinoxUTC",
-    "immediateCandidateOpeningCivilDate",
-    "delayedCandidateOpeningCivilDate",
-    "immediateSpringGateCivilDate",
-    "delayedSpringGateCivilDate",
-    "immediateErrorSeconds",
-    "delayedErrorSeconds",
-    "nextYearSpringGateCivilDate",
-})
-
 
 class PublicationValidationError(ValueError):
     def __init__(self, code: str, message: str) -> None:
@@ -128,14 +114,6 @@ def validate_publication_rows(
             raise PublicationValidationError(
                 "INVALID_PUBLICATION_ROW",
                 "each publication year row must be an object",
-            )
-
-        forbidden = FORBIDDEN_SUPERSEDED_ROW_KEYS.intersection(row)
-        if forbidden:
-            raise PublicationValidationError(
-                "SUPERSEDED_RECONCILIATION_FIELD",
-                "immutable v2 publication may not contain: "
-                + ", ".join(sorted(forbidden)),
             )
 
         try:

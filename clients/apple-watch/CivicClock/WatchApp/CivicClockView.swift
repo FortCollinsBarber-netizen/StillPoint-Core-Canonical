@@ -137,9 +137,30 @@ struct CivicClockView: View {
                         )
                         .font(.system(size: 8, design: .monospaced))
                         .multilineTextAlignment(.center)
+
+                        Text("WGS84 · CORE LOCATION · FULL ACCURACY")
+                            .font(.system(size: 7, weight: .medium))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+
+                        if let altitude = groundZero.altitudeMeters {
+                            Text(String(format: "ALT %.1f m", altitude))
+                                .font(.system(size: 7, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+
                         Text(groundZero.capturedAt, style: .date)
                             .font(.system(size: 8))
                             .foregroundStyle(.secondary)
+
+                        Text(groundZero.capturedAt, style: .time)
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundStyle(.secondary)
+
+                        Text(GroundZeroBindingPayload.schemaID)
+                            .font(.system(size: 6))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.tertiary)
                     } else if locationService.coordinate == nil {
                         Text("LOCATION NEEDED FOR LOCAL HORIZON BOUNDARIES")
                             .font(.caption2)

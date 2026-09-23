@@ -51,6 +51,44 @@ final class CivicCalendarTests: XCTestCase {
     private let latitude = 40.3978
     private let longitude = -105.0749
 
+
+    private func fiftyYearFixture(
+        startYear: Int = 7,
+        openingCivilDate: String = "2026-03-20",
+        overrideSecondOpening: String? = nil
+    ) -> PublishedCivicCalendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+
+        let first = formatter.date(from: openingCivilDate)!
+        let years = (0..<50).map { index -> PublishedCivicYear in
+            let opening: String
+            if index == 1, let overrideSecondOpening {
+                opening = overrideSecondOpening
+            } else {
+                let date = calendar.date(
+                    byAdding: .day,
+                    value: 364 * index,
+                    to: first
+                )!
+                opening = formatter.string(from: date)
+            }
+            return PublishedCivicYear(
+                year: startYear + index,
+                openingCivilDate: opening
+            )
+        }
+        return .conformanceFixture(years: years)
+    }
+
     func testV2SpecFreezesImmutableCalendarIdentity() throws {
         let spec = try XCTUnwrap(CalendarCoreSpecLoader.load())
         XCTAssertEqual(spec.version, "stillpoint-calendar-core-spec-v2")
@@ -209,14 +247,7 @@ final class CivicCalendarTests: XCTestCase {
 
     func testAnnualDayChangesAtSunsetNotMidnight() throws {
         let calendar = denverCalendar
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20"
-                )
-            ]
-        )
+        let published = fiftyYearFixture()
 
         let secondCivilDay = calendar.date(from: DateComponents(
             year: 2026, month: 3, day: 21, hour: 12
@@ -272,23 +303,14 @@ final class CivicCalendarTests: XCTestCase {
 
         XCTAssertEqual(
             snapshot.commonCalendarDetail,
-            "OUTSIDE PUBLISHED TABLE"
+            "OUTSIDE PUBLISHED 50-YEAR MAP"
         )
     }
 
     func testPublishedRowsMustBeExactly364DaysApart() {
         let calendar = denverCalendar
-        let inconsistent = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: 7,
-                    openingCivilDate: "2026-03-20"
-                ),
-                PublishedCivicYear(
-                    year: 8,
-                    openingCivilDate: "2027-03-21"
-                )
-            ]
+        let inconsistent = fiftyYearFixture(
+            overrideSecondOpening: "2027-03-21"
         )
 
         let now = calendar.date(from: DateComponents(
@@ -332,7 +354,7 @@ final class CivicCalendarTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertTrue(snapshot.commonCalendarLabel.contains("YEAR 7"))
+        XCTAssertTrue(snapshot.commonCalendarLabel.contains("Y7"))
     }
 
     func testNativeProjectionConsumesGeneratedCalendarCoreSpecAndVectors() throws {
@@ -378,17 +400,9 @@ final class CivicCalendarTests: XCTestCase {
             )
         )
 
-        let published = PublishedCivicCalendar.conformanceFixture(
-            years: [
-                PublishedCivicYear(
-                    year: document.fixture.commonYear,
-                    openingCivilDate: document.fixture.openingCivilDate
-                ),
-                PublishedCivicYear(
-                    year: document.fixture.commonYear + 1,
-                    openingCivilDate: formatter.string(from: secondOpening)
-                )
-            ]
+        let published = fiftyYearFixture(
+            startYear: document.fixture.commonYear,
+            openingCivilDate: document.fixture.openingCivilDate
         )
 
         let parser = ISO8601DateFormatter()
@@ -425,7 +439,7 @@ final class CivicCalendarTests: XCTestCase {
             if let common = expected.commonDate {
                 XCTAssertTrue(
                     snapshot.commonCalendarLabel.contains(
-                        "YEAR \(common.year)"
+                        "Y\(common.year)"
                     ),
                     vector.id
                 )

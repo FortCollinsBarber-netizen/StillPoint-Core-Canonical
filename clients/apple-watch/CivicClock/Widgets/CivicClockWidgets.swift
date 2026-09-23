@@ -11,32 +11,43 @@ struct CivicClockProvider: TimelineProvider {
         CivicClockEntry(date: .now, snapshot: .unavailable)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (CivicClockEntry) -> Void) {
+    func getSnapshot(
+        in context: Context,
+        completion: @escaping (CivicClockEntry) -> Void
+    ) {
         completion(CivicClockEntry(
             date: .now,
             snapshot: CivicClockSharedStore.loadSnapshot() ?? .unavailable
         ))
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<CivicClockEntry>) -> Void) {
+    func getTimeline(
+        in context: Context,
+        completion: @escaping (Timeline<CivicClockEntry>) -> Void
+    ) {
         let now = Date()
         let cached = CivicClockSharedStore.loadSnapshot() ?? .unavailable
 
         var entries: [CivicClockEntry] = []
         for minute in stride(from: 0, through: 120, by: 15) {
-            let date = Calendar.current.date(byAdding: .minute, value: minute, to: now) ?? now
+            let date = Calendar.current.date(
+                byAdding: .minute,
+                value: minute,
+                to: now
+            ) ?? now
             var snapshot = cached
 
             if let coordinate = CivicClockSharedStore.loadCoordinate() {
                 snapshot = CivicCalendarEngine.snapshot(
                     now: date,
                     latitude: coordinate.latitude,
-                    longitude: coordinate.longitude,
-                    publishedCalendar: PublishedCalendarLoader.load()
+                    longitude: coordinate.longitude
                 )
             }
 
-            entries.append(CivicClockEntry(date: date, snapshot: snapshot))
+            entries.append(
+                CivicClockEntry(date: date, snapshot: snapshot)
+            )
         }
 
         completion(Timeline(entries: entries, policy: .atEnd))
@@ -53,23 +64,19 @@ struct CivicClockComplicationView: View {
             VStack(spacing: 0) {
                 Text(circularState)
                     .font(.caption2.weight(.bold))
-                if let next = effectiveNextBoundary {
-                    Text(next, style: .time)
-                        .font(.system(size: 9, weight: .medium))
-                        .monospacedDigit()
-                } else {
-                    Text("SUN")
-                        .font(.system(size: 9, weight: .medium))
-                }
+                Text(entry.snapshot.commonClockLabel)
+                    .font(.system(size: 9, weight: .medium))
+                    .monospacedDigit()
             }
             .containerBackground(.clear, for: .widget)
 
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 1) {
                 HStack {
-                    Text(entry.snapshot.namedDay)
+                    Text("COMMON \(entry.snapshot.commonClockLabel)")
                         .font(.caption2.weight(.bold))
-                    Text("• \(stateLabel)")
+                    Spacer()
+                    Text(circularState)
                         .font(.caption2.weight(.bold))
                 }
 
@@ -77,7 +84,7 @@ struct CivicClockComplicationView: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
 
-                Text(rectangularBoundary)
+                Text(rectangularContext)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -117,19 +124,22 @@ struct CivicClockComplicationView: View {
     }
 
     private var inlineText: String {
-        if let next = effectiveNextBoundary {
-            let label = entry.snapshot.nextProtectedBoundaryLabel ?? "sundown"
-            return "\(stateLabel) · \(label.lowercased()) \(next.formatted(date: .omitted, time: .shortened))"
-        }
-        return "\(stateLabel) · horizon boundary unavailable"
+        "COMMON \(entry.snapshot.commonClockLabel) · \(entry.snapshot.commonCalendarLabel)"
     }
 
-    private var rectangularBoundary: String {
+    private var rectangularContext: String {
+        if !entry.snapshot.observanceLabel.isEmpty {
+            return entry.snapshot.observanceLabel
+        }
+        if !entry.snapshot.jubileeLabel.isEmpty {
+            return entry.snapshot.jubileeLabel
+        }
         if let next = effectiveNextBoundary {
-            let label = entry.snapshot.nextProtectedBoundaryLabel ?? "Sundown"
+            let label =
+                entry.snapshot.nextProtectedBoundaryLabel ?? "Sundown"
             return "\(label) · \(next.formatted(date: .omitted, time: .shortened))"
         }
-        return entry.snapshot.boundaryStatus
+        return entry.snapshot.commonCalendarDetail
     }
 }
 
@@ -137,11 +147,16 @@ struct CivicClockWidget: Widget {
     let kind = "CivicClockWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: CivicClockProvider()) { entry in
+        StaticConfiguration(
+            kind: kind,
+            provider: CivicClockProvider()
+        ) { entry in
             CivicClockComplicationView(entry: entry)
         }
-        .configurationDisplayName("Civic Clock")
-        .description("Common Calendar, Sabbath, Lord's Day, StillPoint, and local horizon boundaries.")
+        .configurationDisplayName("StillPoint Common Clock")
+        .description(
+            "Common Clock, fixed Common Calendar, observances, Jubilee, Sabbath, Lord's Day, and StillPoint."
+        )
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,

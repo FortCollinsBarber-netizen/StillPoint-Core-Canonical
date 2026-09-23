@@ -129,6 +129,10 @@ final class CivicCalendarTests: XCTestCase {
 
     func testFridaySunsetOpensSabbathAndStillPoint() throws {
         let calendar = denverCalendar
+        let published = fiftyYearFixture(
+            startYear: 1,
+            openingCivilDate: "2026-01-01"
+        )
         let friday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 18, hour: 12
         ))!
@@ -143,6 +147,7 @@ final class CivicCalendarTests: XCTestCase {
             now: boundary,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: published,
             calendar: calendar
         )
 
@@ -154,6 +159,10 @@ final class CivicCalendarTests: XCTestCase {
 
     func testSaturdaySunsetClosesSabbathAndOpensLordsDayWhileStillPointContinues() throws {
         let calendar = denverCalendar
+        let published = fiftyYearFixture(
+            startYear: 1,
+            openingCivilDate: "2026-01-01"
+        )
         let saturday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 19, hour: 12
         ))!
@@ -168,6 +177,7 @@ final class CivicCalendarTests: XCTestCase {
             now: boundary,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: published,
             calendar: calendar
         )
 
@@ -183,6 +193,10 @@ final class CivicCalendarTests: XCTestCase {
 
     func testSundaySunriseReleasesStillPointButLordsDayContinues() throws {
         let calendar = denverCalendar
+        let published = fiftyYearFixture(
+            startYear: 1,
+            openingCivilDate: "2026-01-01"
+        )
         let sunday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 20, hour: 12
         ))!
@@ -197,12 +211,14 @@ final class CivicCalendarTests: XCTestCase {
             now: sunrise.addingTimeInterval(-1),
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: published,
             calendar: calendar
         )
         let at = CivicCalendarEngine.snapshot(
             now: sunrise,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: published,
             calendar: calendar
         )
 
@@ -218,6 +234,10 @@ final class CivicCalendarTests: XCTestCase {
 
     func testSundaySunsetEndsLordsDay() throws {
         let calendar = denverCalendar
+        let published = fiftyYearFixture(
+            startYear: 1,
+            openingCivilDate: "2026-01-01"
+        )
         let sunday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 20, hour: 12
         ))!
@@ -232,6 +252,7 @@ final class CivicCalendarTests: XCTestCase {
             now: sunset,
             latitude: latitude,
             longitude: longitude,
+            publishedCalendar: published,
             calendar: calendar
         )
 

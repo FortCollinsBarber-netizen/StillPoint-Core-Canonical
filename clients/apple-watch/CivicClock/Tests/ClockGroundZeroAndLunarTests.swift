@@ -38,6 +38,47 @@ final class ClockGroundZeroAndLunarTests: XCTestCase {
         )
     }
 
+    func testGroundZeroBindingPayloadMatchesRobertOSContract() throws {
+        let payload = observation().bindingPayload()
+
+        XCTAssertEqual(
+            payload.schema,
+            GroundZeroBindingPayload.schemaID
+        )
+        XCTAssertEqual(
+            payload.groundZeroID,
+            GroundZeroObservation.canonicalID
+        )
+        XCTAssertEqual(payload.source, "apple-core-location")
+        XCTAssertEqual(payload.coordinateSystem, "WGS84")
+        XCTAssertEqual(payload.latitude, 40.0)
+        XCTAssertEqual(payload.longitude, -105.0)
+        XCTAssertEqual(payload.horizontalAccuracyMeters, 8)
+        XCTAssertTrue(payload.fullAccuracyAuthorized)
+        XCTAssertEqual(payload.simulatedBySoftware, false)
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds,
+        ]
+        XCTAssertNotNil(parser.date(from: payload.capturedAt))
+
+        let encoded = try JSONEncoder().encode(payload)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded)
+                as? [String: Any]
+        )
+        XCTAssertEqual(
+            object["schema"] as? String,
+            "stillpoint.ground-zero-measurement.v1"
+        )
+        XCTAssertEqual(
+            object["groundZeroID"] as? String,
+            GroundZeroObservation.canonicalID
+        )
+        XCTAssertNil(object["id"])
+    }
+
     func testSeptember23ObservationIsWaxingGibbous() throws {
         let parser = ISO8601DateFormatter()
         let instant = try XCTUnwrap(

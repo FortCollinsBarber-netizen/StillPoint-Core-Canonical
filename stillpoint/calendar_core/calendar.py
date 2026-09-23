@@ -9,12 +9,13 @@ MONTH_NAMES = (
     "May", "June", "July", "August",
     "September", "October", "November", "December",
 )
-MONTH_LENGTHS = (
+CANONICAL_MONTH_LENGTHS = (
     31, 28, 31,
     30, 31, 30,
     31, 31, 30,
     31, 30, 30,
 )
+MONTH_LENGTHS = CANONICAL_MONTH_LENGTHS
 CANONICAL_TEMPLATE_YEAR = 2026
 QUARTER_DAYS = 91
 QUARTERS = 4
@@ -26,6 +27,10 @@ CANONICAL_DAY001_WEEKDAY = "Thursday"
 
 
 def validate_grid() -> None:
+    if MONTH_LENGTHS != CANONICAL_MONTH_LENGTHS:
+        raise RuntimeError(
+            "named-date sequence drifted; only December 31 may be removed"
+        )
     if len(MONTH_NAMES) != 12 or len(MONTH_LENGTHS) != 12:
         raise RuntimeError("Common Calendar must preserve twelve familiar months")
     if sum(MONTH_LENGTHS) != 364:

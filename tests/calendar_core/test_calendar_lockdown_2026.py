@@ -14,6 +14,7 @@ from stillpoint.calendar_core.calendar import (
     ordinal_day,
 )
 from stillpoint.calendar_core.observances import observances_for_ordinal
+from stillpoint.calendar_core.population import address_from_ordinal
 from stillpoint.calendar_core.runtime_surface import load_enacted_publication
 
 
@@ -146,3 +147,67 @@ def test_lockdown_familiar_observances_hold_fixed_seed_positions():
             for item in observances_for_ordinal(ordinal_day(month, day))
         }
         assert name in names
+
+
+def test_lockdown_all_observance_addresses_repeat_across_fifty_years():
+    document = load_enacted_publication()
+
+    seed = {}
+    for ordinal in range(1, 365):
+        row = address_from_ordinal(
+            publication_document=document,
+            year=2026,
+            ordinal=ordinal,
+            jubilee_epoch_common_year=2026,
+        )
+        seed[ordinal] = (
+            row.month,
+            row.day,
+            row.weekday,
+            row.observance_ids,
+            row.observance_names,
+        )
+
+    for year in range(2026, 2076):
+        for ordinal in range(1, 365):
+            row = address_from_ordinal(
+                publication_document=document,
+                year=year,
+                ordinal=ordinal,
+                jubilee_epoch_common_year=2026,
+            )
+            assert (
+                row.month,
+                row.day,
+                row.weekday,
+                row.observance_ids,
+                row.observance_names,
+            ) == seed[ordinal]
+
+
+def test_lockdown_jubilee_changes_cycle_state_not_calendar_surface():
+    document = load_enacted_publication()
+    ordinal = ordinal_day(7, 10)
+
+    ordinary = address_from_ordinal(
+        publication_document=document,
+        year=2026,
+        ordinal=ordinal,
+        jubilee_epoch_common_year=2026,
+    )
+    jubilee = address_from_ordinal(
+        publication_document=document,
+        year=2075,
+        ordinal=ordinal,
+        jubilee_epoch_common_year=2026,
+    )
+
+    assert (ordinary.month, ordinary.day, ordinary.weekday) == (
+        jubilee.month,
+        jubilee.day,
+        jubilee.weekday,
+    )
+    assert ordinary.observance_ids == jubilee.observance_ids
+    assert ordinary.is_jubilee_year is False
+    assert jubilee.is_jubilee_year is True
+    assert jubilee.is_jubilee_release_day is True

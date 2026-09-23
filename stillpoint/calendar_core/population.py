@@ -6,6 +6,12 @@ from typing import Any, Iterator
 
 from .calendar import common_date, ordinal_day
 from .gates import phase_for_base_day
+from .governor import (
+    CanonicalDate,
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .jubilee import jubilee_state
 from .observances import observances_for_ordinal
 from .publication import validate_publication_document
@@ -76,6 +82,18 @@ def address(
     current = common_date(year=year, ordinal=ordinal)
     phase = phase_for_base_day(ordinal)
     observances = observances_for_ordinal(ordinal)
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OVERLAY,
+            source="calendar-population",
+            canonical_date=CanonicalDate(year, month, day),
+            annotation={
+                "observance_ids": [item.id for item in observances],
+                "season_gate": phase.gate,
+                "season_phase": phase.phase,
+            },
+        )
+    )
 
     source_refs: list[str] = [
         "1 Enoch 72-82",

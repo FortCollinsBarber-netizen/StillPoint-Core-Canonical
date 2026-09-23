@@ -22,6 +22,7 @@ from .calendar_core.runtime_surface import (
 )
 from .calendar_core.sunset import apparent_sunset_utc, bracket_sunset
 from .calendar_core.week import protected_time_state
+from .lunar import lunar_phase_witness
 
 
 CLOCK_SCHEMA = "stillpoint.clock-os.v1"
@@ -190,6 +191,7 @@ def clock_snapshot(
         "location": {
             "id": config.location.id,
         },
+        "lunar_witness": lunar_phase_witness(instant_utc),
         "calendar_state": "ORDINARY" if current is not None else "OUTSIDE_RANGE",
         "calendar": current,
         "protected_time": {
@@ -226,6 +228,7 @@ def clock_snapshot(
             "weeks_per_year": 52,
             "december_31_exists": False,
             "astronomy_mutates_grid": False,
+            "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,
         },
     }

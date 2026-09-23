@@ -56,9 +56,12 @@ final class ClockGroundZeroAndLunarTests: XCTestCase {
         XCTAssertEqual(payload.horizontalAccuracyMeters, 8)
         XCTAssertTrue(payload.fullAccuracyAuthorized)
         XCTAssertEqual(payload.simulatedBySoftware, false)
-        XCTAssertNotNil(
-            ISO8601DateFormatter().date(from: payload.capturedAt)
-        )
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds,
+        ]
+        XCTAssertNotNil(parser.date(from: payload.capturedAt))
 
         let encoded = try JSONEncoder().encode(payload)
         let object = try XCTUnwrap(

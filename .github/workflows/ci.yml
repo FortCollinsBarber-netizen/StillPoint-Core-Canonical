@@ -82,12 +82,33 @@ jobs:
         with:
           python-version: "3.11"
       - run: python -m pip install .
-      - name: Regenerate Calendar Core spec and projection vectors
+      - name: Regenerate Calendar Core law, proof, population and custody
         run: |
-          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --manifest-output /tmp/calendar_core_artifact_manifest.json
+          python tools/export_calendar_core_artifacts.py --spec-output /tmp/calendar_core_spec.json --vectors-output /tmp/calendar_projection_vectors.json --population-output /tmp/calendar_population_v1.json --manifest-output /tmp/calendar_core_artifact_manifest.json
           diff -u /tmp/calendar_core_spec.json stillpoint/contracts/calendar_core_spec.json
           diff -u /tmp/calendar_projection_vectors.json stillpoint/contracts/calendar_projection_vectors.json
+          diff -u /tmp/calendar_population_v1.json stillpoint/contracts/calendar_population_v1.json
           diff -u /tmp/calendar_core_artifact_manifest.json stillpoint/contracts/calendar_core_artifact_manifest.json
+
+      - name: Validate enacted 50-year publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from stillpoint.calendar_core.publication import validate_publication_document
+
+          path = Path("stillpoint/contracts/calendar_publication_2026_2075.json")
+          document = json.loads(path.read_text(encoding="utf-8"))
+          validate_publication_document(
+              document,
+              require_authority_status="enacted",
+          )
+          years = document["years"]
+          assert len(years) == 50
+          assert years[0] == {"year": 2026, "openingCivilDate": "2026-01-01"}
+          assert years[-1] == {"year": 2075, "openingCivilDate": "2074-11-01"}
+          print("enacted 50-year publication: PASS")
+          PY
 
   calendar-package:
     runs-on: ubuntu-latest

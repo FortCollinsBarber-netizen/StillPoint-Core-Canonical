@@ -48,6 +48,9 @@ class ClockOSTests(unittest.TestCase):
         self.assertEqual(snapshot["calendar"]["common_date"]["weekday"], "Thursday")
         self.assertEqual(snapshot["calendar"]["map"]["year_count"], 50)
         self.assertEqual(snapshot["calendar"]["map"]["total_days"], 18_200)
+        self.assertEqual(snapshot["location"]["coordinate_system"], "WGS84")
+        self.assertEqual(snapshot["location"]["latitude"], TEST_LOCATION.latitude)
+        self.assertEqual(snapshot["location"]["longitude"], TEST_LOCATION.longitude)
         self.assertFalse(snapshot["invariants"]["astronomy_mutates_grid"])
         self.assertFalse(snapshot["invariants"]["lunar_witness_mutates_grid"])
         self.assertEqual(
@@ -138,6 +141,28 @@ class ClockOSTests(unittest.TestCase):
         self.assertTrue(first_quarter["is_waxing"])
         self.assertGreater(first_quarter["illumination_percent"], 45)
         self.assertLess(first_quarter["illumination_percent"], 55)
+
+    def test_lunar_witness_tracks_september_2026_primary_phase_evidence(self):
+        # USNO primary-phase evidence for September 2026:
+        # New Moon 2026-09-11 03:27 UTC; Full Moon 2026-09-26 16:49 UTC.
+        new_moon = lunar_phase_witness(
+            datetime(2026, 9, 11, 3, 27, tzinfo=timezone.utc)
+        )
+        full_moon = lunar_phase_witness(
+            datetime(2026, 9, 26, 16, 49, tzinfo=timezone.utc)
+        )
+        enactment = lunar_phase_witness(
+            datetime(2026, 9, 23, 11, 32, 9, tzinfo=timezone.utc)
+        )
+
+        self.assertEqual(new_moon["phase_name"], "NEW MOON")
+        self.assertLess(new_moon["illumination_fraction"], 0.02)
+        self.assertEqual(full_moon["phase_name"], "FULL MOON")
+        self.assertGreater(full_moon["illumination_fraction"], 0.99)
+        self.assertEqual(enactment["phase_name"], "WAXING GIBBOUS")
+        self.assertTrue(enactment["is_waxing"])
+        self.assertGreater(enactment["illumination_percent"], 85)
+        self.assertLess(enactment["illumination_percent"], 95)
 
     def test_lunar_state_cannot_change_calendar_address(self):
         instant = _after_sunset(date(2026, 1, 1))

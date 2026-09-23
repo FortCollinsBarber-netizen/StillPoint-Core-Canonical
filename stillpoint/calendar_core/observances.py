@@ -160,6 +160,7 @@ MONTH_OPENINGS: tuple[Observance, ...] = tuple(
 # calendar has changed; they are StillPoint Common Calendar observances.
 CIVIC_OBSERVANCES: tuple[Observance, ...] = (
     Observance("new-year", "New Year's Day", "civic", 1, 1),
+    Observance("valentines-day", "Valentine's Day", "civic-family", 2, 14),
     Observance(
         "mlk-day",
         "Martin Luther King Jr. Day",
@@ -175,6 +176,22 @@ CIVIC_OBSERVANCES: tuple[Observance, ...] = (
         2,
         16,
         rule="third-monday-february-on-fixed-common-grid",
+    ),
+    Observance(
+        "good-friday",
+        "Good Friday",
+        "christian-civic",
+        4,
+        3,
+        rule="2026-seed-position-on-fixed-common-grid",
+    ),
+    Observance(
+        "easter-sunday",
+        "Easter Sunday",
+        "christian-civic",
+        4,
+        5,
+        rule="2026-seed-position-on-fixed-common-grid",
     ),
     Observance(
         "mothers-day",
@@ -218,6 +235,7 @@ CIVIC_OBSERVANCES: tuple[Observance, ...] = (
         12,
         rule="second-monday-october-on-fixed-common-grid",
     ),
+    Observance("halloween", "Halloween", "civic-family", 10, 31),
     Observance("veterans-day", "Veterans Day", "civic", 11, 11),
     Observance(
         "thanksgiving",
@@ -227,7 +245,17 @@ CIVIC_OBSERVANCES: tuple[Observance, ...] = (
         26,
         rule="fourth-thursday-november-on-fixed-common-grid",
     ),
+    Observance("christmas-eve", "Christmas Eve", "christian-civic", 12, 24),
     Observance("christmas", "Christmas Day", "civic", 12, 25),
+    Observance(
+        "new-years-eve",
+        "New Year's Eve",
+        "civic",
+        12,
+        30,
+        rule="final-day-of-common-year",
+        note="December 31 does not exist in the Common Calendar.",
+    ),
 )
 
 

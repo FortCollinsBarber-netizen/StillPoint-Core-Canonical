@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 from .models import EnochPhase
 
 PHASE_LENGTHS = (30, 30, 31) * 4
@@ -32,6 +37,13 @@ def validate_gate_model() -> None:
 
 
 def phase_for_base_day(day_number: int) -> EnochPhase:
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.OVERLAY,
+            source="seasonal-enochic-gates",
+            annotation={"ordinal": day_number},
+        )
+    )
     validate_gate_model()
     if not 1 <= day_number <= 364:
         raise ValueError("base year day must be within 1..364")

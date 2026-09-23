@@ -379,6 +379,19 @@
     },
     {
       "assembly": false,
+      "day": 14,
+      "endDay": null,
+      "endMonth": null,
+      "id": "valentines-day",
+      "jurisdiction": "civic-cultural",
+      "month": 2,
+      "name": "Valentine's Day",
+      "note": "2026 seed-pattern placement; cultural observance, no grid authority.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 16,
       "endDay": null,
       "endMonth": null,
@@ -388,6 +401,58 @@
       "name": "Washington's Birthday",
       "note": null,
       "rule": "third-monday-february-on-fixed-common-grid",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 18,
+      "endDay": null,
+      "endMonth": null,
+      "id": "ash-wednesday",
+      "jurisdiction": "christian-liturgical",
+      "month": 2,
+      "name": "Ash Wednesday",
+      "note": "2026 seed-pattern placement; liturgical overlay, no grid authority.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 17,
+      "endDay": null,
+      "endMonth": null,
+      "id": "st-patricks-day",
+      "jurisdiction": "civic-cultural",
+      "month": 3,
+      "name": "St. Patrick's Day",
+      "note": "2026 seed-pattern placement; cultural observance, no grid authority.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 3,
+      "endDay": null,
+      "endMonth": null,
+      "id": "good-friday",
+      "jurisdiction": "christian-liturgical",
+      "month": 4,
+      "name": "Good Friday",
+      "note": "2026 seed-pattern placement; liturgical overlay, no grid authority.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 5,
+      "endDay": null,
+      "endMonth": null,
+      "id": "easter-sunday",
+      "jurisdiction": "christian-liturgical",
+      "month": 4,
+      "name": "Easter Sunday",
+      "note": "2026 seed-pattern placement; liturgical overlay, no grid authority.",
+      "rule": "fixed-date",
       "sourceRefs": []
     },
     {
@@ -483,6 +548,19 @@
     },
     {
       "assembly": false,
+      "day": 31,
+      "endDay": null,
+      "endMonth": null,
+      "id": "halloween",
+      "jurisdiction": "civic-cultural",
+      "month": 10,
+      "name": "Halloween",
+      "note": "2026 seed-pattern placement; cultural observance, no grid authority.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 11,
       "endDay": null,
       "endMonth": null,
@@ -509,6 +587,19 @@
     },
     {
       "assembly": false,
+      "day": 24,
+      "endDay": null,
+      "endMonth": null,
+      "id": "christmas-eve",
+      "jurisdiction": "civic-cultural",
+      "month": 12,
+      "name": "Christmas Eve",
+      "note": "2026 seed-pattern placement; familiar named date retained.",
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
       "day": 25,
       "endDay": null,
       "endMonth": null,
@@ -517,6 +608,19 @@
       "month": 12,
       "name": "Christmas Day",
       "note": null,
+      "rule": "fixed-date",
+      "sourceRefs": []
+    },
+    {
+      "assembly": false,
+      "day": 30,
+      "endDay": null,
+      "endMonth": null,
+      "id": "new-years-eve",
+      "jurisdiction": "civic",
+      "month": 12,
+      "name": "New Year's Eve",
+      "note": "Common Calendar year-end; December 31 does not exist.",
       "rule": "fixed-date",
       "sourceRefs": []
     }

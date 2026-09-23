@@ -15,10 +15,10 @@
       "version": "stillpoint-calendar-projection-vectors-v2"
     },
     {
-      "bytes": 12707,
+      "bytes": 15535,
       "path": "stillpoint/contracts/calendar_population_v1.json",
       "role": "calendar-population-no-grid-authority",
-      "sha256": "228c63dbe8f5732bcae2254a15d77284f6bf80122984944e0ac1a82392a5f54c",
+      "sha256": "f96d053c4c88bdb7c7baa5555272b305657080a0c6ef04f3a02a525072e29a64",
       "version": "stillpoint-calendar-population-v1"
     }
   ],

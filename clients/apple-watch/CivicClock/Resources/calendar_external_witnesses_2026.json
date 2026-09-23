@@ -10,10 +10,15 @@
       "id": "jewish-purim-2026",
       "name": "Purim begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -25,10 +30,15 @@
       "id": "jewish-passover-2026",
       "name": "Passover begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -40,10 +50,15 @@
       "id": "jewish-shavuot-2026",
       "name": "Shavuot begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -55,10 +70,15 @@
       "id": "jewish-tisha-bav-2026",
       "name": "Tisha B'Av begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -70,10 +90,15 @@
       "id": "jewish-rosh-hashanah-2026",
       "name": "Rosh Hashanah begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -85,10 +110,15 @@
       "id": "jewish-yom-kippur-2026",
       "name": "Yom Kippur begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -100,10 +130,15 @@
       "id": "jewish-sukkot-2026",
       "name": "Sukkot begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -115,10 +150,15 @@
       "id": "jewish-shemini-atzeret-2026",
       "name": "Shemini Atzeret begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -130,10 +170,15 @@
       "id": "jewish-simchat-torah-2026",
       "name": "Simchat Torah begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -145,10 +190,15 @@
       "id": "jewish-hanukkah-2026",
       "name": "Hanukkah begins",
       "qualification": null,
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "jewish",
       "source_refs": [
-        "Hebcal 2026 Jewish calendar"
+        "Hebcal Jewish Holidays 2026 (Diaspora)"
       ]
     },
     {
@@ -160,10 +210,15 @@
       "id": "islamic-ramadan-begins-2026",
       "name": "Ramadan begins",
       "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "Islamic Relief Worldwide Ramadan Timetable 2026"
       ]
     },
     {
@@ -175,10 +230,15 @@
       "id": "islamic-first-fast-2026",
       "name": "First fasting day of Ramadan",
       "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "IslamicFinder Islamic Calendar 2026"
       ]
     },
     {
@@ -190,10 +250,15 @@
       "id": "islamic-eid-al-fitr-2026",
       "name": "Eid al-Fitr",
       "qualification": "Date may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "IslamicFinder Islamic Calendar 2026"
       ]
     },
     {
@@ -205,10 +270,15 @@
       "id": "islamic-dhul-hijjah-2026",
       "name": "Dhul Hijjah begins",
       "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "Islamic Relief Worldwide Eid al-Adha 2026"
       ]
     },
     {
@@ -220,10 +290,15 @@
       "id": "islamic-arafah-2026",
       "name": "Day of Arafah",
       "qualification": "Date may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "Islamic Relief Worldwide Eid al-Adha 2026"
       ]
     },
     {
@@ -235,10 +310,15 @@
       "id": "islamic-eid-al-adha-2026",
       "name": "Eid al-Adha",
       "qualification": "Date may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "Islamic Relief Worldwide Eid al-Adha 2026"
       ]
     },
     {
@@ -250,10 +330,15 @@
       "id": "islamic-new-year-2026",
       "name": "Islamic New Year / Muharram begins",
       "qualification": "Actual month opening may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "IslamicFinder Special Islamic Days 2026"
       ]
     },
     {
@@ -265,10 +350,15 @@
       "id": "islamic-ashura-2026",
       "name": "Ashura",
       "qualification": "Date may differ by community/crescent sighting.",
+      "rhythm_governor": {
+        "authority": "OBSERVE",
+        "decision": "AUTHORIZED",
+        "surface_mutated": false
+      },
       "schema": "stillpoint.external-calendar-witness.v1",
       "source_calendar": "islamic",
       "source_refs": [
-        "2026 external Islamic calendar witness"
+        "IslamicFinder Special Islamic Days 2026"
       ]
     }
   ],

@@ -4,12 +4,16 @@ from datetime import date, timedelta
 
 from .models import CommonDate
 
-MONTH_LENGTHS = (
+# Constitutional named-date sequence: preserve the familiar January 1 through
+# December 30 sequence exactly. The only removed named civil date is
+# December 31. This is intentionally NOT a reconstructed 30/30/31 calendar.
+CANONICAL_MONTH_LENGTHS = (
     31, 28, 31,
     30, 31, 30,
     31, 31, 30,
     31, 30, 30,
 )
+MONTH_LENGTHS = CANONICAL_MONTH_LENGTHS
 QUARTER_DAYS = 91
 QUARTERS = 4
 WEEKDAYS = (
@@ -20,6 +24,10 @@ CANONICAL_DAY001_WEEKDAY = "Thursday"
 
 
 def validate_grid() -> None:
+    if MONTH_LENGTHS != CANONICAL_MONTH_LENGTHS:
+        raise RuntimeError(
+            "named-date sequence drifted; only December 31 may be removed"
+        )
     if sum(MONTH_LENGTHS) != 364:
         raise RuntimeError("Common year must total exactly 364 days")
     if 364 % 7 != 0:

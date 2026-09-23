@@ -259,7 +259,7 @@ class V04CapabilityFabricTests(unittest.TestCase):
         cp=json.loads((ROOT/"CHECKPOINT.json").read_text())
         mf=json.loads((ROOT/"RELEASE_MANIFEST.json").read_text())
         self.assertEqual(cp["version"],"0.4.0a4")
-        self.assertEqual(cp["schema_version"],23)
+        self.assertEqual(cp["schema_version"],24)
         self.assertEqual(cp["last_completed_milestone"],"v0.4-stage3-audit-closure")
         self.assertEqual(cp["git"]["v04_stage2_merge_commit"],STAGE2)
         self.assertEqual(mf["provenance"]["canonical_v04_stage2_merge"],STAGE2)

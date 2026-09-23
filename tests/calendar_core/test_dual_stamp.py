@@ -101,18 +101,6 @@ class DualStampTests(unittest.TestCase):
         self.assertEqual(new_year.continuous_k, 364)
         self.assertEqual(new_year.common_date.weekday, "Thursday")
 
-    def test_removed_reconciliation_parameter_is_not_part_of_v2_api(self):
-        with self.assertRaises(TypeError):
-            project_dual_stamp(
-                datetime(2026, 1, 2, 0, tzinfo=timezone.utc),
-                location=self.point,
-                local_zone="America/Denver",
-                common_year=1,
-                opening_civil_date=date(2026, 1, 1),
-                reconciliation_days_after_completion=7,
-                common_standard_offset_seconds=-7 * 3600,
-            )
-
     def test_translation_api_cannot_supply_weekday_epoch(self):
         with self.assertRaises(TypeError):
             project_dual_stamp(

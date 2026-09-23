@@ -7,7 +7,7 @@ from stillpoint.calendar_core.projection_vectors import (
     build_calendar_projection_vectors,
 )
 from stillpoint.calendar_core.publication import (
-    PROJECTION_SEMANTICS,
+    build_projection_semantics,
     PUBLICATION_VERSION,
     PublicationValidationError,
     publication_digest,
@@ -29,7 +29,7 @@ class CalendarArtifactTests(unittest.TestCase):
                 "id": "PILOT_AUTHORITY",
                 "status": "pilot",
             },
-            "projectionSemantics": PROJECTION_SEMANTICS,
+            "projectionSemantics": build_projection_semantics(),
             "years": [
                 {
                     "year": 1,

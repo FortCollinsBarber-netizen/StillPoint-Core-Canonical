@@ -31,6 +31,26 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .observances import (
+    ALL_OBSERVANCES,
+    CIVIC_OBSERVANCES,
+    MONTH_OPENINGS,
+    SACRED_OBSERVANCES,
+    Observance,
+    observances_for_ordinal,
+)
+from .population import (
+    PopulationAddress,
+    address as population_address,
+    address_from_ordinal as population_address_from_ordinal,
+    iter_fifty_year_map,
+    iter_year as iter_population_year,
+)
+from .population_artifact import (
+    POPULATION_ARTIFACT_VERSION,
+    build_calendar_population_artifact,
+    export_calendar_population_artifact,
+)
 from .appointments import (
     AppointedTime,
     AppointedTimeOccurrence,
@@ -96,6 +116,13 @@ __all__ = [
     "PROJECTION_VECTOR_VERSION",
     "PUBLICATION_VERSION",
     "ALLOWED_AUTHORITY_STATUSES",
+    "POPULATION_ARTIFACT_VERSION",
+    "Observance",
+    "PopulationAddress",
+    "ALL_OBSERVANCES",
+    "SACRED_OBSERVANCES",
+    "CIVIC_OBSERVANCES",
+    "MONTH_OPENINGS",
     "CalendarAddress",
     "AppointedTime",
     "AppointedTimeOccurrence",
@@ -149,4 +176,11 @@ __all__ = [
     "validate_calendar_core_spec",
     "validate_publication_document",
     "validate_publication_rows",
+    "observances_for_ordinal",
+    "population_address",
+    "population_address_from_ordinal",
+    "iter_population_year",
+    "iter_fifty_year_map",
+    "build_calendar_population_artifact",
+    "export_calendar_population_artifact",
 ]

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import date
-from typing import Iterable
+import json
+from pathlib import Path
+from typing import Any, Iterable
 
 
 OVERLAY_SCHEMA = "stillpoint.external-calendar-witness.v1"
+EXTERNAL_WITNESS_ARTIFACT_VERSION = "stillpoint-external-calendar-witnesses-v1"
 
 
 @dataclass(frozen=True)
@@ -212,4 +215,46 @@ def witnesses_for_external_date(
         for event in ALL_EXTERNAL_WITNESSES
         if event.external_date == external_date
         and (allowed is None or event.source_calendar.lower() in allowed)
+    )
+
+
+
+def build_external_witness_artifact() -> dict[str, Any]:
+    return {
+        "version": EXTERNAL_WITNESS_ARTIFACT_VERSION,
+        "authorityStatus": "witness-layer-no-grid-authority",
+        "jurisdiction": {
+            "gridAuthority": False,
+            "mayInsertDays": False,
+            "mayMoveYearOpening": False,
+            "mayAlterWeekday": False,
+            "mayPromoteExternalCalendarToCommonLaw": False,
+        },
+        "scope": {
+            "externalProjectionYear": 2026,
+            "repeatIntoLaterCommonYears": False,
+            "role": "comparison-and-observation-only",
+        },
+        "events": [
+            event.as_payload()
+            for event in ALL_EXTERNAL_WITNESSES
+        ],
+        "invariants": [
+            "external-calendar-witnesses-never-mutate-common-grid",
+            "jewish-calendar-witness-is-not-common-sacred-placement",
+            "islamic-calendar-dates-remain-sighting-qualified",
+            "seed-witnesses-do-not-repeat-as-calendar-law",
+        ],
+    }
+
+
+def export_external_witness_artifact(path: Path) -> None:
+    path.write_text(
+        json.dumps(
+            build_external_witness_artifact(),
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )

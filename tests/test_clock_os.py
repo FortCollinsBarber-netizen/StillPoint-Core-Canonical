@@ -159,16 +159,27 @@ class ClockOSTests(unittest.TestCase):
             snapshot["invariants"]["daylight_saving_mutates_common_clock"]
         )
 
-    def test_canonical_address_projects_to_location_specific_sunset_window(self):
+    def test_canonical_address_uses_fixed_standard_midnight_window(self):
         window = canonical_civil_window(2026, 1, config=CONFIG)
 
         self.assertEqual(window["calendar_address"], "Y_2026-001")
-        self.assertEqual(window["opening_civil_date"], "2026-01-01")
-        self.assertEqual(window["closing_civil_date"], "2026-01-02")
+        self.assertEqual(window["boundary"], "common-standard-midnight")
+        self.assertEqual(window["external_projection_date"], "2026-01-01")
+        self.assertTrue(
+            window["opens_at_common_standard"].startswith(
+                "2026-01-01T00:00:00-07:00"
+            )
+        )
+        self.assertTrue(
+            window["closes_at_common_standard"].startswith(
+                "2026-01-02T00:00:00-07:00"
+            )
+        )
         self.assertGreater(
             datetime.fromisoformat(window["closes_at_utc"]),
             datetime.fromisoformat(window["opens_at_utc"]),
         )
+        self.assertEqual(window["solar_witness"]["calendar_effect"], "none")
 
     def test_naive_instant_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "timezone-aware"):

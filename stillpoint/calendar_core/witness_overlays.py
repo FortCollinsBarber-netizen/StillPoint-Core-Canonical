@@ -6,6 +6,12 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
+
 
 OVERLAY_SCHEMA = "stillpoint.external-calendar-witness.v1"
 EXTERNAL_WITNESS_ARTIFACT_VERSION = "stillpoint-external-calendar-witnesses-v1"
@@ -28,7 +34,44 @@ class ExternalCalendarWitness:
     source_refs: tuple[str, ...] = ()
     qualification: str | None = None
 
+    def __post_init__(self) -> None:
+        if not self.id.strip():
+            raise ValueError("external witness id must be non-empty")
+        if not self.name.strip():
+            raise ValueError("external witness name must be non-empty")
+        if self.source_calendar not in {"jewish", "islamic"}:
+            raise ValueError(
+                "source_calendar must be 'jewish' or 'islamic'"
+            )
+        if self.begins_at not in {"date", "sunset"}:
+            raise ValueError("begins_at must be 'date' or 'sunset'")
+        if not self.source_refs:
+            raise ValueError("external witness requires source provenance")
+
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(
+                authority=RhythmAuthority.OBSERVE,
+                source=f"external-calendar-witness:{self.source_calendar}",
+                annotation={
+                    "witness_id": self.id,
+                    "external_date": self.external_date.isoformat(),
+                    "begins_at": self.begins_at,
+                },
+            )
+        )
+
     def as_payload(self) -> dict:
+        decision = RHYTHM_GOVERNOR.require(
+            RhythmRequest(
+                authority=RhythmAuthority.OBSERVE,
+                source=f"external-calendar-witness:{self.source_calendar}",
+                annotation={
+                    "witness_id": self.id,
+                    "external_date": self.external_date.isoformat(),
+                    "begins_at": self.begins_at,
+                },
+            )
+        )
         payload = asdict(self)
         payload["external_date"] = self.external_date.isoformat()
         payload["source_refs"] = list(self.source_refs)
@@ -38,6 +81,11 @@ class ExternalCalendarWitness:
                 "authority": "witness-only",
                 "grid_authority": False,
                 "calendar_effect": "none",
+                "rhythm_governor": {
+                    "authority": decision.authority.value,
+                    "decision": decision.code,
+                    "surface_mutated": decision.surface_mutated,
+                },
             }
         )
         return payload
@@ -209,7 +257,20 @@ def witnesses_for_external_date(
     *,
     calendars: Iterable[str] | None = None,
 ) -> tuple[ExternalCalendarWitness, ...]:
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="external-calendar-witness-catalog",
+        )
+    )
     allowed = None if calendars is None else {str(value).lower() for value in calendars}
+    if allowed is not None:
+        unsupported = allowed - {"jewish", "islamic"}
+        if unsupported:
+            raise ValueError(
+                "unsupported external witness calendar(s): "
+                + ", ".join(sorted(unsupported))
+            )
     return tuple(
         event
         for event in ALL_EXTERNAL_WITNESSES
@@ -220,6 +281,12 @@ def witnesses_for_external_date(
 
 
 def build_external_witness_artifact() -> dict[str, Any]:
+    RHYTHM_GOVERNOR.require(
+        RhythmRequest(
+            authority=RhythmAuthority.READ,
+            source="external-calendar-witness-artifact",
+        )
+    )
     return {
         "version": EXTERNAL_WITNESS_ARTIFACT_VERSION,
         "authorityStatus": "witness-layer-no-grid-authority",

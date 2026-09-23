@@ -81,6 +81,15 @@ from .reference_rule import (
     select_v33_nearest_spring_gate_from_evidence,
     select_v33_nearest_spring_gate_from_provider,
 )
+from .sacred_map import (
+    DEFAULT_CYCLE_YEARS,
+    MAP_VERSION,
+    Observance,
+    address_for,
+    build_sacred_civic_map,
+    export_sacred_civic_map,
+    resolved_observances,
+)
 from .service import CalendarConfig, get_calendar_snapshot
 from .spec import (
     SPEC_VERSION,
@@ -102,7 +111,7 @@ from .witness import (
 )
 
 __all__ = [
-    "MONTH_LENGTHS",
+    "DAY001_WEEKDAY",\n    "MONTH_LENGTHS",\n    "MAP_VERSION",\n    "DEFAULT_CYCLE_YEARS",
     "GATE_SEQUENCE",
     "PHASE_LENGTHS",
     "SPRING_GATE_ORDINAL",
@@ -113,7 +122,7 @@ __all__ = [
     "ALLOWED_RECONCILIATION_DAYS",
     "CalendarAddress",
     "AppointedTime",
-    "AppointedTimeOccurrence",
+    "AppointedTimeOccurrence",\n    "Observance",
     "format_ordinary_address",
     "format_reconciliation_address",
     "parse_calendar_address",
@@ -145,14 +154,14 @@ __all__ = [
     "WeeklyProtectedState",
     "apparent_sunrise_utc",
     "apparent_sunset_utc",
-    "audit_reconciliation_schedule",
+    "address_for",\n    "audit_reconciliation_schedule",\n    "build_sacred_civic_map",
     "boundary_dates_for_common_date",
     "bracket_sunset",
     "build_calendar_core_spec",
     "build_calendar_projection_vectors",
     "canonical_publication_bytes",
     "common_date",
-    "forecast_reconciliation_weeks",
+    "export_sacred_civic_map",\n    "forecast_reconciliation_weeks",
     "get_calendar_snapshot",
     "jubilee_state",
     "month_day_from_ordinal",
@@ -164,7 +173,7 @@ __all__ = [
     "as_march_equinox_evidence",
     "protected_time_state",
     "publication_digest",
-    "select_v32_nearest_legal",
+    "resolved_observances",\n    "select_v32_nearest_legal",
     "select_v33_nearest_spring_gate",
     "select_v33_nearest_spring_gate_from_evidence",
     "select_v33_nearest_spring_gate_from_provider",

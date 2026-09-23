@@ -3,9 +3,9 @@
   "failureCases": [
     {
       "expectedFailure": "INVALID_RECONCILIATION",
-      "id": "invalid-reconciliation",
+      "id": "any-reconciliation-is-invalid",
       "input": {
-        "reconciliationDaysAfterCompletion": 1
+        "reconciliationDaysAfterCompletion": 7
       },
       "kind": "publication"
     },
@@ -28,7 +28,7 @@
     "commonStandardOffsetSeconds": -25200,
     "commonYear": 2026,
     "continuousKAtOpening": 0,
-    "day001Weekday": "Friday",
+    "day001Weekday": "Thursday",
     "latitude": 40.3978,
     "legalCivilZone": "America/Denver",
     "locationId": "LOVELAND_TEST",
@@ -41,13 +41,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 18,
+          "day": 17,
           "dayInWeek": 1,
           "month": 9,
           "ordinal": 260,
           "quarter": 3,
           "week": 38,
-          "weekday": "Friday",
+          "weekday": "Thursday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -71,13 +71,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 19,
+          "day": 18,
           "dayInWeek": 2,
           "month": 9,
           "ordinal": 261,
           "quarter": 3,
           "week": 38,
-          "weekday": "Saturday",
+          "weekday": "Friday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -101,13 +101,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 20,
+          "day": 19,
           "dayInWeek": 3,
           "month": 9,
           "ordinal": 262,
           "quarter": 3,
           "week": 38,
-          "weekday": "Sunday",
+          "weekday": "Saturday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -131,13 +131,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 20,
+          "day": 19,
           "dayInWeek": 3,
           "month": 9,
           "ordinal": 262,
           "quarter": 3,
           "week": 38,
-          "weekday": "Sunday",
+          "weekday": "Saturday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -161,13 +161,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 20,
+          "day": 19,
           "dayInWeek": 3,
           "month": 9,
           "ordinal": 262,
           "quarter": 3,
           "week": 38,
-          "weekday": "Sunday",
+          "weekday": "Saturday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -191,13 +191,13 @@
         "annualPhase": 9,
         "civilOffsetSeconds": -21600,
         "commonDate": {
-          "day": 21,
+          "day": 20,
           "dayInWeek": 4,
           "month": 9,
           "ordinal": 263,
           "quarter": 3,
           "week": 38,
-          "weekday": "Monday",
+          "weekday": "Sunday",
           "year": 2026
         },
         "commonStandardOffsetSeconds": -25200,
@@ -215,28 +215,7 @@
       "id": "sunday-after-sunset",
       "instantUTC": "2026-09-21T01:01:05Z",
       "reconciliationDaysAfterCompletion": 0
-    },
-    {
-      "expected": {
-        "annualPhase": null,
-        "civilOffsetSeconds": -25200,
-        "commonDate": null,
-        "commonStandardOffsetSeconds": -25200,
-        "continuousK": 366,
-        "lordsDay": true,
-        "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
-        "reconciliationAddress": "Y_2026/Y_2027-R3",
-        "reconciliationDay": 3,
-        "sabbath": false,
-        "solarGate": null,
-        "state": "RECONCILIATION",
-        "stillPoint": true
-      },
-      "id": "reconciliation-r3",
-      "instantUTC": "2027-01-02T23:45:32Z",
-      "reconciliationDaysAfterCompletion": 7
     }
   ],
-  "version": "stillpoint-calendar-projection-vectors-v1"
+  "version": "stillpoint-calendar-projection-vectors-v2-fixed-364"
 }

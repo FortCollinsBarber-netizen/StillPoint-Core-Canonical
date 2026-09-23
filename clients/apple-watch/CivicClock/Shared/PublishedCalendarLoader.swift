@@ -53,6 +53,15 @@ struct PublishedCalendarPolicy: Equatable {
         resourceSHA256: nil
     )
 
+    static let enactedStillPoint = PublishedCalendarPolicy(
+        authorityID: "ROBERT_EMMANUEL_LADAY",
+        authorityStatus: "enacted",
+        publicationDigest:
+            "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a",
+        resourceSHA256:
+            "889dd29e84b867db093ee0a981d171c96c1378b070d7e7bc223fe9b108b33012"
+    )
+
     var isExplicitlyAuthorized: Bool {
         guard
             let authorityID, !authorityID.isEmpty,

@@ -137,6 +137,7 @@ def record_robertos_continuity_receipt(db, receipt: dict[str, Any]) -> dict[str,
         content=normalized,
         source="RobertOS",
         observed_at=normalized["created_at"],
+        recorded_at=normalized["created_at"],
         related_claim_ids=[],
         related_warrant_ids=[],
         tags=[

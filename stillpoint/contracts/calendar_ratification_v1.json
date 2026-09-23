@@ -75,12 +75,6 @@
     "mayMoveCommonDates": false,
     "mayInsertDays": false
   },
-  "supersession": {
-    "reconciliation": "non-operative",
-    "intercalation": "none",
-    "nearestLegalV32": "historical-only",
-    "nearestLegalSpringGateV33": "historical-only"
-  },
   "overlayPolicy": {
     "rule": "inhabit-the-surface-never-rewrite-the-surface",
     "gridAuthority": false,

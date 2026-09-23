@@ -46,6 +46,14 @@ def get_calendar_snapshot(
         instant,
         location=config.location,
         local_zone=config.local_zone,
+        common_weekday=(
+            dual.common_date.weekday
+            if dual.common_date
+            else None
+        ),
+        common_standard_civil_date=(
+            dual.common_standard_timestamp.date()
+        ),
     )
     phase = (
         phase_for_base_day(dual.common_date.ordinal)

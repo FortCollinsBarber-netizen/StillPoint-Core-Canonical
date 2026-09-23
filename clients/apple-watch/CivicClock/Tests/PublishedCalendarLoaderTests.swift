@@ -41,10 +41,10 @@ final class PublishedCalendarLoaderTests: XCTestCase {
                 },
                 {
                   "year": 8,
-                  "openingCivilDate": "(secondOpening)"
+                  "openingCivilDate": "\(secondOpening)"
                 }
               ],
-              "publicationDigest": "(publicationDigest)"
+              "publicationDigest": "\(publicationDigest)"
             }
             """.utf8
         )
@@ -101,7 +101,10 @@ final class PublishedCalendarLoaderTests: XCTestCase {
         XCTAssertTrue(publication.isValidatedForProjection)
         XCTAssertEqual(publication.years.count, 2)
         XCTAssertEqual(publication.years[0].year, 7)
-        XCTAssertEqual(publication.years[1].openingCivilDate, "2026-12-31")
+        XCTAssertEqual(
+            publication.years[1].openingCivilDate,
+            "2026-12-31"
+        )
         XCTAssertEqual(
             publication.validationReceipt?.authorityID,
             "TEST_PILOT_AUTHORITY"

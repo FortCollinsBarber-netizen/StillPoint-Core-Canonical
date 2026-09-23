@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .budgets import BudgetLimits
@@ -13,7 +14,7 @@ from .runtime import CompanyRuntime
 from .doctor import run_doctor
 from .adapters.production import build_production_registry, reconcile_gmail_send
 from .office_runtime import OfficeRuntimeCoordinator
-from .calendar_core.runtime_surface import calendar_day_payload
+from .calendar_core.runtime_surface import calendar_day_payload, clock_snapshot_payload
 from .temporal.continuity_ingress import record_robertos_continuity_receipt
 
 
@@ -90,11 +91,23 @@ def main(argv=None) -> int:
     sub.add_parser("offices")
     sub.add_parser("capabilities")
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
+    clock_now=sub.add_parser("clock-now");clock_now.add_argument("--latitude",type=float,required=True);clock_now.add_argument("--longitude",type=float,required=True);clock_now.add_argument("--zone",default="America/Denver");clock_now.add_argument("--instant")
     continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
     if args.cmd=="calendar-day":
         _json(calendar_day_payload(args.year,args.ordinal))
+        return 0
+    if args.cmd=="clock-now":
+        instant = datetime.now(timezone.utc)
+        if args.instant:
+            instant = datetime.fromisoformat(args.instant.replace("Z", "+00:00"))
+        _json(clock_snapshot_payload(
+            instant,
+            latitude=args.latitude,
+            longitude=args.longitude,
+            local_zone=args.zone,
+        ))
         return 0
     root=_root();rt=_runtime(root,args.provider)
     try:

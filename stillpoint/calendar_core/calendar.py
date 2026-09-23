@@ -4,7 +4,14 @@ from datetime import date, timedelta
 
 from .models import CommonDate
 
-MONTH_LENGTHS = (30, 30, 31) * 4
+# Fixed StillPoint annual date surface.
+#
+# The 364-day/52-week ordinal grid is primary. January..December are stable
+# addresses on that grid, frozen from the ratified 2026 pattern with December
+# 31 removed. Enochic 91-day quarters and 30/30/31 solar phases are separate
+# ordinal geometries and MUST NOT be inferred from these civic month lengths.
+MONTH_LENGTHS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 30)
+DAY001_WEEKDAY = "Thursday"
 WEEKDAYS = (
     "Sunday", "Monday", "Tuesday", "Wednesday",
     "Thursday", "Friday", "Saturday",
@@ -13,10 +20,13 @@ WEEKDAYS = (
 
 def validate_grid() -> None:
     if sum(MONTH_LENGTHS) != 364:
-        raise RuntimeError("ordinary Common year must total 364 days")
-    for quarter in range(0, 12, 3):
-        if sum(MONTH_LENGTHS[quarter:quarter + 3]) != 91:
-            raise RuntimeError("every Common quarter must total 91 days")
+        raise RuntimeError("StillPoint year must total exactly 364 days")
+    if len(MONTH_LENGTHS) != 12:
+        raise RuntimeError("StillPoint year must expose twelve named months")
+    if MONTH_LENGTHS[-1] != 30:
+        raise RuntimeError("December 31 does not exist in the StillPoint grid")
+    if 364 % 7 != 0:
+        raise RuntimeError("StillPoint year must contain exactly 52 weeks")
 
 
 def ordinal_day(month: int, day: int) -> int:
@@ -41,14 +51,22 @@ def month_day_from_ordinal(ordinal: int) -> tuple[int, int]:
     raise AssertionError("unreachable")
 
 
-def weekday_for_ordinal(ordinal: int, day001_weekday: str) -> str:
+def weekday_for_ordinal(
+    ordinal: int,
+    day001_weekday: str = DAY001_WEEKDAY,
+) -> str:
     if day001_weekday not in WEEKDAYS:
         raise ValueError(f"unknown weekday epoch: {day001_weekday}")
     start = WEEKDAYS.index(day001_weekday)
     return WEEKDAYS[(start + ordinal - 1) % 7]
 
 
-def common_date(*, year: int, ordinal: int, day001_weekday: str) -> CommonDate:
+def common_date(
+    *,
+    year: int,
+    ordinal: int,
+    day001_weekday: str = DAY001_WEEKDAY,
+) -> CommonDate:
     month, day = month_day_from_ordinal(ordinal)
     return CommonDate(
         year=year,

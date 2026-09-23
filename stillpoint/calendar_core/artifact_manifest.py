@@ -9,21 +9,15 @@ from .projection_vectors import (
     PROJECTION_VECTOR_VERSION,
     build_calendar_projection_vectors,
 )
-from .spec import (
-    SPEC_VERSION,
-    build_calendar_core_spec,
-)
+from .sacred_map import MAP_VERSION, build_sacred_civic_map
+from .spec import SPEC_VERSION, build_calendar_core_spec
 
-ARTIFACT_MANIFEST_VERSION = "stillpoint-calendar-artifact-manifest-v1"
+ARTIFACT_MANIFEST_VERSION = "stillpoint-calendar-artifact-manifest-v2-fixed-364"
 
 
 def canonical_export_bytes(document: dict[str, Any]) -> bytes:
     return (
-        json.dumps(
-            document,
-            indent=2,
-            sort_keys=True,
-        )
+        json.dumps(document, indent=2, sort_keys=True)
         + "\n"
     ).encode("utf-8")
 
@@ -33,52 +27,59 @@ def sha256_hex(value: bytes) -> str:
 
 
 def build_calendar_core_artifact_manifest() -> dict[str, Any]:
-    spec_bytes = canonical_export_bytes(
-        build_calendar_core_spec()
+    artifacts = (
+        (
+            "stillpoint/contracts/calendar_core_spec.json",
+            "calendar-law",
+            SPEC_VERSION,
+            build_calendar_core_spec(),
+        ),
+        (
+            "stillpoint/contracts/calendar_projection_vectors.json",
+            "conformance-proof-only",
+            PROJECTION_VECTOR_VERSION,
+            build_calendar_projection_vectors(),
+        ),
+        (
+            "stillpoint/contracts/calendar_sacred_civic_map.json",
+            "sacred-civic-map",
+            MAP_VERSION,
+            build_sacred_civic_map(),
+        ),
     )
-    vector_bytes = canonical_export_bytes(
-        build_calendar_projection_vectors()
-    )
+    rows = []
+    for path, role, version, document in artifacts:
+        payload = canonical_export_bytes(document)
+        rows.append(
+            {
+                "path": path,
+                "role": role,
+                "version": version,
+                "sha256": sha256_hex(payload),
+                "bytes": len(payload),
+            }
+        )
 
     return {
         "version": ARTIFACT_MANIFEST_VERSION,
         "authorityStatus": "custody-only",
-        "artifacts": [
-            {
-                "path":
-                    "stillpoint/contracts/calendar_core_spec.json",
-                "role": "calendar-law",
-                "version": SPEC_VERSION,
-                "sha256": sha256_hex(spec_bytes),
-                "bytes": len(spec_bytes),
-            },
-            {
-                "path":
-                    "stillpoint/contracts/calendar_projection_vectors.json",
-                "role": "conformance-proof-only",
-                "version": PROJECTION_VECTOR_VERSION,
-                "sha256": sha256_hex(vector_bytes),
-                "bytes": len(vector_bytes),
-            },
-        ],
+        "artifacts": rows,
         "compatibilityBridge": {
-            "path":
-                "stillpoint/contracts/calendar_core_contract.json",
-            "authorityStatus": "non-authoritative-compatibility-only",
+            "path": "stillpoint/contracts/calendar_core_contract.json",
+            "authorityStatus": "historical-compatibility-only",
             "includedInManifestDigest": False,
         },
         "invariants": [
-            "law-and-proof-have-distinct-roles",
-            "proof-vectors-have-no-civic-authority",
-            "manifest-does-not-ratify-publication",
-            "compatibility-bridge-is-not-constitutional-law",
+            "law-map-and-proof-have-distinct-roles",
+            "fixed-grid-has-no-reconciliation-days",
+            "december-31-does-not-exist",
+            "day-364-directly-precedes-next-day-001",
+            "proof-vectors-have-no-independent-authority",
         ],
     }
 
 
-def export_calendar_core_artifact_manifest(
-    path: Path,
-) -> None:
+def export_calendar_core_artifact_manifest(path: Path) -> None:
     path.write_bytes(
         canonical_export_bytes(
             build_calendar_core_artifact_manifest()

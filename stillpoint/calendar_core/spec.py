@@ -4,24 +4,19 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .calendar import MONTH_LENGTHS
+from .calendar import DAY001_WEEKDAY, MONTH_LENGTHS
 from .gates import GATE_SEQUENCE, PHASE_LENGTHS
 from .models import DuskProtocol
-from .reference_rule import SPRING_GATE_ORDINAL
 
-SPEC_VERSION = "stillpoint-calendar-core-spec-v1"
+SPEC_VERSION = "stillpoint-calendar-core-spec-v2-fixed-364"
 
 PROHIBITED_ENACTMENT_KEYS = frozenset(
     {
-        "authority",
         "ephemerisEvidence",
-        "firstOpening",
-        "jubileeEpoch",
         "openingCivilDate",
         "pilotCalibration",
         "publicationDigest",
         "referencePoint",
-        "years",
     }
 )
 
@@ -37,23 +32,27 @@ def build_calendar_core_spec() -> dict[str, Any]:
     return {
         "version": SPEC_VERSION,
         "jurisdiction": {
+            "primary": "fixed-364-day-sacred-civic-grid",
             "calendarNamespace": "stillpoint.calendar_core",
             "authorityNamespace": "stillpoint.temporal",
-            "publicationAuthority": "external-finite-evidence-object",
+            "astronomyRole": "witness-and-boundary-evidence-not-grid-authority",
+            "civilCalendarRole": "translation-layer-not-grid-authority",
         },
-        "enactmentBoundary": {
-            "status": "external-unresolved",
-            "requiredForFinitePublication": [
-                "firstOpening",
-                "referencePoint",
-                "ephemerisEvidence",
-                "publicationAuthority",
-            ],
-            "lawDoesNotSupplyValues": True,
+        "grid": {
+            "status": "ratified-fixed",
+            "days": 364,
+            "weeks": 52,
+            "day001Weekday": DAY001_WEEKDAY,
+            "firstDate": {"month": 1, "day": 1},
+            "lastDate": {"month": 12, "day": 30},
+            "december31Exists": False,
+            "nextAfterLastDate": {"month": 1, "day": 1},
+            "interannualDays": 0,
         },
         "boundary": {
             "protocolId": protocol.id,
             "apparentHorizonZenithDegrees": protocol.zenith_degrees,
+            "role": "local-day-boundary-only",
             "failurePolicy": "explicit-no-silent-fallback",
         },
         "ordinaryCalendar": {
@@ -64,37 +63,40 @@ def build_calendar_core_spec() -> dict[str, Any]:
             "quarters": 4,
         },
         "reconciliation": {
-            "allowedDays": [0, 7],
-            "namespace": "interannual",
-            "addressPattern": "Y_n/Y_n+1-R{day}",
+            "enabled": False,
+            "allowedDays": [0],
+            "namespace": "abolished",
+            "addressPattern": "none",
             "inheritsOrdinaryFields": False,
         },
-        "gates": {
+        "enochicArchitecture": {
             "phaseLengths": list(PHASE_LENGTHS),
             "gateSequence": list(GATE_SEQUENCE),
             "pairedGateCount": 6,
+            "quarterDays": 91,
+            "quarters": 4,
+            "role": "ordinal-sacred-geometry",
         },
-        "referenceRules": {
+        "historicalReferenceRules": {
             "v3.2": {
                 "operator": "NearestLegal",
-                "status": "recovered-historical",
+                "status": "historical-superseded",
             },
-            "v3.3Candidate": {
+            "v3.3": {
                 "operator": "NearestLegalSpringGate",
-                "springGateOrdinal": SPRING_GATE_ORDINAL,
-                "springGateMonth": 3,
-                "springGateDay": 20,
-                "status": "candidate-unratified",
+                "status": "historical-superseded",
             },
         },
         "invariants": [
-            "continuous-time-never-gaps",
-            "ordinary-year-is-always-364",
-            "reconciliation-is-0-or-7-and-interannual",
-            "reconciliation-inherits-no-month-quarter-phase-gate-or-ordinary-day",
-            "week-sequence-is-never-broken",
-            "missing-required-evidence-fails-closed",
-            "publication-is-finite-and-does-not-self-ratify",
+            "day-001-through-day-364-only",
+            "december-31-does-not-exist",
+            "day-364-transitions-directly-to-next-year-day-001",
+            "every-year-is-exactly-52-weeks",
+            "weekday-addresses-repeat-identically-every-year",
+            "astronomy-may-witness-but-cannot-move-the-grid",
+            "lunar-evidence-may-witness-but-cannot-move-the-grid",
+            "civil-translation-may-describe-but-cannot-move-the-grid",
+            "jubilee-counts-years-but-cannot-move-the-grid",
         ],
     }
 
@@ -131,7 +133,6 @@ def validate_calendar_core_spec(document: dict[str, Any]) -> None:
             "INVALID_SPEC_DOCUMENT",
             "Calendar Core spec must be a JSON object",
         )
-
     version = document.get("version")
     if not isinstance(version, str):
         raise CalendarSpecValidationError(
@@ -143,20 +144,18 @@ def validate_calendar_core_spec(document: dict[str, Any]) -> None:
             "UNSUPPORTED_SPEC_VERSION",
             f"unsupported Calendar Core spec version: {version}",
         )
-
     prohibited = _find_prohibited_enactment_key(document)
     if prohibited is not None:
         key, path = prohibited
         raise CalendarSpecValidationError(
-            "SPEC_CONTAINS_ENACTMENT_DATA",
-            f"Calendar Core law may not contain enactment key {key} at {path}",
+            "SPEC_CONTAINS_EXTERNAL_EVIDENCE",
+            f"Calendar Core law may not contain external evidence key {key} at {path}",
         )
-
     expected = build_calendar_core_spec()
     if document != expected:
         raise CalendarSpecValidationError(
             "SPEC_DRIFT",
-            "Calendar Core spec does not exactly match the supported law artifact",
+            "Calendar Core spec does not exactly match the supported fixed-grid law",
         )
 
 

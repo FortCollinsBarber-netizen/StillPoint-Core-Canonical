@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
+from stillpoint.cli import main as cli_main
 from stillpoint.clock_os import (
     CLOCK_SCHEMA,
     ClockConfig,
@@ -96,3 +97,22 @@ def test_clock_config_rejects_invalid_zone():
             local_zone="Not/A_Real_Zone",
             common_standard_offset_seconds=-7 * 3600,
         )
+
+
+def test_clock_cli_read_does_not_construct_company_state(tmp_path, monkeypatch, capsys):
+    instant = _after_sunset(date(2026, 1, 1))
+    monkeypatch.chdir(tmp_path)
+
+    rc = cli_main([
+        "clock-at",
+        "--instant", instant.isoformat(),
+        "--latitude", str(TEST_LOCATION.latitude),
+        "--longitude", str(TEST_LOCATION.longitude),
+        "--zone", CONFIG.local_zone,
+        "--standard-offset-seconds", str(CONFIG.common_standard_offset_seconds),
+        "--location-id", TEST_LOCATION.id,
+    ])
+
+    assert rc == 0
+    assert '"schema": "stillpoint.clock-os.v1"' in capsys.readouterr().out
+    assert not (tmp_path / "state" / "company.sqlite").exists()

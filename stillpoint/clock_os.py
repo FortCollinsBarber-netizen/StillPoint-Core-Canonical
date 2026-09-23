@@ -1,8 +1,12 @@
 """Clock OS: read-only temporal runtime over the enacted Common Calendar.
 
 Clock OS translates between civil instants and the immutable Calendar Core
-surface. Solar boundaries determine when a named day opens at a supplied
-location; they never alter the 364-day grid, weekday pattern, or publication.
+surface. The familiar 24-hour coordination clock remains intact. The Common
+Calendar date changes at midnight in the enacted fixed standard offset, so DST
+cannot move the date boundary. Local solar boundaries independently govern
+creation-facing Sabbath / StillPoint state. Neither astronomy nor clock policy
+may alter the 364-day grid, weekday pattern, or publication.
+
 No location is embedded in this module. Enactment-specific location and
 standard-time settings are supplied by the caller.
 """
@@ -146,7 +150,10 @@ def clock_snapshot(
         location=config.location,
         local_zone=config.local_zone,
     )
-    position = _publication_position(pair.previous_civil_date, document)
+    # Calendar labels belong to the fixed 24-hour coordination layer.
+    # Sunset has jurisdiction over protected/creation-facing time, not over
+    # the named Common Calendar date itself.
+    position = _publication_position(common_timestamp.date(), document)
 
     current: dict[str, Any] | None = None
     following: dict[str, Any] | None = None
@@ -165,6 +172,11 @@ def clock_snapshot(
 
     authority = document["authority"]
     rows = document["years"]
+    next_common_midnight = datetime.combine(
+        common_timestamp.date() + timedelta(days=1),
+        datetime.min.time(),
+        tzinfo=common_zone,
+    )
     next_begins: dict[str, Any] | None = None
     if following is not None:
         next_begins = {
@@ -204,6 +216,12 @@ def clock_snapshot(
             "is_stillpoint": weekly.is_stillpoint,
         },
         "boundaries": {
+            "coordination_date_source": "fixed-standard-midnight",
+            "coordination_date": common_timestamp.date().isoformat(),
+            "next_coordination_midnight": next_common_midnight.isoformat(),
+            "creation_day_opened_at": pair.previous.isoformat(),
+            "creation_day_closes_at": pair.next.isoformat(),
+            # Compatibility aliases retained for existing clients.
             "current_day_opened_at": pair.previous.isoformat(),
             "current_day_closes_at": pair.next.isoformat(),
             "opening_civil_date": pair.previous_civil_date.isoformat(),
@@ -230,6 +248,11 @@ def clock_snapshot(
             "year_days": 364,
             "weeks_per_year": 52,
             "december_31_exists": False,
+            "february_29_exists": False,
+            "coordination_clock": "24-hour",
+            "coordination_date_boundary": "fixed-standard-midnight",
+            "common_standard_uses_dst": False,
+            "protected_time_boundary": "local-apparent-sunset",
             "astronomy_mutates_grid": False,
             "lunar_witness_mutates_grid": False,
             "location_is_enactment_input_not_calendar_law": True,

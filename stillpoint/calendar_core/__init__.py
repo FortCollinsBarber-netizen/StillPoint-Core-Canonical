@@ -34,6 +34,7 @@ from .dual_stamp import project_dual_stamp
 from .governor import (
     GOVERNING_RULE,
     GOVERNOR_SCHEMA,
+    INHABITANT_LAYER_POLICY,
     CalendarAuthority,
     CalendarAuthorityViolation,
     CalendarInvariantViolation,
@@ -123,6 +124,7 @@ __all__ = [
     "MONTH_LENGTHS",
     "GOVERNOR_SCHEMA",
     "GOVERNING_RULE",
+    "INHABITANT_LAYER_POLICY",
     "CalendarAuthority",
     "CalendarAuthorityViolation",
     "CalendarInvariantViolation",

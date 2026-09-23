@@ -13,6 +13,9 @@ from stillpoint.calendar_core.projection_vectors import (
 from stillpoint.calendar_core.spec import (
     export_calendar_core_spec,
 )
+from stillpoint.calendar_core.population_artifact import (
+    export_calendar_population_artifact,
+)
 
 
 def main() -> None:
@@ -31,6 +34,10 @@ def main() -> None:
         "--manifest-output",
         type=Path,
     )
+    parser.add_argument(
+        "--population-output",
+        type=Path,
+    )
     args = parser.parse_args()
 
     export_calendar_core_spec(
@@ -39,6 +46,11 @@ def main() -> None:
     export_calendar_projection_vectors(
         args.vectors_output
     )
+
+    if args.population_output is not None:
+        export_calendar_population_artifact(
+            args.population_output
+        )
 
     if args.manifest_output is not None:
         export_calendar_core_artifact_manifest(

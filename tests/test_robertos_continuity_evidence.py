@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-
-import pytest
+import tempfile
+import unittest
+from pathlib import Path
 
 from stillpoint.db import CompanyDB
 from stillpoint.temporal.continuity_ingress import (
@@ -35,67 +36,73 @@ def _receipt(*, disposition="accepted", candidate="b" * 64, current=None):
     return payload
 
 
-def test_accepted_continuity_receipt_is_immutable_non_authorizing_evidence(tmp_path):
-    db = CompanyDB(tmp_path / "state" / "company.sqlite")
-    receipt = _receipt()
+class RobertOSContinuityEvidenceTests(unittest.TestCase):
+    def _db(self):
+        td = tempfile.TemporaryDirectory()
+        self.addCleanup(td.cleanup)
+        return CompanyDB(Path(td.name) / "state" / "company.sqlite")
 
-    result = record_robertos_continuity_receipt(db, receipt)
-    assert result["recorded"] is True
-    assert result["authority_effect"] == "none"
+    def test_accepted_continuity_receipt_is_immutable_non_authorizing_evidence(self):
+        db = self._db()
+        receipt = _receipt()
 
-    event = db.get_temporal_evidence(result["evidence_id"])
-    assert event is not None
-    assert event.kind.value == "system_event"
-    assert event.subject == "robertos:project:atlas"
-    assert event.content == receipt
-    assert event.related_warrant_ids == []
-    assert "non_authorizing" in event.tags
-    assert db.list_temporal_warrants() == []
+        result = record_robertos_continuity_receipt(db, receipt)
+        self.assertTrue(result["recorded"])
+        self.assertEqual(result["authority_effect"], "none")
+
+        event = db.get_temporal_evidence(result["evidence_id"])
+        self.assertIsNotNone(event)
+        self.assertEqual(event.kind.value, "system_event")
+        self.assertEqual(event.subject, "robertos:project:atlas")
+        self.assertEqual(event.content, receipt)
+        self.assertEqual(event.related_warrant_ids, [])
+        self.assertIn("non_authorizing", event.tags)
+        self.assertEqual(db.list_temporal_warrants(), [])
+
+    def test_exact_receipt_retry_is_idempotent(self):
+        db = self._db()
+        receipt = _receipt()
+
+        first = record_robertos_continuity_receipt(db, receipt)
+        second = record_robertos_continuity_receipt(db, receipt)
+
+        self.assertEqual(first["evidence_id"], second["evidence_id"])
+        self.assertEqual(first["sha256"], second["sha256"])
+        self.assertFalse(second["recorded"])
+        self.assertTrue(second["idempotent_replay"])
+        self.assertEqual(len(db.list_temporal_evidence(subject="robertos:project:atlas")), 1)
+
+    def test_tampered_receipt_fails_closed(self):
+        db = self._db()
+        receipt = _receipt()
+        receipt["candidate_hash"] = "d" * 64
+
+        with self.assertRaisesRegex(ValueError, "receipt hash mismatch"):
+            record_robertos_continuity_receipt(db, receipt)
+        self.assertEqual(db.list_temporal_evidence(), [])
+
+    def test_rejected_stale_predecessor_receipt_records_history_without_authority(self):
+        db = self._db()
+        receipt = _receipt(disposition="rejected")
+
+        result = record_robertos_continuity_receipt(db, receipt)
+        event = db.get_temporal_evidence(result["evidence_id"])
+
+        self.assertIsNotNone(event)
+        self.assertEqual(event.content["disposition"], "rejected")
+        self.assertIsNone(event.content["checkpoint_id"])
+        self.assertEqual(event.provenance["authority_effect"], "none")
+        self.assertEqual(db.list_temporal_warrants(), [])
+
+    def test_invalid_accepted_head_binding_is_rejected(self):
+        receipt = _receipt(current="c" * 64)
+        payload = dict(receipt)
+        payload.pop("receipt_hash")
+        receipt["receipt_hash"] = hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
+
+        with self.assertRaisesRegex(ValueError, "advance current_head_hash"):
+            validate_robertos_continuity_receipt(receipt)
 
 
-def test_exact_receipt_retry_is_idempotent(tmp_path):
-    db = CompanyDB(tmp_path / "state" / "company.sqlite")
-    receipt = _receipt()
-
-    first = record_robertos_continuity_receipt(db, receipt)
-    second = record_robertos_continuity_receipt(db, receipt)
-
-    assert first["evidence_id"] == second["evidence_id"]
-    assert first["sha256"] == second["sha256"]
-    assert second["recorded"] is False
-    assert second["idempotent_replay"] is True
-    assert len(db.list_temporal_evidence(subject="robertos:project:atlas")) == 1
-
-
-def test_tampered_receipt_fails_closed(tmp_path):
-    db = CompanyDB(tmp_path / "state" / "company.sqlite")
-    receipt = _receipt()
-    receipt["candidate_hash"] = "d" * 64
-
-    with pytest.raises(ValueError, match="receipt hash mismatch"):
-        record_robertos_continuity_receipt(db, receipt)
-    assert db.list_temporal_evidence() == []
-
-
-def test_rejected_stale_predecessor_receipt_records_history_without_authority(tmp_path):
-    db = CompanyDB(tmp_path / "state" / "company.sqlite")
-    receipt = _receipt(disposition="rejected")
-
-    result = record_robertos_continuity_receipt(db, receipt)
-    event = db.get_temporal_evidence(result["evidence_id"])
-
-    assert event is not None
-    assert event.content["disposition"] == "rejected"
-    assert event.content["checkpoint_id"] is None
-    assert event.provenance["authority_effect"] == "none"
-    assert db.list_temporal_warrants() == []
-
-
-def test_invalid_accepted_head_binding_is_rejected():
-    receipt = _receipt(current="c" * 64)
-    payload = dict(receipt)
-    payload.pop("receipt_hash")
-    receipt["receipt_hash"] = hashlib.sha256(_canonical(payload).encode("utf-8")).hexdigest()
-
-    with pytest.raises(ValueError, match="advance current_head_hash"):
-        validate_robertos_continuity_receipt(receipt)
+if __name__ == "__main__":
+    unittest.main()

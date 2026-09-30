@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .astronomy import AstronomyEvidence
+from .governor import (
+    RHYTHM_GOVERNOR,
+    RhythmAuthority,
+    RhythmRequest,
+)
 
 
 class WitnessValidationError(ValueError):
@@ -64,6 +69,16 @@ class LunarWitness:
                 "lunar witness source_id is required",
             )
         _validate_digest(self.evidence_sha256)
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(
+                authority=RhythmAuthority.OBSERVE,
+                source=f"lunar-witness:{self.source_id}",
+                annotation={
+                    "phase": self.phase,
+                    "reference_id": self.reference_id,
+                },
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -107,6 +122,18 @@ class SeasonGateWitness:
                 "INVALID_GATE_DIRECTION",
                 "direction_of_travel is not recognized",
             )
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(
+                authority=RhythmAuthority.OBSERVE,
+                source=f"season-gate-witness:{self.source_id}",
+                annotation={
+                    "event": self.event,
+                    "reference_frame": self.reference_frame,
+                    "gate_position": self.gate_position,
+                    "direction_of_travel": self.direction_of_travel,
+                },
+            )
+        )
 
 
 def as_march_equinox_evidence(

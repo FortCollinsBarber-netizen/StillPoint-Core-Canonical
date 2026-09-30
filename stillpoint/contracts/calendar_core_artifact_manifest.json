@@ -1,25 +1,32 @@
 {
   "artifacts": [
     {
-      "bytes": 2163,
+      "bytes": 1960,
       "path": "stillpoint/contracts/calendar_core_spec.json",
       "role": "calendar-law",
-      "sha256": "51cf44d8190f3e4b9dac63fbd331fba4b8a2af698b7798892b974ba17cf252a4",
+      "sha256": "0c5fe4ba044c9678c24b55a4974d47831b08cb6ec8d5f84c5d04cf4fef18f73e",
       "version": "stillpoint-calendar-core-spec-v2"
     },
     {
-      "bytes": 7512,
+      "bytes": 7324,
       "path": "stillpoint/contracts/calendar_projection_vectors.json",
       "role": "conformance-proof-only",
-      "sha256": "26952361015ff01352cd12b51c687152e75b31006e41bbe8747f9f2bdc22db8f",
+      "sha256": "8e5716ce649a6e0727d8f58bc735fe1f460b51825309d642e8067029e837e42c",
       "version": "stillpoint-calendar-projection-vectors-v2"
     },
     {
-      "bytes": 12707,
+      "bytes": 14550,
       "path": "stillpoint/contracts/calendar_population_v1.json",
       "role": "calendar-population-no-grid-authority",
-      "sha256": "228c63dbe8f5732bcae2254a15d77284f6bf80122984944e0ac1a82392a5f54c",
+      "sha256": "f6185da3318c65202967cca5daa87485f955188b75e98ee7402bd0645ba8ef67",
       "version": "stillpoint-calendar-population-v1"
+    },
+    {
+      "bytes": 11750,
+      "path": "stillpoint/contracts/calendar_external_witnesses_2026.json",
+      "role": "external-calendar-witnesses-no-grid-authority",
+      "sha256": "696ec23d110830fa3d4a30a8f106c809d8499504283e676dfc972ffd250e6db9",
+      "version": "stillpoint-external-calendar-witnesses-v1"
     }
   ],
   "authorityStatus": "custody-only",
@@ -33,8 +40,9 @@
     "proof-vectors-have-no-civic-authority",
     "manifest-does-not-ratify-projection-epoch",
     "compatibility-bridge-is-not-constitutional-law",
-    "no-reconciliation-artifact-has-operative-authority",
-    "population-layer-cannot-mutate-grid"
+    "calendar-surface-is-exactly-364-and-nonextensible",
+    "population-layer-cannot-mutate-grid",
+    "external-witness-layer-cannot-mutate-grid"
   ],
   "version": "stillpoint-calendar-artifact-manifest-v1"
 }

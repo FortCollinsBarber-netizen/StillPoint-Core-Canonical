@@ -16,6 +16,9 @@ from stillpoint.calendar_core.spec import (
 from stillpoint.calendar_core.population_artifact import (
     export_calendar_population_artifact,
 )
+from stillpoint.calendar_core.witness_overlays import (
+    export_external_witness_artifact,
+)
 
 
 def main() -> None:
@@ -38,6 +41,10 @@ def main() -> None:
         "--population-output",
         type=Path,
     )
+    parser.add_argument(
+        "--external-witness-output",
+        type=Path,
+    )
     args = parser.parse_args()
 
     export_calendar_core_spec(
@@ -50,6 +57,11 @@ def main() -> None:
     if args.population_output is not None:
         export_calendar_population_artifact(
             args.population_output
+        )
+
+    if args.external_witness_output is not None:
+        export_external_witness_artifact(
+            args.external_witness_output
         )
 
     if args.manifest_output is not None:

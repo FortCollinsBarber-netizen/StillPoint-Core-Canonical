@@ -1,7 +1,5 @@
 {
   "annualTransition": {
-    "interannualDays": 0,
-    "reconciliationAllowed": false,
     "rule": "DAY_364_TO_NEXT_YEAR_DAY_001"
   },
   "boundary": {
@@ -17,10 +15,6 @@
     ],
     "status": "annual-law-ratified-epoch-external"
   },
-  "historicalModels": {
-    "nearestLegalSpringGateV33": "superseded-non-operative",
-    "nearestLegalV32": "superseded-non-operative"
-  },
   "invariants": [
     "year-is-always-364",
     "year-is-always-52-weeks",
@@ -30,7 +24,7 @@
     "february-29-does-not-exist",
     "day-001-is-thursday",
     "day-364-transitions-directly-to-next-day-001",
-    "no-interannual-reconciliation-days",
+    "year-transition-has-no-extra-date",
     "four-seasonal-quarters-are-91-days-each",
     "annual-weekday-pattern-repeats-identically",
     "witness-layers-cannot-mutate-calendar-address"

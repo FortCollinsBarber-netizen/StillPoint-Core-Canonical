@@ -181,8 +181,6 @@ def build_calendar_core_contract() -> dict[str, Any]:
             "seasonalQuarterDays": QUARTER_DAYS,
             "phaseLengths": list(PHASE_LENGTHS),
             "gateSequence": list(GATE_SEQUENCE),
-            "interannualDays": 0,
-            "reconciliationAllowed": False,
         },
         "conformanceContext": {
             "locationId": CONFORMANCE_POINT.id,

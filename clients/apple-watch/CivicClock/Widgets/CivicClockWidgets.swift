@@ -131,6 +131,9 @@ struct CivicClockComplicationView: View {
         if !entry.snapshot.observanceLabel.isEmpty {
             return entry.snapshot.observanceLabel
         }
+        if let witness = entry.snapshot.externalWitnessLabel {
+            return "WITNESS · \(witness)"
+        }
         if !entry.snapshot.jubileeLabel.isEmpty {
             return entry.snapshot.jubileeLabel
         }
@@ -155,7 +158,7 @@ struct CivicClockWidget: Widget {
         }
         .configurationDisplayName("StillPoint Common Clock")
         .description(
-            "Common Clock, fixed Common Calendar, observances, Jubilee, Sabbath, Lord's Day, and StillPoint."
+            "Common Clock, fixed Calendar rhythm, observances, external witnesses, local light, Jubilee, Sabbath, Lord's Day, and StillPoint."
         )
         .supportedFamilies([
             .accessoryCircular,

@@ -74,9 +74,33 @@ struct CivicClockView: View {
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(.secondary)
                         }
+
+                        if let witness = snapshot.externalWitnessLabel {
+                            Text("EXTERNAL WITNESS")
+                                .font(.system(size: 7, weight: .bold))
+                                .tracking(0.8)
+                                .foregroundStyle(.tertiary)
+                            Text(witness)
+                                .font(.system(size: 9, weight: .medium))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(.secondary)
+                        }
                     }
 
                     Divider()
+
+                    if let light = snapshot.localLightPhase {
+                        VStack(spacing: 2) {
+                            Text("LOCAL LIGHT · \(light)")
+                                .font(.caption2.weight(.bold))
+                            if let nextEvent = snapshot.nextLightEvent,
+                               let nextAt = snapshot.nextLightEventAt {
+                                Text("\(nextEvent) · \(nextAt.formatted(date: .omitted, time: .shortened))")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
 
                     VStack(spacing: 2) {
                         Text("\(lunar.phaseName) · \(lunar.illuminationPercent)%")
@@ -173,7 +197,7 @@ struct CivicClockView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Text("CLOCK TRANSLATES · HORIZON BOUNDARY COUNTS")
+                    Text("CLOCK COORDINATES · LIGHT MARKS PROTECTED TIME")
                         .font(.system(size: 8, weight: .medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.tertiary)

@@ -89,7 +89,7 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         )
         XCTAssertEqual(
             publication.validationReceipt?.publicationDigest,
-            "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a"
+            "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8"
         )
     }
 
@@ -112,11 +112,11 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         let state = try snapshot(instant)
 
         XCTAssertTrue(state.commonCalendarLabel.contains("Y2026"))
-        XCTAssertTrue(state.commonCalendarLabel.contains("SEP 17"))
-        XCTAssertTrue(state.commonCalendarLabel.contains("DAY 260"))
-        XCTAssertTrue(state.commonCalendarDetail.contains("THURSDAY"))
-        XCTAssertTrue(state.commonCalendarDetail.contains("W38 D1"))
-        XCTAssertTrue(state.commonCalendarDetail.contains("S3.78"))
+        XCTAssertTrue(state.commonCalendarLabel.contains("SEP 18"))
+        XCTAssertTrue(state.commonCalendarLabel.contains("DAY 261"))
+        XCTAssertTrue(state.commonCalendarDetail.contains("FRIDAY"))
+        XCTAssertTrue(state.commonCalendarDetail.contains("W38 D2"))
+        XCTAssertTrue(state.commonCalendarDetail.contains("S3.79"))
         XCTAssertTrue(state.commonCalendarDetail.contains("G1 · P9"))
         XCTAssertEqual(state.jubileeLabel, "JUBILEE Y1/50")
     }

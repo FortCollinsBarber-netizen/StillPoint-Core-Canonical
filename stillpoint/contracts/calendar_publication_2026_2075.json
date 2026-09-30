@@ -4,7 +4,25 @@
     "status": "enacted"
   },
   "calendarCoreSpecVersion": "stillpoint-calendar-core-spec-v2",
-  "publicationDigest": "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a",
+  "projectionSemantics": {
+    "commonYear": {
+      "closing": {
+        "day": 30,
+        "month": 12
+      },
+      "dateLabels": "canonical-common-calendar",
+      "opening": {
+        "day": 1,
+        "month": 1
+      }
+    },
+    "openingCivilDate": {
+      "frame": "proleptic-gregorian",
+      "gridAuthority": false,
+      "role": "external-translation-only"
+    }
+  },
+  "publicationDigest": "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
   "publicationVersion": "stillpoint-calendar-publication-v2",
   "years": [
     {

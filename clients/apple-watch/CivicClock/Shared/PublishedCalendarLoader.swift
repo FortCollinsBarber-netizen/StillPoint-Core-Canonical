@@ -57,9 +57,9 @@ struct PublishedCalendarPolicy: Equatable {
         authorityID: "ROBERT_EMMANUEL_LADAY",
         authorityStatus: "enacted",
         publicationDigest:
-            "e06b9181fdf4122e71a6645911dcf1024b39e9e20aef7f0a2c1eca086267294a",
+            "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
         resourceSHA256:
-            "889dd29e84b867db093ee0a981d171c96c1378b070d7e7bc223fe9b108b33012"
+            "fdaa312021a671a4b45a0817313b845865c089e47c747874d90073635f74ab94"
     )
 
     var isExplicitlyAuthorized: Bool {
@@ -78,6 +78,28 @@ struct PublishedCalendarPolicy: Equatable {
 }
 
 private struct PublishedCalendarEnvelope: Decodable {
+    struct ProjectionSemantics: Decodable {
+        struct OpeningCivilDate: Decodable {
+            let frame: String
+            let role: String
+            let gridAuthority: Bool
+        }
+
+        struct CommonYear: Decodable {
+            struct MonthDay: Decodable {
+                let month: Int
+                let day: Int
+            }
+
+            let opening: MonthDay
+            let closing: MonthDay
+            let dateLabels: String
+        }
+
+        let openingCivilDate: OpeningCivilDate
+        let commonYear: CommonYear
+    }
+
     struct Authority: Decodable {
         let id: String
         let status: String
@@ -91,6 +113,7 @@ private struct PublishedCalendarEnvelope: Decodable {
     let publicationVersion: String
     let calendarCoreSpecVersion: String
     let authority: Authority
+    let projectionSemantics: ProjectionSemantics
     let years: [YearRow]
     let publicationDigest: String
 }
@@ -194,6 +217,18 @@ enum PublishedCalendarLoader {
             envelope.publicationDigest.lowercased()
                 == expectedPublicationDigest,
             isSHA256(envelope.publicationDigest),
+            envelope.projectionSemantics.openingCivilDate.frame
+                == "proleptic-gregorian",
+            envelope.projectionSemantics.openingCivilDate.role
+                == "external-translation-only",
+            envelope.projectionSemantics.openingCivilDate.gridAuthority
+                == false,
+            envelope.projectionSemantics.commonYear.opening.month == 1,
+            envelope.projectionSemantics.commonYear.opening.day == 1,
+            envelope.projectionSemantics.commonYear.closing.month == 12,
+            envelope.projectionSemantics.commonYear.closing.day == 30,
+            envelope.projectionSemantics.commonYear.dateLabels
+                == "canonical-common-calendar",
             !envelope.years.isEmpty,
             validateRows(
                 envelope.years,

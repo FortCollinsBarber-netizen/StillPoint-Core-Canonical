@@ -63,6 +63,18 @@ final class PublishedCalendarLoaderTests: XCTestCase {
                 "id": "TEST_PILOT_AUTHORITY",
                 "status": "enacted",
             ],
+            "projectionSemantics": [
+                "openingCivilDate": [
+                    "frame": "proleptic-gregorian",
+                    "role": "external-translation-only",
+                    "gridAuthority": false,
+                ],
+                "commonYear": [
+                    "opening": ["month": 1, "day": 1],
+                    "closing": ["month": 12, "day": 30],
+                    "dateLabels": "canonical-common-calendar",
+                ],
+            ],
             "years": years,
             "publicationDigest": publicationDigest,
         ]
@@ -181,6 +193,37 @@ final class PublishedCalendarLoaderTests: XCTestCase {
             PublishedCalendarLoader.load(
                 url: url,
                 policy: wrong,
+                calendarCoreSpec: try spec
+            )
+        )
+    }
+
+
+    func testProjectionSemanticsCannotAcquireGridAuthority() throws {
+        let base = fixtureData()
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: base) as? [String: Any]
+        )
+        var semantics = try XCTUnwrap(
+            object["projectionSemantics"] as? [String: Any]
+        )
+        var opening = try XCTUnwrap(
+            semantics["openingCivilDate"] as? [String: Any]
+        )
+        opening["gridAuthority"] = true
+        semantics["openingCivilDate"] = opening
+        object["projectionSemantics"] = semantics
+
+        let data = try JSONSerialization.data(
+            withJSONObject: object,
+            options: [.sortedKeys]
+        )
+        let url = try writeFixture(data)
+
+        XCTAssertNil(
+            PublishedCalendarLoader.load(
+                url: url,
+                policy: policy(for: data),
                 calendarCoreSpec: try spec
             )
         )

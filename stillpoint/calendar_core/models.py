@@ -65,47 +65,6 @@ class WeeklyProtectedState:
     next_protected_boundary_label: Optional[str]
 
 
-@dataclass(frozen=True)
-class ReconciliationDecision:
-    """Historical v3.2/v3.3 research record; never an operative v2 address."""
-
-    version: str
-    reconciliation_days: int
-    immediate_candidate_opening: date
-    delayed_candidate_opening: date
-    immediate_target_date: date
-    delayed_target_date: date
-    immediate_error_seconds: float
-    delayed_error_seconds: float
-    operator: str
-    reason_code: str = "UNSPECIFIED"
-    evidence_source_id: Optional[str] = None
-    evidence_sha256: Optional[str] = None
-    evidence_event: Optional[str] = None
-    evidence_year: Optional[int] = None
-    evidence_instant_utc: Optional[datetime] = None
-
-    @property
-    def legacy_elapsed_span_days(self) -> int:
-        """Historical opening-to-opening span; never a v2 year length."""
-        return 364 + self.reconciliation_days
-
-    @property
-    def selected_candidate_opening(self) -> date:
-        return (
-            self.immediate_candidate_opening
-            if self.reconciliation_days == 0
-            else self.delayed_candidate_opening
-        )
-
-    @property
-    def selected_target_date(self) -> date:
-        return (
-            self.immediate_target_date
-            if self.reconciliation_days == 0
-            else self.delayed_target_date
-        )
-
 
 @dataclass(frozen=True)
 class JubileeState:

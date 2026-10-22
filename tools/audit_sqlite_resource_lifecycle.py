@@ -19,6 +19,8 @@ Signal lifecycle close when the lifecycle is used correctly?
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import gc
 import json
 import sys
@@ -71,6 +73,13 @@ def main() -> int:
             source = Path(__file__).resolve().parents[1]
             draft_path = source / "tests" / "fixtures" / "signal_icloud_personal_business.draft.json"
             draft = json.loads(draft_path.read_text(encoding="utf-8"))
+            # The signed fixture is intentionally finite (2026-09-17 to 2026-10-17).
+            # This audit tests sqlite resource ownership, not renewal of its standing.
+            # Keep the clock inside the fixture's ORIGINAL approved interval;
+            # do not move the source's review_by, its digest, or production validation.
+            audit_instant = datetime.fromisoformat(draft["valid_from"]).astimezone(timezone.utc) + timedelta(minutes=1)
+            audit_now = lambda: audit_instant
+            expiry_instant = datetime.fromisoformat(draft["review_by"]).astimezone(timezone.utc) + timedelta(seconds=1)
             plan = build_bootstrap_plan(draft)
             if plan.governance_sha256 != APPROVED:
                 raise RuntimeError(
@@ -109,11 +118,17 @@ def main() -> int:
             }
             config = SignalMailboxServiceConfig.from_env(env)
 
-            result = readiness(config)
+            result = readiness(config, now_fn=audit_now)
             if not result.get("ready"):
-                raise RuntimeError(f"production readiness failed in lifecycle audit: {result}")
+                raise RuntimeError(f"fixture-time lifecycle readiness failed: {result}")
 
-            assembly = build_signal_mailbox_service(config)
+            # Independent negative case: expired standing remains unusable, even
+            # though the SQLite lifecycle is being audited at a historical instant.
+            expired = readiness(config, now_fn=lambda: expiry_instant)
+            if expired.get("ready") or "outside its review interval" not in str(expired.get("error", "")):
+                raise RuntimeError(f"expiry authorization did not fail closed: {expired}")
+
+            assembly = build_signal_mailbox_service(config, now_fn=audit_now)
             assembly.close()
             del assembly
             del config
@@ -152,6 +167,8 @@ def main() -> int:
         },
         "governance_sha256": APPROVED,
         "network_actions_invoked": False,
+        "expiry_guard_verified": True,
+        "audit_clock": "fixture_valid_from_plus_one_minute",
         "sqlite_resource_leaks": 0,
     }, indent=2))
     return 0

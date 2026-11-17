@@ -115,6 +115,84 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
             self.assertEqual(record["sacred_date"], source["sacred_date"])
             self.assertEqual(record["jubilee"]["year"], source["jubilee"]["year"])
 
+    def test_published_observance_evidence_matches_public_core_exactly(self):
+        from stillpoint.calendar_core.observances import SACRED_OBSERVANCES
+        passover = next(item for item in SACRED_OBSERVANCES if item.id == "passover")
+        for year, ordinal in ((2027, 1), (2027, passover.start_ordinal)):
+            with self.subTest(year=year, ordinal=ordinal):
+                with tempfile.TemporaryDirectory() as td:
+                    manifest = export_site(Path(td), years=[year])
+                    entry = manifest["years"][0]
+                    shard = json.loads((Path(td) / entry["path"]).read_text())
+                    row = shard["days"][ordinal - 1]
+                    core = calendar_day_payload(year, ordinal)
+                    expected = [
+                        {
+                            "id": item["id"], "name": item["name"],
+                            "jurisdiction": item["jurisdiction"],
+                            "rule": item["rule"],
+                            "note": item["note"],
+                            "source_refs": item["source_refs"],
+                            "source_coordinate": item["source_coordinate"],
+                            "profile_id": item["profile_id"],
+                            "projection_status": item["projection_status"],
+                        }
+                        for item in core["observances"]
+                    ]
+                    self.assertEqual(row["observances"], expected)
+                    self.assertTrue(row["observances"])
+                    self.assertEqual(
+                        hashlib.sha256((Path(td) / entry["path"]).read_bytes()).hexdigest(),
+                        entry["sha256"],
+                    )
+                    if ordinal == passover.start_ordinal:
+                        self.assertTrue(any(
+                            "Leviticus 23:5" in item["source_refs"]
+                            for item in row["observances"]
+                        ))
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js required for public day query grammar")
+    def test_typed_day_and_observance_questions_execute_finite_grammar(self):
+        site = Path(__file__).resolve().parents[2] / "site" / "stillpoint-calendar" / "index.html"
+        script = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const start = html.indexOf("    function parsePublicDayQuestion(text)");
+const end = html.indexOf("    function renderCoreDayEvidence(", start);
+assert.ok(start >= 0 && end > start, "day parser must be present");
+const sandbox = {};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start, end), sandbox);
+const parse = (input) => JSON.parse(JSON.stringify(sandbox.parsePublicDayQuestion(input)));
+assert.deepEqual(parse("What is the Common Calendar date for 2026-11-17?"),
+  {kind:"day", civil_date:"2026-11-17"});
+assert.deepEqual(parse("Explain the Common Calendar observances for 2026-11-17."),
+  {kind:"observances", civil_date:"2026-11-17"});
+assert.deepEqual(parse("Show Common Calendar day 364 of 2075."),
+  {kind:"day", ordinal:364, year:2075});
+assert.deepEqual(parse("List Common Calendar observances on Common day 1 of 2027."),
+  {kind:"observances", ordinal:1, year:2027});
+for (const denied of [
+  "Explain Common Calendar observances on Common day 1 of 2076.",
+  "Show Common Calendar day 365 of 2027.",
+  "Show Common Calendar day 0 of 2027.",
+  "Send a message to my contacts",
+  "Explain why every person must follow the observance",
+  "What is today?"
+]) {
+  assert.throws(() => parse(denied), denied);
+}
+console.log("Executed bounded day and observance query grammar: PASS");
+"""
+        proc = subprocess.run(
+            [shutil.which("node"), "-e", script, str(site)],
+            capture_output=True, text=True, check=False, timeout=15,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("PASS", proc.stdout)
+
     def test_no_unpublished_year_or_nonmonotone_selection(self):
         with tempfile.TemporaryDirectory() as td:
             for years in ([2076], [2027, 2026], [2026, 2026], []):
@@ -183,6 +261,14 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('An invalid new question must not leave an older answer', text)
         self.assertIn('$("assistantResult").classList.add("hidden");', text)
         self.assertIn('No unrestricted AI or actions.', text)
+        self.assertIn('id="dayQuestionForm"', text)
+        self.assertIn('id="dayQuestionStatus"', text)
+        self.assertIn('id="dayObservanceEvidence"', text)
+        self.assertIn('parsePublicDayQuestion(text)', text)
+        self.assertIn('await sha256Hex(bytes) !== entry.sha256', text)
+        self.assertIn('item.source_refs.join("; ")', text)
+        self.assertIn("No named Core observance", text)
+        self.assertIn("not a signature or a separate Python answer receipt", text)
         self.assertIn('id="downloadAnswer"', text)
         self.assertIn('id="assistantReceiptHash"', text)
         self.assertIn('window.crypto.subtle.digest("SHA-256", bytes)', text)

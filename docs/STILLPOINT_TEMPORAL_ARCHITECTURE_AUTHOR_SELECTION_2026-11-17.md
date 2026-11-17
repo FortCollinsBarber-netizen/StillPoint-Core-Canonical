@@ -1,4 +1,4 @@
-# StillPoint Temporal Architecture — Author-Selected Working Rules
+# StillPoint Temporal Architecture — Authorial Selection and Ratification Addendum
 
 **Originating author and principal investigator:** Robert Emmanuel LaDay  
 **Decision date:** November 17, 2026  
@@ -47,7 +47,21 @@ StillPoint's Firstfruits working interpretation is the Sunday following the week
 
 ## 5. The nine functional layers are preserved
 
-Maintain the functional separation established in the September manuscript, including the Common Calendar civil grid, civil clock, protected civic interval, sacred calendars, astronomical and lunar witnesses, long-cycle reckoning, and external calendar translation. The high-level distinction between institutional coordination and astronomical observation is an aid to explanation, not permission to collapse nine operational responsibilities into two central authorities. One layer's ability to translate or observe another is not a license to govern it.
+Maintain all nine functional layers established in the September manuscript:
+
+| Layer | Responsibility and jurisdiction |
+|---|---|
+| 1. Common Calendar | Coordinates civil dates and weekdays under the current selected version. |
+| 2. Civil Clock | Coordinates appointment times; it does not define sacred observance or natural events. |
+| 3. Civic StillPoint | Represents protected time; enforceable legal protection requires independent lawful authority. |
+| 4. Civic Holidays | Displays public commemoration and closure policies, separately from religious-calendar rules. |
+| 5. Sacred / Religious Time | Displays this project's selected profile and independent communities' observances with their provenance. |
+| 6. Sun / Season / Local Light | Reports observed or calculated physical conditions without resetting the civil grid. |
+| 7. Lunar Layer | Reports the Moon as observational witness without governing civil dates. |
+| 8. Long Cycles | Calculates seven-year and Jubilee positions without executing legal release. |
+| 9. External Translation | Translates coordinates to other calendars without acquiring their authority. |
+
+The high-level distinction between institutional coordination and astronomical observation is an aid to explanation, not permission to collapse nine operational responsibilities into two central authorities. One layer's ability to translate, describe, observe, or display another is not a license to govern it.
 
 The current civil-year working design remains **364 named dates, 52 full weeks, stable weekdays, and no inserted intercalary days or weeks**. That is a present accountable design decision, not immunity to future revision. Apparent-sunset sacred boundaries and civil-dusk/dawn protection stay distinguishable. The previously corrected permanent Good Friday/Easter seeding must not return.
 
@@ -58,3 +72,15 @@ The existing verified finite Common Calendar publication covers **2026–2075**.
 The machine-readable status for both selected policies is `author-selected-working-rule-not-civil-enactment`. Both records attribute the selection to **Robert Emmanuel LaDay**, dated **2026-11-17**. The Python engine, Watch implementation, shared exported resources, runtime displays, and checksum validation must agree. The old model's evidence remains accessible in Git and manuscripts but cannot silently override the selected working calculation.
 
 **Author-selected working rules:** March 25 sacred-year anchor; 2027 Jubilee epoch; 49-year cycles with the fiftieth-year proclamation overlapping the next Cycle's Year 1. These rules remain accountable, testable, and supersedable by a later documented authorized decision.
+
+## 7. Companion manuscript and checkpoint record
+
+This addendum accompanies the following accessible source records without replacing or backdating them:
+
+- Robert Emmanuel LaDay, *StillPoint Common Calendar: Civic Time, Sacred Time, Observed Time, and the 7→49→50 Architecture*, September 23, 2026, 16-page structural reference paper. Its nine-layer model and then-unresolved anchors remain the historical source witness.
+- *StillPoint — Research Checkpoint 003*, November 17, 2026: the constitutional clarification distinguishes the nine operational layers from the higher-level institutional/astronomical distinction and records interpretive limits.
+- *Proposed StillPoint Temporal Constitution — Section on Time Jurisdiction*: the separate proposed clarification distinguishes civil coordination, physical observation, sacred time and lawful institutional action; its earlier proposed status is preserved.
+- *StillPoint Research — Checkpoint 004: Read-only implementation audit, epoch interoperability, protected time, and Jubilee rollover*, November 17, 2026: the audit records the source-to-code discrepancies before implementation and author selection.
+- `CALENDAR_RULE_RESOLUTION_2026-11-17.md` and `CALENDAR_CYCLE_CONFIGURATION.md` in this repository: computational policy and implementation detail, subordinate to this dated selection and subsequent verified successors.
+
+The complete September manuscript and checkpoint source texts were accessible as retained research files during preparation. This repository addendum is the dated selection record, not a claim that those original manuscript files were modified or that archival synchronization has already occurred. Archive custodians should retain this addendum alongside those original versions.

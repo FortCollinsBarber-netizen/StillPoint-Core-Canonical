@@ -218,8 +218,11 @@ let served = pristine;
 const sandbox = {
   cache:new Map(), manifest:index, window:{crypto:crypto.webcrypto},
   Uint8Array, TextDecoder,
-  fetch: async () => ({ok:true, arrayBuffer:async () =>
-    served.buffer.slice(served.byteOffset, served.byteOffset+served.byteLength)})
+  fetch: async (url) => {
+    assert.match(url, /[?]sha256=[a-f0-9]{64}$/);
+    return {ok:true, arrayBuffer:async () =>
+      served.buffer.slice(served.byteOffset, served.byteOffset+served.byteLength)};
+  }
 };
 vm.createContext(sandbox);
 vm.runInContext(html.slice(start,end), sandbox);
@@ -320,6 +323,8 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('id="dayObservanceEvidence"', text)
         self.assertIn('parsePublicDayQuestion(text)', text)
         self.assertIn('await sha256Hex(bytes) !== entry.sha256', text)
+        self.assertIn('entry.path + "?sha256=" + entry.sha256', text)
+        self.assertIn('entry.assistant_path + "?sha256=" + entry.assistant_sha256', text)
         self.assertIn('item.source_refs.join("; ")', text)
         self.assertIn("No named Core observance", text)
         self.assertIn("not a signature or a separate Python answer receipt", text)

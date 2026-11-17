@@ -40,6 +40,28 @@ unbounded prompts, or consequential actions fail closed. Source references are
 **references recorded in the Core**, not independent textual exegesis, proof of
 religious authority, or a civil-law enactment.
 
+## Exact-source sample receipts and supersession
+
+The current public source branch includes two newly generated and immediately
+reproduced CLI examples:
+
+- `docs/examples/public_assistant_week_answer.json` — existing week 46
+  example regenerated for the changed assistant-source and observances
+  dependency fingerprint; exact receipt SHA-256
+  `722affa8cfb8b2781a96cdbef10497e7eb597c1a12c67a1c833fba2437c74028`.
+- `docs/examples/public_assistant_observance_answer.json` — explicit Common
+  2027 day 1 civic observance explanation; exact receipt SHA-256
+  `4343ccebf386e14d2dbae3ecf0ca72d51f87d7b1d950ff378059c6a496a094bd`.
+
+The prior week-example receipt from public `main` at
+`0261e0cda145f4eddd9b039cb81e7928a6397859` was **preserved unchanged** at
+`docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json`.
+It is historical evidence, not a current-source verified sample. The
+installed-product regression explicitly checks that both current examples
+verify and the archived one does **not** silently regain current authority.
+A new assistant source change requires a new example receipt; never falsify
+a receipt digest to make an old one pass.
+
 ## Static-browser implementation and evidence layers
 
 The browser's new day-question form accepts **only** explicit Gregorian

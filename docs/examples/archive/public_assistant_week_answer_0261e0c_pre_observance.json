@@ -1,0 +1,299 @@
+{
+  "schema": "stillpoint.public-assistant-answer.v1",
+  "request": "Show the Common Calendar week for 2026-11-17.",
+  "interpretation": {
+    "capability": "calendar.week.read",
+    "arguments": {
+      "civil_date": "2026-11-17"
+    }
+  },
+  "authorization": {
+    "allowed": true,
+    "scope": "this-request-only",
+    "capability": "calendar.week.read",
+    "basis": "invoking-caller-public-read-permission",
+    "execution_warrant": false
+  },
+  "result": {
+    "schema": "stillpoint.calendar-week.v1",
+    "authority": "read-only-calendar-law",
+    "calendar_namespace": "stillpoint.calendar_core",
+    "year": 2026,
+    "week": 46,
+    "day_count": 7,
+    "first_address": "Y_2026-316",
+    "last_address": "Y_2026-322",
+    "publication": {
+      "version": "stillpoint-calendar-publication-v2",
+      "digest": "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
+      "authority_id": "ROBERT_EMMANUEL_LADAY",
+      "authority_status": "enacted"
+    },
+    "map": {
+      "first_year": 2026,
+      "last_year": 2075,
+      "year_count": 50,
+      "total_days": 18200,
+      "day001_weekday": "Thursday",
+      "year_days": 364,
+      "weeks_per_year": 52,
+      "december_31_exists": false
+    },
+    "days": [
+      {
+        "calendar_address": "Y_2026-316",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 12,
+          "ordinal": 316,
+          "week": 46,
+          "day_in_week": 1,
+          "weekday": "Thursday"
+        },
+        "civil_window": {
+          "opens": "2026-11-12",
+          "closes": "2026-11-13",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 21,
+          "ordinal": 233
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      },
+      {
+        "calendar_address": "Y_2026-317",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 13,
+          "ordinal": 317,
+          "week": 46,
+          "day_in_week": 2,
+          "weekday": "Friday"
+        },
+        "civil_window": {
+          "opens": "2026-11-13",
+          "closes": "2026-11-14",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 22,
+          "ordinal": 234
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      },
+      {
+        "calendar_address": "Y_2026-318",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 14,
+          "ordinal": 318,
+          "week": 46,
+          "day_in_week": 3,
+          "weekday": "Saturday"
+        },
+        "civil_window": {
+          "opens": "2026-11-14",
+          "closes": "2026-11-15",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 23,
+          "ordinal": 235
+        },
+        "observances": [],
+        "is_sabbath_date": true
+      },
+      {
+        "calendar_address": "Y_2026-319",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 15,
+          "ordinal": 319,
+          "week": 46,
+          "day_in_week": 4,
+          "weekday": "Sunday"
+        },
+        "civil_window": {
+          "opens": "2026-11-15",
+          "closes": "2026-11-16",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 24,
+          "ordinal": 236
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      },
+      {
+        "calendar_address": "Y_2026-320",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 16,
+          "ordinal": 320,
+          "week": 46,
+          "day_in_week": 5,
+          "weekday": "Monday"
+        },
+        "civil_window": {
+          "opens": "2026-11-16",
+          "closes": "2026-11-17",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 25,
+          "ordinal": 237
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      },
+      {
+        "calendar_address": "Y_2026-321",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 17,
+          "ordinal": 321,
+          "week": 46,
+          "day_in_week": 6,
+          "weekday": "Tuesday"
+        },
+        "civil_window": {
+          "opens": "2026-11-17",
+          "closes": "2026-11-18",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 26,
+          "ordinal": 238
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      },
+      {
+        "calendar_address": "Y_2026-322",
+        "common_date": {
+          "year": 2026,
+          "month": 11,
+          "day": 18,
+          "ordinal": 322,
+          "week": 46,
+          "day_in_week": 7,
+          "weekday": "Wednesday"
+        },
+        "civil_window": {
+          "opens": "2026-11-18",
+          "closes": "2026-11-19",
+          "frame": "proleptic-gregorian",
+          "role": "external-translation-only",
+          "grid_authority": false
+        },
+        "sacred_date": {
+          "profile_id": "stillpoint-enochic-march25-v1",
+          "calendar": "schematic-enochic-364",
+          "year": 2026,
+          "month": 8,
+          "day": 27,
+          "ordinal": 239
+        },
+        "observances": [],
+        "is_sabbath_date": false
+      }
+    ]
+  },
+  "evidence": {
+    "kind": "reproducible-public-read-not-a-signature-or-warrant",
+    "request_sha256": "48b8baa7e0f984cf7e1be284897fcfb67e6ea7d924b945b359a1a29a43afd572",
+    "result_sha256": "043010d366f6b37939fdfb3d262d67f621a339497d8e0d8db1e7dea03db56bef",
+    "publication_digest": "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
+    "sources": [
+      {
+        "path": "stillpoint/public_assistant.py",
+        "sha256": "c0222ab24b0077bbba00d50378c9b2ec58d5319a9e0669f9f32249a77cbc605d"
+      },
+      {
+        "path": "stillpoint/authority/deterministic.py",
+        "sha256": "9a3bd36372f0385730fecb64323b3a8636146089f8b887f8df33741ee7095594"
+      },
+      {
+        "path": "stillpoint/authority/clauses.py",
+        "sha256": "c9d2d9d7c23d5c23d8b5da7d3908310fe1ea38cdba55d03a685d1c42070f41d5"
+      },
+      {
+        "path": "stillpoint/authority/schema.py",
+        "sha256": "394b6458b50afe168af34e3f62c1e70695a24b1aee0d36c4bd129aee8646f1e5"
+      },
+      {
+        "path": "stillpoint/calendar_core/civil_lookup.py",
+        "sha256": "9b7f3e8e93e5ffe855333d0aec22566c1455cdfcb5de4f601fd2c48deeef67bb"
+      },
+      {
+        "path": "stillpoint/calendar_core/runtime_surface.py",
+        "sha256": "876d27cb635fd6cac6e6e721c9c24784c3861c4a7609e386738fe772f5112454"
+      },
+      {
+        "path": "stillpoint/calendar_core/week_view.py",
+        "sha256": "b051aea0dd30118126d6e368e1004cd7f580e38583ae07bd40fa63c735fc251e"
+      },
+      {
+        "path": "stillpoint/calendar_core/governor.py",
+        "sha256": "cdd2e95f1de9d9a256b865c15dbee107a4687f065727e973512dc088322b4165"
+      },
+      {
+        "path": "stillpoint/calendar_core/publication.py",
+        "sha256": "736657dd8da1d3748c67882b362893960fcd5a6cf53961e38f49494a8dc0c404"
+      },
+      {
+        "path": "stillpoint/contracts/calendar_publication_2026_2075.json",
+        "sha256": "fdaa312021a671a4b45a0817313b845865c089e47c747874d90073635f74ab94"
+      }
+    ]
+  },
+  "status": "completed",
+  "answer": "Gregorian 2026-11-17 falls in Common year 2026, week 46: Common 2026-11-12 through 2026-11-18 (7 days).",
+  "receipt_sha256": "7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7"
+}

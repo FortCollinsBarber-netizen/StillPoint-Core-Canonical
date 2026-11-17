@@ -51,10 +51,10 @@ class CalendarCoreContractTests(unittest.TestCase):
             for row in doc["goldenVectors"]
         }
         self.assertTrue(by_id["friday-after-sunset"]["sabbath"])
-        self.assertTrue(by_id["friday-after-sunset"]["stillPoint"])
+        self.assertFalse(by_id["friday-after-sunset"]["stillPoint"])
         self.assertTrue(by_id["saturday-after-sunset"]["lordsDay"])
         self.assertTrue(by_id["saturday-after-sunset"]["stillPoint"])
-        self.assertTrue(by_id["sunday-before-sunrise"]["stillPoint"])
+        self.assertFalse(by_id["sunday-before-sunrise"]["stillPoint"])
         self.assertFalse(by_id["sunday-after-sunrise"]["stillPoint"])
         self.assertTrue(by_id["sunday-after-sunrise"]["lordsDay"])
         self.assertFalse(by_id["sunday-after-sunset"]["lordsDay"])

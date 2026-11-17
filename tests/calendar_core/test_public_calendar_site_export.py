@@ -240,6 +240,8 @@ const filters = (changes={}) => ({name:"", jurisdiction:"", year:null,
             self.assertEqual(manifest["observance_receipt_schema"],
                              "stillpoint.public-assistant-static-observance-receipts.v1")
             self.assertEqual(manifest["receipt_format"], "gzip-json-mtime-zero")
+            self.assertEqual(manifest["day_receipt_total"], 3 * 364)
+            self.assertEqual(manifest["observance_receipt_total"], 3 * 364)
             self.assertTrue(manifest["no_2076_publication"])
             for entry in manifest["years"]:
                 with self.subTest(year=entry["year"]):
@@ -565,6 +567,8 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('id="saveObservanceReceipt"', text)
         self.assertIn('async function getDetailReceiptShard(entry, kind)', text)
         self.assertIn('new DecompressionStream("gzip")', text)
+        self.assertIn('data.day_receipt_total !== 18200', text)
+        self.assertIn('data.observance_receipt_total !== 18200', text)
         self.assertIn('await sha256Hex(bytes) !== sha', text)
         self.assertIn('receipt.authorization.execution_warrant !== false', text)
         self.assertIn('id="dayQuestionForm"', text)

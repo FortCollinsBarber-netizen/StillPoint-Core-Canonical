@@ -193,6 +193,60 @@ console.log("Executed bounded day and observance query grammar: PASS");
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("PASS", proc.stdout)
 
+    @unittest.skipUnless(shutil.which("node"), "Node.js required to execute actual SHA browser loader")
+    def test_browser_year_integrity_rejects_byte_tampering(self):
+        """Execute the real JS shard loader against a Core-generated year and a forged copy."""
+        with tempfile.TemporaryDirectory(prefix="stillpoint-shard-integrity-") as td:
+            root = Path(td)
+            export_site(root, years=[2027])
+            site = root / "index.html"
+            manifest = root / "data" / "index.json"
+            year_file = root / "data" / "Y_2027.json"
+            node_script = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const index = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const entry = index.years[0];
+const pristine = fs.readFileSync(process.argv[3]);
+const start = html.indexOf("    async function sha256Hex(bytes)");
+const end = html.indexOf("    async function getAssistantShard(entry)", start);
+assert.ok(start >= 0 && end > start, "real year-shard loader must exist");
+let served = pristine;
+const sandbox = {
+  cache:new Map(), manifest:index, window:{crypto:crypto.webcrypto},
+  Uint8Array, TextDecoder,
+  fetch: async () => ({ok:true, arrayBuffer:async () =>
+    served.buffer.slice(served.byteOffset, served.byteOffset+served.byteLength)})
+};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start,end), sandbox);
+(async () => {
+  const result = await sandbox.getShard(entry);
+  assert.equal(result.year, 2027);
+  assert.equal(result.days.length, 364);
+  sandbox.cache.clear();
+  served = Buffer.concat([pristine, Buffer.from(" ")]);
+  await assert.rejects(sandbox.getShard(entry), /SHA-256 integrity check/);
+  sandbox.cache.clear();
+  served = pristine;
+  await assert.rejects(
+    sandbox.getShard({...entry,sha256:"0".repeat(64)}),
+    /SHA-256 integrity check/
+  );
+  console.log("Browser year-shard SHA-256 actual loader: PASS");
+})().catch(error => {console.error(error);process.exitCode=1});
+"""
+            run = subprocess.run(
+                [shutil.which("node"), "-e", node_script,
+                 str(site), str(manifest), str(year_file)],
+                capture_output=True, text=True, check=False, timeout=20,
+            )
+            self.assertEqual(run.returncode, 0, run.stderr)
+            self.assertIn("PASS", run.stdout)
+
     def test_no_unpublished_year_or_nonmonotone_selection(self):
         with tempfile.TemporaryDirectory() as td:
             for years in ([2076], [2027, 2026], [2026, 2026], []):

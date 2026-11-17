@@ -26,6 +26,9 @@ from .calendar_core.week_view import calendar_week_payload
 from .calendar_core.models import GeoPoint
 from .clock_os import ClockConfig, canonical_civil_window, clock_snapshot
 from .temporal.continuity_ingress import record_robertos_continuity_receipt
+from .public_assistant import (
+    PUBLIC_READ_CAPABILITIES, answer_request, read_answer_receipt, verify_answer_receipt,
+)
 
 
 def _root() -> Path:
@@ -101,6 +104,8 @@ def main(argv=None) -> int:
     sub.add_parser("approvals")
     sub.add_parser("offices")
     sub.add_parser("capabilities")
+    ask=sub.add_parser("ask",help="Answer a supported public calendar request without company state");ask.add_argument("request")
+    verify_answer=sub.add_parser("verify-answer",help="Reproduce a public calendar answer receipt");verify_answer.add_argument("receipt",type=Path)
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
     calendar_window=sub.add_parser("calendar-window");calendar_window.add_argument("year",type=int);calendar_window.add_argument("--start-ordinal",type=int,required=True);calendar_window.add_argument("--days",type=int,default=7)
     calendar_week=sub.add_parser("calendar-week");calendar_week.add_argument("year",type=int);calendar_week.add_argument("--week",type=int,required=True)
@@ -110,6 +115,17 @@ def main(argv=None) -> int:
     continuity_receipt=sub.add_parser("record-continuity-receipt");continuity_receipt.add_argument("--receipt-json",required=True)
     sub.add_parser("doctor")
     args=parser.parse_args(argv)
+    if args.cmd=="ask":
+        result=answer_request(args.request,allowed_capabilities=PUBLIC_READ_CAPABILITIES)
+        _json(result)
+        return 0 if result["status"]=="completed" else 2
+    if args.cmd=="verify-answer":
+        try:
+            result=verify_answer_receipt(read_answer_receipt(args.receipt))
+        except (OSError,ValueError) as exc:
+            result={"schema":"stillpoint.public-assistant-verification.v1","verified":False,"reason":str(exc)}
+        _json(result)
+        return 0 if result["verified"] else 2
     if args.cmd=="calendar-day":
         RHYTHM_GOVERNOR.require(
             RhythmRequest(RhythmAuthority.READ, "calendar-cli")

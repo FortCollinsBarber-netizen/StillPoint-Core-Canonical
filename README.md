@@ -99,6 +99,19 @@ python -m stillpoint.cli execute-action ACTION_ID
 
 `doctor` checks the database/schema, agent registry, managed storage, provider configuration, and frozen evaluation-corpus hashes without exposing credentials.
 
+## Public read-only assistant
+
+For a bounded public assistant interaction without company state or a provider:
+
+```bash
+stillpoint ask "Show the Common Calendar week for 2026-11-17."
+stillpoint ask "What is the Common Calendar date for 2026-11-17?" > answer.json
+stillpoint verify-answer answer.json
+```
+
+The response includes the real Calendar Core result and reproducible evidence.
+See [supported requests and permission boundaries](docs/PUBLIC_ASSISTANT_WORKFLOW_V1.md).
+
 ## State and recovery
 
 Runtime state is stored under `state/` by default. Task attachments are copied into task-scoped managed storage and fingerprinted. Resume instructions are persisted as new instruction events and re-planned so new external authority cannot inherit a weaker prior authorization envelope. Reusable stages are bound to stage-specific fingerprints.

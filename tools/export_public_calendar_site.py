@@ -9,6 +9,7 @@ observance and Jubilee coordinate comes from calendar_day_payload().
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -20,6 +21,8 @@ from stillpoint.calendar_core.runtime_surface import (
 )
 from stillpoint.public_assistant import (
     WEEK_READ,
+    DAY_READ,
+    OBSERVANCES_READ,
     answer_request,
     verify_answer_receipt,
 )
@@ -33,6 +36,8 @@ SCHEMA = "stillpoint.public-calendar-static.v1"
 ASSISTANT_SCHEMA = "stillpoint.public-assistant-static-weeks.v1"
 OBSERVANCE_INDEX_SCHEMA = "stillpoint.public-observance-index.v1"
 MAX_PUBLIC_OBSERVANCE_ROWS = 10_000
+DAY_RECEIPT_SCHEMA = "stillpoint.public-assistant-static-day-receipts.v1"
+OBSERVANCE_RECEIPT_SCHEMA = "stillpoint.public-assistant-static-observance-receipts.v1"
 
 
 def _write_json(path: Path, value: object) -> str:
@@ -41,6 +46,16 @@ def _write_json(path: Path, value: object) -> str:
     ).encode("utf-8")
     path.write_bytes(payload)
     return hashlib.sha256(payload).hexdigest()
+
+
+def _write_gzip_json(path: Path, value: object) -> str:
+    """Reproducible compressed JSON (mtime=0), digest over exact served bytes."""
+    payload = json.dumps(
+        value, ensure_ascii=False, separators=(",", ":"), sort_keys=True,
+    ).encode("utf-8")
+    blob = gzip.compress(payload, compresslevel=9, mtime=0)
+    path.write_bytes(blob)
+    return hashlib.sha256(blob).hexdigest()
 
 
 def _consumer_day(payload: dict) -> dict:
@@ -107,6 +122,10 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
     data_dir.mkdir(parents=True, exist_ok=True)
     assistant_dir = data_dir / "assistant"
     assistant_dir.mkdir(parents=True, exist_ok=True)
+    day_receipt_dir = assistant_dir / "day"
+    day_receipt_dir.mkdir(parents=True, exist_ok=True)
+    observance_receipt_dir = assistant_dir / "observances"
+    observance_receipt_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(SITE_SOURCE, output / "index.html")
 
     digest = source["publicationDigest"]
@@ -114,6 +133,8 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
     observance_rows: list[dict] = []
     for year in selected:
         days = []
+        day_receipts = []
+        observance_receipts = []
         for ordinal in range(1, DAY_COUNT + 1):
             full = calendar_day_payload(year, ordinal)
             if (
@@ -135,6 +156,26 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
                     "common_date": record["common_date"],
                     **observance,
                 })
+            for capability, verb, sink in (
+                (DAY_READ, "Show Common Calendar day", day_receipts),
+                (OBSERVANCES_READ, "Explain Common Calendar observances on Common day",
+                 observance_receipts),
+            ):
+                request = f"{verb} {ordinal} of {year}."
+                receipt = answer_request(
+                    request, allowed_capabilities=frozenset({capability}),
+                )
+                if (
+                    receipt.get("status") != "completed"
+                    or receipt["interpretation"]["capability"] != capability
+                    or receipt["result"]["common_date"]["year"] != year
+                    or receipt["result"]["common_date"]["ordinal"] != ordinal
+                    or receipt["result"]["publication"]["digest"] != digest
+                    or receipt["authorization"]["execution_warrant"] is not False
+                    or not verify_answer_receipt(receipt)["verified"]
+                ):
+                    raise ValueError("public day/observance receipt did not reproduce")
+                sink.append(receipt)
         # A year shard is small enough to load on demand in a phone browser.
         name = "Y_" + str(year) + ".json"
         sha = _write_json(
@@ -176,8 +217,35 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
                 "receipts": receipts,
             },
         )
+        receipt_name = "Y_" + str(year) + ".json.gz"
+        day_receipt_sha = _write_gzip_json(
+            day_receipt_dir / receipt_name,
+            {
+                "schema": DAY_RECEIPT_SCHEMA,
+                "year": year,
+                "capability": DAY_READ,
+                "publication_digest": digest,
+                "receipts": day_receipts,
+            },
+        )
+        obs_receipt_sha = _write_gzip_json(
+            observance_receipt_dir / receipt_name,
+            {
+                "schema": OBSERVANCE_RECEIPT_SCHEMA,
+                "year": year,
+                "capability": OBSERVANCES_READ,
+                "publication_digest": digest,
+                "receipts": observance_receipts,
+            },
+        )
         entries.append({
             "year": year,
+            "day_receipt_path": "data/assistant/day/" + receipt_name,
+            "day_receipt_sha256": day_receipt_sha,
+            "day_receipt_count": len(day_receipts),
+            "observance_receipt_path": "data/assistant/observances/" + receipt_name,
+            "observance_receipt_sha256": obs_receipt_sha,
+            "observance_receipt_count": len(observance_receipts),
             "assistant_path": "data/assistant/" + assistant_name,
             "assistant_sha256": assistant_sha,
             "assistant_week_count": len(receipts),
@@ -214,6 +282,10 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
         "assistant_source": "stillpoint.public_assistant.answer_request",
         "assistant_verification": "verify_answer_receipt at build time; no in-browser Python",
         "assistant_schema": ASSISTANT_SCHEMA,
+        "day_receipt_schema": DAY_RECEIPT_SCHEMA,
+        "observance_receipt_schema": OBSERVANCE_RECEIPT_SCHEMA,
+        "receipt_format": "gzip-json-mtime-zero",
+        "receipt_verification": "each generated public Python Core receipt reproduced at build time",
         "observance_index_schema": OBSERVANCE_INDEX_SCHEMA,
         "observance_index_path": "data/" + observance_index_name,
         "observance_index_sha256": observance_index_hash,

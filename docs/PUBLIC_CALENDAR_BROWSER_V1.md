@@ -94,3 +94,22 @@ deployed public website until its URL is independently reachable.
   qualification remain a distinct issue.
 - Apple Watch CI and device deployment need their own verifiable evidence.
 - Site usage does not change legal rights, discharge debt or enforce rules.
+
+## Bounded typed week questions (candidate UI)
+
+The browser includes a form accepting **only** two question shapes:
+`Show Common Calendar week 46 of 2026.` and
+`Which Common Calendar week contains 2026-11-17?` (case-insensitive, optional
+end punctuation; `StillPoint` can replace `Common Calendar`).
+The form locates the matching day in the Core-exported year shard, selects its
+published Common week and presents the already-exported, independently
+Core-verified seven-day answer and downloadable receipt.
+
+This is a **bounded question router, not generative AI**. Other sentences,
+week 0/53, Common 2076, and dates outside published Core coordinates fail closed.
+JavaScript never computes calendar dates or Jubilee law, broadens permissions,
+creates new receipts, sends information to a provider, or modifies anything.
+Existing date navigation and one-click assistant use are unchanged.
+
+A new GitHub PR must pass browser/export and public Core CI; a merged deployment
+also needs live text-entry, keyboard, and narrow-viewport verification.

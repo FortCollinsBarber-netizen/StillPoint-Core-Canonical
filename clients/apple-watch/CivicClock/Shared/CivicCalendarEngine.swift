@@ -157,8 +157,8 @@ enum CivicCalendarEngine {
 
         let weekly = weeklyProtectedTimeState(
             now: now,
-            sacredCivilDay: sacredCivilDay,
-            weekdayName: sacredDay.weekdayName,
+            civilDay: commonCivilDay,
+            weekdayName: annual.weekdayName,
             latitude: latitude,
             longitude: longitude,
             nextSunset: next,
@@ -237,7 +237,7 @@ enum CivicCalendarEngine {
 
     private static func weeklyProtectedTimeState(
         now: Date,
-        sacredCivilDay: Date,
+        civilDay: Date,
         weekdayName: String?,
         latitude: Double,
         longitude: Double,
@@ -245,7 +245,60 @@ enum CivicCalendarEngine {
         spec: CalendarCoreSpec,
         calendar: Calendar
     ) -> WeeklyProtectedTimeState {
-        if weekdayName == "Saturday" {
+        // The Common Calendar weekday is authoritative. A Gregorian/solar
+        // projection supplies local physical events, not civil weekday law.
+        // Sacred Sabbath uses apparent sunset; civic StillPoint opens Friday
+        // civil dusk (-6 degrees) and releases Sunday civil dawn.
+        let day = calendar.startOfDay(for: civilDay)
+        guard let sunset = SolarBoundaryCalculator.sunset(
+            on: day,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar,
+            spec: spec
+        ) else {
+            return WeeklyProtectedTimeState(
+                isSabbath: false,
+                isLordsDay: false,
+                isStillPoint: false,
+                nextBoundary: nil,
+                nextBoundaryLabel: nil
+            )
+        }
+
+        if weekdayName == "Friday" {
+            if now < sunset {
+                return WeeklyProtectedTimeState(
+                    isSabbath: false,
+                    isLordsDay: false,
+                    isStillPoint: false,
+                    nextBoundary: sunset,
+                    nextBoundaryLabel: "SABBATH BEGINS · FRIDAY SUNSET"
+                )
+            }
+            guard let dusk = SolarBoundaryCalculator.civilDusk(
+                on: day,
+                latitude: latitude,
+                longitude: longitude,
+                calendar: calendar
+            ) else {
+                return WeeklyProtectedTimeState(
+                    isSabbath: true,
+                    isLordsDay: false,
+                    isStillPoint: false,
+                    nextBoundary: nil,
+                    nextBoundaryLabel: nil
+                )
+            }
+            if now < dusk {
+                return WeeklyProtectedTimeState(
+                    isSabbath: true,
+                    isLordsDay: false,
+                    isStillPoint: false,
+                    nextBoundary: dusk,
+                    nextBoundaryLabel: "STILLPOINT BEGINS · FRIDAY CIVIL DUSK"
+                )
+            }
             return WeeklyProtectedTimeState(
                 isSabbath: true,
                 isLordsDay: false,
@@ -255,34 +308,75 @@ enum CivicCalendarEngine {
             )
         }
 
+        if weekdayName == "Saturday" {
+            if now < sunset {
+                return WeeklyProtectedTimeState(
+                    isSabbath: true,
+                    isLordsDay: false,
+                    isStillPoint: true,
+                    nextBoundary: sunset,
+                    nextBoundaryLabel: "SABBATH ENDS · LORD'S DAY BEGINS"
+                )
+            }
+            guard
+                let sunday = calendar.date(byAdding: .day, value: 1, to: day),
+                let dawn = SolarBoundaryCalculator.civilDawn(
+                    on: sunday,
+                    latitude: latitude,
+                    longitude: longitude,
+                    calendar: calendar
+                )
+            else {
+                return WeeklyProtectedTimeState(
+                    isSabbath: false,
+                    isLordsDay: true,
+                    isStillPoint: false,
+                    nextBoundary: nil,
+                    nextBoundaryLabel: nil
+                )
+            }
+            return WeeklyProtectedTimeState(
+                isSabbath: false,
+                isLordsDay: true,
+                isStillPoint: true,
+                nextBoundary: dawn,
+                nextBoundaryLabel: "STILLPOINT RELEASE · SUNDAY CIVIL DAWN"
+            )
+        }
+
         if weekdayName == "Sunday" {
-            let sunday = calendar.startOfDay(for: sacredCivilDay)
-            let sunrise = SolarBoundaryCalculator.sunrise(
-                on: sunday,
+            guard let dawn = SolarBoundaryCalculator.civilDawn(
+                on: day,
                 latitude: latitude,
                 longitude: longitude,
-                calendar: calendar,
-                spec: spec
-            )
-
-            if let sunrise, now < sunrise {
+                calendar: calendar
+            ) else {
+                return WeeklyProtectedTimeState(
+                    isSabbath: false,
+                    isLordsDay: true,
+                    isStillPoint: false,
+                    nextBoundary: nil,
+                    nextBoundaryLabel: nil
+                )
+            }
+            if now < dawn {
                 return WeeklyProtectedTimeState(
                     isSabbath: false,
                     isLordsDay: true,
                     isStillPoint: true,
-                    nextBoundary: sunrise,
-                    nextBoundaryLabel:
-                        "STILLPOINT RELEASE · SUNDAY SUNRISE"
+                    nextBoundary: dawn,
+                    nextBoundaryLabel: "STILLPOINT RELEASE · SUNDAY CIVIL DAWN"
                 )
             }
-
-            return WeeklyProtectedTimeState(
-                isSabbath: false,
-                isLordsDay: true,
-                isStillPoint: false,
-                nextBoundary: nextSunset,
-                nextBoundaryLabel: "LORD'S DAY ENDS · SUNDAY SUNSET"
-            )
+            if now < sunset {
+                return WeeklyProtectedTimeState(
+                    isSabbath: false,
+                    isLordsDay: true,
+                    isStillPoint: false,
+                    nextBoundary: sunset,
+                    nextBoundaryLabel: "LORD'S DAY ENDS · SUNDAY SUNSET"
+                )
+            }
         }
 
         return WeeklyProtectedTimeState(

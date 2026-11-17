@@ -14,6 +14,23 @@ The governing execution invariant is:
 
 Drafting is not sending. Preparation is not publication. Analysis is not spending. Approval is not execution. External execution is not complete until the exact authorized action has been executed by an adapter and the required structured evidence has been recorded.
 
+## New capability: read-only calendar windows
+
+Instead of requesting one date at a time, consumers can now retrieve a bounded
+sequence of published Common Calendar days with the existing v2 day details,
+source-year labels, Jubilee profile and protected-time metadata:
+
+```sh
+python -m stillpoint.cli calendar-window 2027 --start-ordinal 83 --days 3
+```
+
+The response uses `stillpoint.calendar-window.v1` with an ordered `days`
+array of existing `stillpoint.calendar-day.v2` payloads. Requests contain
+1–31 days and must remain inside one published Common year (2026–2075).
+There is no implicit year rollover, unpublished 2076 lookup, state write,
+private checkout, payment, or external/civic action. See
+[`docs/PUBLIC_CALENDAR_WINDOW_V1.md`](docs/PUBLIC_CALENDAR_WINDOW_V1.md).
+
 ## Current release-candidate scope
 
 The core runtime includes deterministic and optional semantic authority assessment, structured planning, contributor handoffs, targeted review, durable SQLite state, artifact versions, managed attachments, resume/recovery, action requests/results, approval binding, idempotency, task budgets, provider provenance, frozen behavioral evaluation, and a CLI/operator surface.

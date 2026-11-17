@@ -21,7 +21,8 @@ from .calendar_core.governor import (
     assert_canonical_surface,
 )
 from .calendar_core.overlays import overlay_policy_payload
-from .calendar_core.runtime_surface import calendar_day_payload
+from .calendar_core.runtime_surface import calendar_day_payload, calendar_window_payload
+from .calendar_core.week_view import calendar_week_payload
 from .calendar_core.models import GeoPoint
 from .clock_os import ClockConfig, canonical_civil_window, clock_snapshot
 from .temporal.continuity_ingress import record_robertos_continuity_receipt
@@ -101,6 +102,8 @@ def main(argv=None) -> int:
     sub.add_parser("offices")
     sub.add_parser("capabilities")
     calendar_day=sub.add_parser("calendar-day");calendar_day.add_argument("year",type=int);calendar_day.add_argument("--ordinal",type=int,required=True)
+    calendar_window=sub.add_parser("calendar-window");calendar_window.add_argument("year",type=int);calendar_window.add_argument("--start-ordinal",type=int,required=True);calendar_window.add_argument("--days",type=int,default=7)
+    calendar_week=sub.add_parser("calendar-week");calendar_week.add_argument("year",type=int);calendar_week.add_argument("--week",type=int,required=True)
     sub.add_parser("calendar-governor")
     clock_at=sub.add_parser("clock-at");clock_at.add_argument("--instant",required=True);clock_at.add_argument("--latitude",type=float,required=True);clock_at.add_argument("--longitude",type=float,required=True);clock_at.add_argument("--zone",required=True);clock_at.add_argument("--standard-offset-seconds",type=int,required=True);clock_at.add_argument("--location-id",default="LOCAL");clock_at.add_argument("--publication-path")
     clock_window=sub.add_parser("clock-window");clock_window.add_argument("year",type=int);clock_window.add_argument("--ordinal",type=int,required=True);clock_window.add_argument("--latitude",type=float,required=True);clock_window.add_argument("--longitude",type=float,required=True);clock_window.add_argument("--zone",required=True);clock_window.add_argument("--standard-offset-seconds",type=int,required=True);clock_window.add_argument("--location-id",default="LOCAL");clock_window.add_argument("--publication-path")
@@ -112,6 +115,18 @@ def main(argv=None) -> int:
             RhythmRequest(RhythmAuthority.READ, "calendar-cli")
         )
         _json(calendar_day_payload(args.year,args.ordinal))
+        return 0
+    if args.cmd=="calendar-window":
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(RhythmAuthority.READ, "calendar-window-cli")
+        )
+        _json(calendar_window_payload(args.year, args.start_ordinal, args.days))
+        return 0
+    if args.cmd=="calendar-week":
+        RHYTHM_GOVERNOR.require(
+            RhythmRequest(RhythmAuthority.READ, "calendar-cli")
+        )
+        _json(calendar_week_payload(args.year,args.week))
         return 0
     if args.cmd=="calendar-governor":
         assert_canonical_surface()

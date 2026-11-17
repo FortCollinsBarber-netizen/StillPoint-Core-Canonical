@@ -312,7 +312,7 @@
         <ul id="receiptInspectorSources" class="inspector-sources"></ul>
         <p class="digest-line">Independent reproduction: <code>stillpoint verify-answer saved-receipt.json</code> using the matching public Python Core source and data.</p>
       </div>
-      <p class="assistant-disclaimer">Three distinct outcomes: current public archive match; self-consistent receipt that differs from this archive; or a self-consistent receipt that claims another publication digest. Neither mismatch proves a historical receipt is authentic or that it was tampered with. Check a historical receipt using its independently obtained matching Python Core revision and data. This browser does not check older archives, run Python, sign receipts, authenticate authors or consent, or grant any civil, religious, or execution authority.</p>
+      <p class="assistant-disclaimer">The inspector distinguishes a current archive match, a self-consistent current difference, a claimed different publication, and a narrowly recognized older read-only request format. Neither a mismatch nor an older request format proves a historical receipt is authentic or that it was tampered with. Check a historical receipt using its independently obtained matching Python Core revision and data. This browser does not check older archives, run Python, sign receipts, authenticate authors or consent, or grant any civil, religious, or execution authority.</p>
     </section>
   </main>
   <footer class="wrap">
@@ -769,12 +769,6 @@
           ? "Explain Common Calendar observances on Common day " + number +
             " of " + year + "."
           : "Show Common Calendar week " + number + " of " + year + ".";
-      if (!receipt.interpretation.arguments ||
-          receipt.request !== request ||
-          receipt.interpretation.arguments.year !== year ||
-          (dayKind ? receipt.interpretation.arguments.ordinal : receipt.interpretation.arguments.week) !== number) {
-        throw new Error("Receipt request does not match its read-only Common Calendar coordinate.");
-      }
       const claimedDigest = receipt.evidence.publication_digest;
       if (typeof claimedDigest !== "string" ||
           !/^[a-f0-9]{64}$/.test(claimedDigest)) {
@@ -782,6 +776,31 @@
       }
       const entry = manifest.years.find(function (item) { return item.year === year; });
       if (!entry) throw new Error("Receipt refers to an unpublished Common year.");
+      const argumentsValue = receipt.interpretation.arguments;
+      const currentRequest = argumentsValue &&
+        receipt.request === request && argumentsValue.year === year &&
+        (dayKind ? argumentsValue.ordinal : argumentsValue.week) === number;
+      if (!currentRequest) {
+        // Old public week receipts once used this explicitly read-only
+        // question form and a civil-date argument. Recognizing the shape
+        // cannot validate the old source revision or saved content.
+        const olderWeek = capability === "calendar.week.read" &&
+          /^Show the Common Calendar week for (\d{4}-\d{2}-\d{2})\.$/.exec(receipt.request);
+        if (olderWeek && argumentsValue &&
+            argumentsValue.civil_date === olderWeek[1] &&
+            olderWeek[1] >= entry.first_civil_date &&
+            olderWeek[1] <= entry.last_civil_date) {
+          return {
+            disposition:"older-read-request-unverified", matched:false,
+            self_hash_valid:true, capability, year, coordinate:number,
+            receipt_sha256:declared,
+            publication_digest:manifest.publication_digest,
+            claimed_publication_digest:claimedDigest,
+            sources:[], request:receipt.request
+          };
+        }
+        throw new Error("Receipt request does not match a supported read-only Common Calendar coordinate.");
+      }
       if (claimedDigest !== manifest.publication_digest) {
         // This is a claim in a self-consistent file, NOT verification of
         // historical authenticity. Do not fetch or trust an older archive.
@@ -815,10 +834,13 @@
       const result = $("receiptInspectorResult");
       const matched = report.disposition === "current-match";
       const differentPublication = report.disposition === "different-publication-claimed";
+      const olderRequest = report.disposition === "older-read-request-unverified";
       $("receiptInspectorSummary").textContent = matched
         ? "CURRENT MATCH: the saved receipt exactly matches the current published, build-verified Core receipt."
         : differentPublication
           ? "DIFFERENT PUBLICATION CLAIM: the saved receipt's self-hash is consistent, but it names a different Core publication digest. This site cannot verify the older publication or its authenticity."
+          : olderRequest
+            ? "OLDER READ REQUEST SHAPE (UNVERIFIED): this self-consistent receipt uses a bounded week-request form seen in earlier public Core records. This site does not verify the historical revision, its answer, or its authenticity."
           : "CURRENT DIFFERENCE: the saved receipt's self-hash is consistent, but its complete content differs from the current published Core receipt. A historical revision, modification or forgery is possible; this result alone cannot distinguish them.";
       $("receiptInspectorHashes").textContent =
         "Self SHA-256: " + report.receipt_sha256 +
@@ -833,6 +855,8 @@
         ? "The current archive agrees. For independent reproduction, run stillpoint verify-answer with the exact matching public Python Core source and data."
         : differentPublication
           ? "Do not treat the claimed older digest as proof of historical validity. Obtain the exact historical public Core revision and its published data independently, then run stillpoint verify-answer against that matching source."
+          : olderRequest
+            ? "The older request form is recognized for explanation only, not accepted as a current answer. Independently recover its exact public Core revision and data, then reproduce with stillpoint verify-answer."
           : "No current match was established. Check which public Core revision produced the saved receipt; reproduce it using that exact source and data. A mismatch alone is not proof of tampering.";
       const list = $("receiptInspectorSources");
       list.replaceChildren();
@@ -848,6 +872,8 @@
         ? "Inspection completed: self-hash and exact current archive match."
         : differentPublication
           ? "Inspection completed: different publication claimed; historical authenticity unverified."
+          : olderRequest
+            ? "Inspection completed: older read-only request shape recognized; historical authenticity unverified."
           : "Inspection completed: self-hash consistent but no current archive match.";
       $("receiptInspectorStatus").classList.remove("error");
       $("receiptInspectorStatus").classList.toggle("review", !matched);

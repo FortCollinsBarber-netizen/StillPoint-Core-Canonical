@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .calendar import ordinal_day
+from .sacred import common_from_sacred, DEFAULT_SACRED_PROFILE
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,12 @@ class Observance:
     rule: str = "fixed-date"
     source_refs: tuple[str, ...] = ()
     note: str | None = None
+    source_calendar: str | None = None
+    source_month: int | None = None
+    source_day: int | None = None
+    source_end_month: int | None = None
+    source_end_day: int | None = None
+    profile_id: str | None = None
 
     @property
     def start_ordinal(self) -> int:
@@ -34,13 +41,33 @@ class Observance:
         return self.start_ordinal <= ordinal <= self.end_ordinal
 
 
-# Canonical Firstfruits / Weeks placement for this Common Calendar:
-# Unleavened Bread is M1D15..M1D21. The next weekly Sabbath is M1D24;
-# Firstfruits is the following Sunday M1D25. Counting Firstfruits as day 1
-# makes the fiftieth day M3D15. The source text is preserved separately from
-# this ratified placement because the historical interpretation is contested.
+def _sacred_observance(
+    id: str, name: str, jurisdiction: str, month: int, day: int,
+    *, end_month: int | None = None, end_day: int | None = None,
+    assembly: bool = False, rule: str = "fixed-scriptural-coordinate",
+    source_refs: tuple[str, ...] = (), note: str | None = None,
+) -> Observance:
+    start = common_from_sacred(2026, month, day)
+    end = (
+        common_from_sacred(2026, end_month, end_day)
+        if end_month is not None and end_day is not None else None
+    )
+    return Observance(
+        id, name, jurisdiction, start.month, start.day,
+        end_month=end.month if end else None, end_day=end.day if end else None,
+        assembly=assembly, rule=rule, source_refs=source_refs,
+        note=note or "Proposed StillPoint sacred profile; not a rule for other communities.",
+        source_calendar="schematic-enochic-364", source_month=month, source_day=day,
+        source_end_month=end_month, source_end_day=end_day,
+        profile_id=DEFAULT_SACRED_PROFILE.id,
+    )
+
+
+# Source months use 30/30/31, not the civil month lengths. With a Wednesday
+# source opening, the Sabbath following I/15..I/21 is I/25; Firstfruits is
+# I/26 (Sunday), and the inclusive fiftieth day is III/15 (Sunday).
 SACRED_OBSERVANCES: tuple[Observance, ...] = (
-    Observance(
+    _sacred_observance(
         "passover",
         "Passover",
         "sacred",
@@ -52,7 +79,7 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
             "Deuteronomy 16:1-8",
         ),
     ),
-    Observance(
+    _sacred_observance(
         "unleavened-bread",
         "Feast of Unleavened Bread",
         "sacred",
@@ -67,17 +94,17 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
             "Deuteronomy 16:3-8",
         ),
     ),
-    Observance(
+    _sacred_observance(
         "firstfruits",
         "Firstfruits",
         "sacred",
         1,
-        25,
-        rule="canonical-sunday-after-weekly-sabbath-following-unleavened-bread",
+        26,
+        rule="sunday-after-weekly-sabbath-following-unleavened-bread",
         source_refs=("Leviticus 23:10-16",),
-        note="Canonical Common Calendar placement; source interpretation remains provenance.",
+        note="Declared StillPoint interpretation; other Firstfruits rules remain independent.",
     ),
-    Observance(
+    _sacred_observance(
         "weeks",
         "Feast of Weeks / Pentecost",
         "sacred",
@@ -91,9 +118,9 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
             "Deuteronomy 16:9-12",
             "Jubilees 6",
         ),
-        note="Canonical Common Calendar placement downstream of Firstfruits.",
+        note="Inclusive Day 50 from source I/26; projected through the declared sacred profile.",
     ),
-    Observance(
+    _sacred_observance(
         "trumpets",
         "Trumpets",
         "sacred",
@@ -102,7 +129,7 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
         assembly=True,
         source_refs=("Leviticus 23:23-25", "Numbers 29:1-6"),
     ),
-    Observance(
+    _sacred_observance(
         "atonement",
         "Day of Atonement",
         "sacred",
@@ -115,7 +142,7 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
             "Leviticus 25:9",
         ),
     ),
-    Observance(
+    _sacred_observance(
         "booths",
         "Feast of Booths",
         "sacred",
@@ -130,7 +157,7 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
             "Deuteronomy 16:13-17",
         ),
     ),
-    Observance(
+    _sacred_observance(
         "eighth-day",
         "Eighth Day Assembly",
         "sacred",
@@ -143,13 +170,14 @@ SACRED_OBSERVANCES: tuple[Observance, ...] = (
 
 
 MONTH_OPENINGS: tuple[Observance, ...] = tuple(
-    Observance(
+    _sacred_observance(
         id=f"month-{month:02d}-opening",
-        name=f"Month {month} Opening",
+        name=f"Scriptural Month {month} Opening",
         jurisdiction="sacred-marker",
         month=month,
         day=1,
-        source_refs=("Numbers 28:11-15",),
+        source_refs=("1 Enoch 72-82",),
+        note="Schematic month marker; not a claim of an astronomical new moon.",
     )
     for month in range(1, 13)
 )

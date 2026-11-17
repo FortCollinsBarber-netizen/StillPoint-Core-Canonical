@@ -33,7 +33,7 @@ class RhythmOverlayTests(unittest.TestCase):
         self.assertEqual(witness["calendar_effect"], "none")
 
         # The Common Calendar's own Passover remains its separate sacred layer.
-        canonical_passover = calendar_day_payload(2026, ordinal_day(1, 14))
+        canonical_passover = calendar_day_payload(2026, ordinal_day(4, 7))
         self.assertIn(
             "Passover",
             {item["name"] for item in canonical_passover["observances"]},
@@ -165,9 +165,13 @@ class RhythmOverlayTests(unittest.TestCase):
             )
 
     def test_seven_year_49_and_jubilee_layers_do_not_move_the_date(self):
-        year7 = calendar_day_payload(2032, ordinal_day(7, 10))
-        year49 = calendar_day_payload(2074, ordinal_day(7, 10))
-        jubilee = calendar_day_payload(2075, ordinal_day(7, 10))
+        from stillpoint.calendar_core.long_cycles import JubileeConfiguration
+        year7 = calendar_day_payload(2033, ordinal_day(10, 2))
+        year49 = calendar_day_payload(2075, ordinal_day(10, 2))
+        # Default first proclamation 2076 is outside the finite publication.
+        # Exercise a covered release label under a separately explicit test epoch.
+        jubilee = calendar_day_payload(2075, ordinal_day(10, 2),
+            jubilee_configuration=JubileeConfiguration(epoch_common_year=2026))
 
         self.assertTrue(year7["jubilee"]["seven_year"]["is_seventh_year"])
         self.assertEqual(year7["jubilee"]["seven_year"]["block"], 1)
@@ -184,7 +188,7 @@ class RhythmOverlayTests(unittest.TestCase):
             )
             for value in (year7, year49, jubilee)
         }
-        self.assertEqual(coordinates, {(7, 10, "Friday")})
+        self.assertEqual(coordinates, {(10, 2, "Friday")})
 
     def test_seasonal_gate_is_overlay_state_not_grid_mutation(self):
         day = calendar_day_payload(2026, ordinal_day(10, 1))

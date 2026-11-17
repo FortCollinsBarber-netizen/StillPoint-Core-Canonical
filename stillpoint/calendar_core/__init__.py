@@ -32,6 +32,7 @@ from .calendar import (
 )
 from .dual_stamp import project_dual_stamp
 from .long_cycles import JubileeConfiguration, compare_long_cycles
+from .sacred import SacredYearProfile, common_from_sacred, sacred_from_common
 from .governor import (
     ANCHOR_WEEKDAY,
     CANONICAL_FIRST_YEAR,
@@ -212,6 +213,9 @@ __all__ = [
     "JubileeState",
     "JubileeConfiguration",
     "compare_long_cycles",
+    "SacredYearProfile",
+    "common_from_sacred",
+    "sacred_from_common",
     "JubileeReleaseGate",
     "LunarWitness",
     "SeasonGateWitness",

@@ -119,14 +119,14 @@ class CalendarPopulationTests(unittest.TestCase):
         firstfruits = address(
             publication_document=self.publication,
             year=2026,
-            month=1,
-            day=25,
+            month=4,
+            day=19,
         )
         weeks = address(
             publication_document=self.publication,
             year=2026,
-            month=3,
-            day=15,
+            month=6,
+            day=7,
         )
         self.assertEqual(firstfruits.weekday, "Sunday")
         self.assertEqual(weeks.weekday, "Sunday")
@@ -222,11 +222,11 @@ class CalendarPopulationTests(unittest.TestCase):
         release = address(
             publication_document=self.publication,
             year=2075,
-            month=7,
-            day=10,
+            month=10,
+            day=2,
             jubilee_epoch_common_year=2026,
         )
-        self.assertEqual(year50.jubilee_year, 50)
+        self.assertEqual(year50.jubilee_year, 1)
         self.assertTrue(year50.is_jubilee_year)
         self.assertTrue(release.is_jubilee_release_day)
         self.assertIn("Leviticus 25:8-13", release.source_refs)

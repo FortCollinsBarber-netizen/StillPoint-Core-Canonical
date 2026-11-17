@@ -6,14 +6,17 @@ from typing import Any
 
 from .gates import GATE_SEQUENCE, MOTIONS, PHASE_LENGTHS
 from .observances import ALL_OBSERVANCES
+from .sacred import sacred_profile_payload, long_cycle_policy_payload
 
-POPULATION_ARTIFACT_VERSION = "stillpoint-calendar-population-v1"
+POPULATION_ARTIFACT_VERSION = "stillpoint-calendar-population-v2"
 
 
 def build_calendar_population_artifact() -> dict[str, Any]:
     return {
         "version": POPULATION_ARTIFACT_VERSION,
         "authorityStatus": "population-layer-no-grid-authority",
+        "sacredYearProfile": sacred_profile_payload(),
+        "longCyclePolicy": long_cycle_policy_payload(),
         "jurisdiction": {
             "gridAuthority": False,
             "mayInsertDays": False,
@@ -62,6 +65,12 @@ def build_calendar_population_artifact() -> dict[str, Any]:
                 "rule": item.rule,
                 "sourceRefs": list(item.source_refs),
                 "note": item.note,
+                "sourceCalendar": item.source_calendar,
+                "sourceMonth": item.source_month,
+                "sourceDay": item.source_day,
+                "sourceEndMonth": item.source_end_month,
+                "sourceEndDay": item.source_end_day,
+                "profileId": item.profile_id,
             }
             for item in ALL_OBSERVANCES
         ],

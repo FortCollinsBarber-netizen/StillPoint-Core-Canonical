@@ -21,11 +21,16 @@ from .governor import (
 from .population import address_from_ordinal
 from .long_cycles import JubileeConfiguration, compare_long_cycles
 from .observances import observances_for_ordinal
+from .jubilee import jubilee_state
+from .sacred import (
+    JUBILEE_EPOCH_COMMON_YEAR, PROFILE_STATUS, sacred_from_common,
+    sacred_profile_payload, long_cycle_policy_payload,
+)
 from .publication import validate_publication_document
 from .witness_overlays import witnesses_for_external_date
 
 PUBLICATION_FILENAME = "calendar_publication_2026_2075.json"
-RUNTIME_SCHEMA = "stillpoint.calendar-day.v1"
+RUNTIME_SCHEMA = "stillpoint.calendar-day.v2"
 
 
 def default_publication_path() -> Path:
@@ -51,8 +56,7 @@ def calendar_day_payload(
 ) -> dict[str, Any]:
     """Project a published day with visible, separately scoped cycle inputs.
 
-    Omitting the configuration preserves the historical publication-first-year
-    default and labels it as such. Passing a configuration never changes the
+    Omitting the configuration uses the declared project profile. Passing a configuration never changes the
     annual grid or extends publication coverage. None as its epoch explicitly
     requests no Jubilee designation.
     """
@@ -67,7 +71,7 @@ def calendar_day_payload(
     configuration = (
         jubilee_configuration
         if jubilee_configuration is not None
-        else JubileeConfiguration(epoch_common_year=first_year)
+        else JubileeConfiguration(epoch_common_year=JUBILEE_EPOCH_COMMON_YEAR)
     )
 
     day = address_from_ordinal(
@@ -76,6 +80,7 @@ def calendar_day_payload(
         ordinal=int(ordinal),
         jubilee_epoch_common_year=configuration.epoch_common_year,
         jubilee_epoch_cycle=configuration.epoch_cycle,
+        jubilee_rollover_rule=configuration.rollover_rule,
     )
     RHYTHM_GOVERNOR.require(
         RhythmRequest(
@@ -86,6 +91,10 @@ def calendar_day_payload(
     )
 
     authority = document.get("authority") or {}
+    cycle_state = jubilee_state(
+        common_year=day.year, epoch_common_year=configuration.epoch_common_year,
+        epoch_cycle=configuration.epoch_cycle, rollover_rule=configuration.rollover_rule,
+    )
     return {
         "schema": RUNTIME_SCHEMA,
         "authority": "read-only-calendar-law",
@@ -106,6 +115,9 @@ def calendar_day_payload(
             "daylight_saving_time": False,
             "role": "coordination-coordinate",
         },
+        "sacred_date": sacred_from_common(day.year, day.month, day.day),
+        "sacred_year_profile": sacred_profile_payload(),
+        "long_cycle_policy": long_cycle_policy_payload(),
         "civil_window": {
             "opens": day.opening_civil_date.isoformat(),
             "closes": day.closes_on_civil_date.isoformat(),
@@ -141,8 +153,15 @@ def calendar_day_payload(
                 "source_refs": list(item.source_refs),
                 "note": item.note,
                 "common_coordinate": {"month": item.month, "day": item.day},
+                "source_coordinate": (
+                    {"calendar": item.source_calendar, "month": item.source_month,
+                     "day": item.source_day, "end_month": item.source_end_month,
+                     "end_day": item.source_end_day}
+                    if item.source_calendar is not None else None
+                ),
+                "profile_id": item.profile_id,
                 "projection_status": (
-                    "legacy-placement-unreconciled-sacred-anchor"
+                    PROFILE_STATUS
                     if item.jurisdiction in {"sacred", "sacred-marker"}
                     else "declared-common-observance"
                 ),
@@ -157,10 +176,10 @@ def calendar_day_payload(
                 "selection_source": (
                     "explicit-call-configuration"
                     if jubilee_configuration is not None
-                    else "legacy-publication-first-year-default"
+                    else "declared-project-profile"
                 ),
                 "authority_scope": "calculation-inputs-only",
-                "decision_status": "rollover-reconciliation-unresolved",
+                "decision_status": PROFILE_STATUS,
             },
             "designation_status": (
                 "unconfigured-epoch"
@@ -169,7 +188,9 @@ def calendar_day_payload(
                 if day.year < configuration.epoch_common_year
                 else "computed-under-stated-configuration"
             ),
-            "release_day_projection_status": "legacy-placement-unreconciled-sacred-anchor",
+            "release_day_projection_status": PROFILE_STATUS,
+            "proclamation_ordinal_year": cycle_state.proclamation_ordinal_year if cycle_state else None,
+            "completed_cycle": cycle_state.completed_cycle if cycle_state else None,
             "cycle": day.jubilee_cycle,
             "year": day.jubilee_year,
             "seven_year": {
@@ -192,7 +213,7 @@ def calendar_day_payload(
                     else None
                 ),
                 "is_year_49": day.jubilee_year == 49,
-                "completed": day.jubilee_year == 50,
+                "completed": day.is_jubilee_year,
             },
             "is_sabbatical_threshold": day.is_sabbatical_threshold,
             "is_jubilee_year": day.is_jubilee_year,

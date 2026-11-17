@@ -118,7 +118,7 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         XCTAssertTrue(state.commonCalendarDetail.contains("W38 D2"))
         XCTAssertTrue(state.commonCalendarDetail.contains("S3.79"))
         XCTAssertTrue(state.commonCalendarDetail.contains("G1 · P9"))
-        XCTAssertEqual(state.jubileeLabel, "JUBILEE Y1/50")
+        XCTAssertTrue(state.jubileeLabel.hasPrefix("JUBILEE COUNT NOT STARTED"))
     }
 
     func testDecember30TransitionsDirectlyToNextJanuary1() throws {
@@ -161,7 +161,7 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         )
 
         let atonement = try snapshot(
-            try XCTUnwrap(parser.date(from: "2026-07-10 22:00"))
+            try XCTUnwrap(parser.date(from: "2026-10-02 12:00"))
         )
         XCTAssertTrue(
             atonement.observanceLabel.contains("Day of Atonement")
@@ -174,7 +174,7 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         )
     }
 
-    func testYearFiftySurfacesAsJubileeWithoutChangingGrid() throws {
+    func testLastPublishedYearIsYear49WithoutChangingGrid() throws {
         let parser = DateFormatter()
         parser.calendar = calendar
         parser.locale = Locale(identifier: "en_US_POSIX")
@@ -186,6 +186,71 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         )
         XCTAssertTrue(state.commonCalendarLabel.contains("Y2075"))
         XCTAssertTrue(state.commonCalendarLabel.contains("JAN 01"))
-        XCTAssertEqual(state.jubileeLabel, "JUBILEE YEAR 50")
+        XCTAssertTrue(state.jubileeLabel.hasPrefix("JUBILEE C1 Y49/49 · SABBATICAL"))
+    }
+
+    func testExplicitSacredProfileKeepsSourceAndCommonCoordinatesDistinct() throws {
+        let spec = try coreSpec()
+        let population = try population(spec: spec)
+        let profile = population.sacredYearProfile
+        XCTAssertEqual(profile.anchorCommonMonth, 3)
+        XCTAssertEqual(profile.anchorCommonDay, 25)
+        XCTAssertEqual(profile.anchorWeekday, "Wednesday")
+        XCTAssertFalse(profile.annualSolarReset)
+        XCTAssertFalse(profile.gridAuthority)
+        let atonement = try XCTUnwrap(population.observances.first { $0.id == "atonement" })
+        XCTAssertEqual(atonement.sourceMonth, 7)
+        XCTAssertEqual(atonement.sourceDay, 10)
+        XCTAssertEqual(atonement.month, 10)
+        XCTAssertEqual(atonement.day, 2)
+        XCTAssertEqual(atonement.profileId, profile.id)
+    }
+
+    func testFiftiethProclamationOverlapsNextCycleFirstYearWithoutExtendingPublication() throws {
+        let spec = try coreSpec()
+        let population = try population(spec: spec)
+        let policy = population.longCyclePolicy
+        XCTAssertNil(CivicCalendarEngine.longCyclePosition(commonYear: 2026, policy: policy))
+        let year49 = try XCTUnwrap(CivicCalendarEngine.longCyclePosition(commonYear: 2075, policy: policy))
+        XCTAssertEqual(year49.year, 49)
+        XCTAssertTrue(year49.isSabbatical)
+        XCTAssertFalse(year49.isJubilee)
+        let release = try XCTUnwrap(CivicCalendarEngine.longCyclePosition(commonYear: 2076, policy: policy))
+        XCTAssertEqual(release.cycle, 2)
+        XCTAssertEqual(release.year, 1)
+        XCTAssertEqual(release.proclamationOrdinalYear, 50)
+        XCTAssertTrue(release.isJubilee)
+        let next = try XCTUnwrap(CivicCalendarEngine.longCyclePosition(commonYear: 2125, policy: policy))
+        XCTAssertEqual(next.cycle, 3)
+        XCTAssertTrue(next.isJubilee)
+        XCTAssertFalse(try publication(spec: spec).years.contains { $0.year == 2076 })
+    }
+
+    func testFirstfruitsAndWeeksUseSourcePatternAndInclusiveFiftiethDay() throws {
+        let spec = try coreSpec()
+        let population = try population(spec: spec)
+        let first = try XCTUnwrap(population.observances.first { $0.id == "firstfruits" })
+        let weeks = try XCTUnwrap(population.observances.first { $0.id == "weeks" })
+        XCTAssertEqual(first.sourceMonth, 1)
+        XCTAssertEqual(first.sourceDay, 26)
+        XCTAssertEqual(first.month, 4)
+        XCTAssertEqual(first.day, 19)
+        XCTAssertEqual(weeks.sourceMonth, 3)
+        XCTAssertEqual(weeks.sourceDay, 15)
+        let lengths = spec.ordinaryCalendar.monthLengths
+        let firstOrdinal = lengths.prefix(first.month - 1).reduce(0, +) + first.day
+        let weeksOrdinal = lengths.prefix(weeks.month - 1).reduce(0, +) + weeks.day
+        XCTAssertEqual(weeksOrdinal - firstOrdinal + 1, 50)
+    }
+
+    func testLoaderRejectsAnAnchorWhoseDeclaredWeekdayIsFalse() throws {
+        let spec = try coreSpec()
+        let data = try Data(contentsOf: resources.appendingPathComponent("calendar_population_v1.json"))
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var profile = try XCTUnwrap(object["sacredYearProfile"] as? [String: Any])
+        profile["anchorCommonDay"] = 24
+        object["sacredYearProfile"] = profile
+        let changed = try JSONDecoder().decode(CalendarPopulation.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertFalse(CalendarPopulationLoader.validated(changed, calendarCoreSpec: spec))
     }
 }

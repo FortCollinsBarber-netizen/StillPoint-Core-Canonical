@@ -5,17 +5,18 @@ import unittest
 from stillpoint.calendar_core.calendar import ordinal_day
 from stillpoint.calendar_core.long_cycles import JubileeConfiguration, compare_long_cycles
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
+from stillpoint.calendar_core.sacred import PROFILE_STATUS
 
 
 class CycleProvenanceTests(unittest.TestCase):
-    def test_legacy_default_is_identified_without_changing_its_result(self):
+    def test_declared_default_is_independent_of_publication_first_year(self):
         payload = calendar_day_payload(2075, 1)
-        self.assertTrue(payload["jubilee"]["is_jubilee_year"])
+        self.assertFalse(payload["jubilee"]["is_jubilee_year"])
         configuration = payload["jubilee"]["configuration"]
-        self.assertEqual(configuration["epoch_common_year"], 2026)
-        self.assertEqual(configuration["rollover_rule"], "standalone-50")
-        self.assertEqual(configuration["selection_source"], "legacy-publication-first-year-default")
-        self.assertEqual(configuration["decision_status"], "rollover-reconciliation-unresolved")
+        self.assertEqual(configuration["epoch_common_year"], 2027)
+        self.assertEqual(configuration["rollover_rule"], "overlap-49")
+        self.assertEqual(configuration["selection_source"], "declared-project-profile")
+        self.assertEqual(configuration["decision_status"], PROFILE_STATUS)
         self.assertEqual(configuration["authority_scope"], "calculation-inputs-only")
 
     def test_explicit_2027_epoch_is_independent_of_the_civil_publication(self):
@@ -51,7 +52,7 @@ class CycleProvenanceTests(unittest.TestCase):
             with self.subTest(cycle=value), self.assertRaises(ValueError):
                 JubileeConfiguration(epoch_common_year=2027, epoch_cycle=value)
         with self.assertRaises(ValueError):
-            JubileeConfiguration(epoch_common_year=2027, rollover_rule="overlap-49")
+            JubileeConfiguration(epoch_common_year=2027, rollover_rule="unsupported")
         with self.assertRaises(ValueError):
             calendar_day_payload(2026, 1, jubilee_configuration={"epoch_common_year": 2027})
 
@@ -63,13 +64,14 @@ class CycleProvenanceTests(unittest.TestCase):
         self.assertEqual(comparison["cycle"], 3)
 
     def test_runtime_observance_keeps_scope_rule_and_unresolved_anchor(self):
-        payload = calendar_day_payload(2026, ordinal_day(1, 25))
+        payload = calendar_day_payload(2026, ordinal_day(4, 19))
         item = next(item for item in payload["observances"] if item["id"] == "firstfruits")
         self.assertEqual(item["jurisdiction"], "sacred")
         self.assertIn("sabbath", item["rule"])
         self.assertIn("Leviticus 23:10-16", item["source_refs"])
-        self.assertEqual(item["projection_status"], "legacy-placement-unreconciled-sacred-anchor")
-        self.assertEqual(item["common_coordinate"], {"month": 1, "day": 25})
+        self.assertEqual(item["projection_status"], PROFILE_STATUS)
+        self.assertEqual(item["common_coordinate"], {"month": 4, "day": 19})
+        self.assertEqual(item["source_coordinate"]["day"], 26)
         self.assertNotIn("scriptural_coordinate", item)
 
     def test_new_year_observation_remains_a_scoped_common_observance(self):
@@ -79,10 +81,11 @@ class CycleProvenanceTests(unittest.TestCase):
         self.assertEqual(item["projection_status"], "declared-common-observance")
 
     def test_release_label_does_not_claim_the_sacred_anchor_is_settled(self):
-        payload = calendar_day_payload(2075, ordinal_day(7, 10))
+        payload = calendar_day_payload(2075, ordinal_day(10, 2),
+            jubilee_configuration=JubileeConfiguration(epoch_common_year=2026))
         self.assertTrue(payload["jubilee"]["is_jubilee_release_day"])
         self.assertEqual(payload["jubilee"]["release_day_projection_status"],
-                         "legacy-placement-unreconciled-sacred-anchor")
+                         PROFILE_STATUS)
         self.assertFalse(payload["long_cycle_comparison"]["release_authority"])
 
     def test_epoch_choice_and_arithmetic_do_not_extend_the_publication(self):

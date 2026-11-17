@@ -30,16 +30,19 @@ class JubileeCompletionTests(unittest.TestCase):
     def test_year_50_is_jubilee_and_has_atonement_release_gate(self):
         state = jubilee_state(common_year=50, epoch_common_year=1)
         self.assertTrue(state.is_jubilee_year)
-        self.assertEqual(state.cycle_year, 50)
+        self.assertEqual(state.cycle_year, 1)
+        self.assertEqual(state.cycle, 2)
+        self.assertEqual(state.proclamation_ordinal_year, 50)
         gate = jubilee_release_gate(common_year=50, epoch_common_year=1)
         self.assertIsNotNone(gate)
         self.assertEqual((gate.month, gate.day), (7, 10))
         self.assertEqual(gate.name, "Day of Atonement")
+        self.assertEqual(gate.common_month_day, (10, 2))
 
-    def test_year_after_jubilee_reenters_next_cycle_year_one(self):
+    def test_year_after_overlapping_jubilee_is_next_cycle_year_two(self):
         state = jubilee_state(common_year=51, epoch_common_year=1)
         self.assertEqual(state.cycle, 2)
-        self.assertEqual(state.cycle_year, 1)
+        self.assertEqual(state.cycle_year, 2)
         self.assertFalse(state.is_jubilee_year)
 
     def test_jubilee_never_rewrites_annual_law(self):

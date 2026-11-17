@@ -16,7 +16,7 @@ from stillpoint.cli import main
 class CalendarRuntimeSurfaceTests(unittest.TestCase):
     def test_day_one_is_exact_fixed_map_address(self):
         value = calendar_day_payload(2026, 1)
-        self.assertEqual(value["schema"], "stillpoint.calendar-day.v1")
+        self.assertEqual(value["schema"], "stillpoint.calendar-day.v2")
         self.assertEqual(value["authority"], "read-only-calendar-law")
         self.assertEqual(value["calendar_address"], "Y_2026-001")
         self.assertEqual(value["common_date"]["year"], 2026)
@@ -34,11 +34,12 @@ class CalendarRuntimeSurfaceTests(unittest.TestCase):
         self.assertEqual(value["map"]["year_count"], 50)
         self.assertEqual(value["map"]["total_days"], 18200)
 
-    def test_year_fifty_remains_same_grid_and_reports_jubilee(self):
+    def test_last_published_year_remains_same_grid_and_reports_year_49(self):
         value = calendar_day_payload(2075, 1)
         self.assertEqual(value["calendar_address"], "Y_2075-001")
         self.assertEqual(value["common_civil_coordinate"]["date"], "2075-01-01")
-        self.assertTrue(value["jubilee"]["is_jubilee_year"])
+        self.assertFalse(value["jubilee"]["is_jubilee_year"])
+        self.assertEqual(value["jubilee"]["year"], 49)
         self.assertEqual(value["publication"]["authority_status"], "enacted")
 
     def test_outside_publication_fails_closed(self):

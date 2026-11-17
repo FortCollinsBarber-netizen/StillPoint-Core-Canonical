@@ -19,6 +19,31 @@ private struct AnnualCalendarState {
 }
 
 enum CivicCalendarEngine {
+    struct LongCyclePosition: Equatable {
+        let cycle: Int
+        let year: Int
+        let isSabbatical: Bool
+        let isJubilee: Bool
+        let proclamationOrdinalYear: Int?
+    }
+
+    static func longCyclePosition(
+        commonYear: Int, policy: CalendarPopulation.LongCyclePolicy
+    ) -> LongCyclePosition? {
+        guard policy.rolloverRule == "overlap-49", policy.cycleYears == 49,
+              policy.epochCommonYear > 0, policy.epochCycle > 0,
+              commonYear >= policy.epochCommonYear else { return nil }
+        let elapsed = commonYear - policy.epochCommonYear
+        let position = elapsed % policy.cycleYears + 1
+        let proclamation = elapsed > 0 && position == 1
+        return LongCyclePosition(
+            cycle: policy.epochCycle + elapsed / policy.cycleYears,
+            year: position, isSabbatical: position % 7 == 0,
+            isJubilee: proclamation,
+            proclamationOrdinalYear: proclamation ? policy.proclamationOrdinalYear : nil
+        )
+    }
+
     static func snapshot(
         now: Date,
         latitude: Double,
@@ -525,11 +550,13 @@ enum CivicCalendarEngine {
                 }
             }
 
-            let jubileeYear = index + 1
-            let isSabbatical = jubileeYear < 50 && jubileeYear % 7 == 0
-            let isJubilee = jubileeYear == 50
+            let cyclePosition = population.flatMap {
+                longCyclePosition(commonYear: row.year, policy: $0.longCyclePolicy)
+            }
+            let isSabbatical = cyclePosition?.isSabbatical ?? false
+            let isJubilee = cyclePosition?.isJubilee ?? false
             let isRelease =
-                isJubilee && monthDay.month == 7 && monthDay.day == 10
+                isJubilee && observances.contains(where: { $0.id == population?.longCyclePolicy.releaseObservanceId })
 
             if isSabbatical {
                 for ref in [
@@ -555,15 +582,20 @@ enum CivicCalendarEngine {
                 "G\($0.gate) · P\($0.phase)"
             } ?? "G—"
 
-            var jubileeText = "JUBILEE Y\(jubileeYear)/50"
+            var jubileeText = cyclePosition.map {
+                "JUBILEE C\($0.cycle) Y\($0.year)/49"
+            } ?? "JUBILEE COUNT NOT STARTED"
             if isSabbatical {
                 jubileeText += " · SABBATICAL"
             }
             if isJubilee {
-                jubileeText = "JUBILEE YEAR 50"
+                jubileeText = "JUBILEE 50 · NEXT CYCLE YEAR 1"
             }
             if isRelease {
                 jubileeText += " · RELEASE"
+            }
+            if population?.longCyclePolicy.selectionStatus.contains("awaiting-author-selection") == true {
+                jubileeText += " · PROPOSED"
             }
 
             return AnnualCalendarState(
@@ -572,7 +604,10 @@ enum CivicCalendarEngine {
                 detail:
                     "\(staticWeekday.uppercased()) · W\(String(format: "%02d", week)) D\(dayInWeek) · S\(quarter).\(dayOfQuarter) · \(gateText)",
                 observance:
-                    observances.map(\.name).joined(separator: " · "),
+                    (observances.contains(where: { $0.profileId != nil })
+                        ? (population?.sacredYearProfile.selectionStatus.contains("awaiting-author-selection") == true
+                            ? "PROPOSED STILLPOINT PROFILE · " : "STILLPOINT PROFILE · ") : "")
+                    + observances.map(\.name).joined(separator: " · "),
                 jubilee: jubileeText,
                 sourceRefs: sourceRefs,
                 weekdayName: staticWeekday,

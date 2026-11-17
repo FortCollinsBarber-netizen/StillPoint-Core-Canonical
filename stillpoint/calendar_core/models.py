@@ -74,6 +74,9 @@ class JubileeState:
     year_within_block: Optional[int]
     is_sabbatical_threshold: bool
     is_jubilee_year: bool
+    rollover_rule: str = "overlap-49"
+    proclamation_ordinal_year: Optional[int] = None
+    completed_cycle: Optional[int] = None
 
 
 @dataclass(frozen=True)

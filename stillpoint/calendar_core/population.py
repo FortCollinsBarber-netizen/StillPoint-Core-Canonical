@@ -76,6 +76,7 @@ def address(
     day: int,
     jubilee_epoch_common_year: int | None = None,
     jubilee_epoch_cycle: int = 1,
+    jubilee_rollover_rule: str = "overlap-49",
 ) -> PopulationAddress:
     row = _row_for_year(publication_document, year)
     ordinal = ordinal_day(month, day)
@@ -118,6 +119,7 @@ def address(
         common_year=year,
         epoch_common_year=jubilee_epoch_common_year,
         epoch_cycle=jubilee_epoch_cycle,
+        rollover_rule=jubilee_rollover_rule,
     )
 
     is_sabbatical = bool(
@@ -128,8 +130,7 @@ def address(
     )
     is_release = (
         is_jubilee
-        and month == 7
-        and day == 10
+        and any(item.id == "atonement" for item in observances)
     )
 
     if is_sabbatical:
@@ -192,6 +193,7 @@ def address_from_ordinal(
     ordinal: int,
     jubilee_epoch_common_year: int | None = None,
     jubilee_epoch_cycle: int = 1,
+    jubilee_rollover_rule: str = "overlap-49",
 ) -> PopulationAddress:
     current = common_date(
         year=year,
@@ -204,6 +206,7 @@ def address_from_ordinal(
         day=current.day,
         jubilee_epoch_common_year=jubilee_epoch_common_year,
         jubilee_epoch_cycle=jubilee_epoch_cycle,
+        jubilee_rollover_rule=jubilee_rollover_rule,
     )
 
 
@@ -213,6 +216,7 @@ def iter_year(
     year: int,
     jubilee_epoch_common_year: int | None = None,
     jubilee_epoch_cycle: int = 1,
+    jubilee_rollover_rule: str = "overlap-49",
 ) -> Iterator[PopulationAddress]:
     for ordinal in range(1, 365):
         yield address_from_ordinal(
@@ -221,6 +225,7 @@ def iter_year(
             ordinal=ordinal,
             jubilee_epoch_common_year=jubilee_epoch_common_year,
             jubilee_epoch_cycle=jubilee_epoch_cycle,
+            jubilee_rollover_rule=jubilee_rollover_rule,
         )
 
 
@@ -229,6 +234,7 @@ def iter_fifty_year_map(
     publication_document: dict[str, Any],
     jubilee_epoch_common_year: int | None = None,
     jubilee_epoch_cycle: int = 1,
+    jubilee_rollover_rule: str = "overlap-49",
 ) -> Iterator[PopulationAddress]:
     rows = _validated_rows(publication_document)
     if len(rows) != 50:
@@ -241,4 +247,5 @@ def iter_fifty_year_map(
             year=int(row["year"]),
             jubilee_epoch_common_year=jubilee_epoch_common_year,
             jubilee_epoch_cycle=jubilee_epoch_cycle,
+            jubilee_rollover_rule=jubilee_rollover_rule,
         )

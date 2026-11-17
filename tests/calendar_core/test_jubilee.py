@@ -17,7 +17,8 @@ class JubileeTests(unittest.TestCase):
 
         jubilee = jubilee_state(common_year=2026 + 49, epoch_common_year=2026)
         self.assertTrue(jubilee.is_jubilee_year)
-        self.assertEqual(jubilee.cycle_year, 50)
+        self.assertEqual(jubilee.cycle_year, 1)
+        self.assertEqual(jubilee.proclamation_ordinal_year, 50)
 
 
 if __name__ == "__main__":

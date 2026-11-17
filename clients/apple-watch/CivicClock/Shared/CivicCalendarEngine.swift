@@ -594,8 +594,8 @@ enum CivicCalendarEngine {
             if isRelease {
                 jubileeText += " · RELEASE"
             }
-            if population?.longCyclePolicy.selectionStatus.contains("awaiting-author-selection") == true {
-                jubileeText += " · PROPOSED"
+            if population?.longCyclePolicy.selectionStatus == "author-selected-working-rule-not-civil-enactment" {
+                jubileeText += " · WORKING RULE"
             }
 
             return AnnualCalendarState(
@@ -605,8 +605,8 @@ enum CivicCalendarEngine {
                     "\(staticWeekday.uppercased()) · W\(String(format: "%02d", week)) D\(dayInWeek) · S\(quarter).\(dayOfQuarter) · \(gateText)",
                 observance:
                     (observances.contains(where: { $0.profileId != nil })
-                        ? (population?.sacredYearProfile.selectionStatus.contains("awaiting-author-selection") == true
-                            ? "PROPOSED STILLPOINT PROFILE · " : "STILLPOINT PROFILE · ") : "")
+                        ? (population?.sacredYearProfile.selectionStatus == "author-selected-working-rule-not-civil-enactment"
+                            ? "STILLPOINT WORKING PROFILE · " : "UNSELECTED STILLPOINT PROFILE · ") : "")
                     + observances.map(\.name).joined(separator: " · "),
                 jubilee: jubileeText,
                 sourceRefs: sourceRefs,

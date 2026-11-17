@@ -91,6 +91,11 @@
       border-radius:8px; overflow-wrap:anywhere; font-size:.83rem; }
     .assistant-disclaimer { font-size:.86rem; color:var(--muted); margin-top:13px; }
     .assistant-error { color:var(--danger); font-weight:700; }
+    .day-evidence { padding-left:20px; margin:10px 0; }
+    .day-evidence li { margin:7px 0; overflow-wrap:anywhere; }
+    .day-evidence-detail { margin-top:5px; font-size:.89rem; color:var(--muted); }
+    .digest-line { font: .79rem ui-monospace,SFMono-Regular,Consolas,monospace;
+      overflow-wrap:anywhere; padding:9px; background:var(--soft); border-radius:8px; }
     @media(max-width:760px) {
       header { padding:32px 0 35px; }
       .panel { padding:18px; }
@@ -200,6 +205,32 @@
         </div>
         <p class="assistant-disclaimer">A saved receipt can be independently reproduced with <code>stillpoint verify-answer receipt.json</code> using the matching public Core installation. It is not a signature, consent record, execution warrant, or private-integration qualification.</p>
       </section>
+
+      <section class="panel assistant-panel" aria-labelledby="day-assistant-heading">
+        <p class="overline">Second public assistant capability</p>
+        <h2 id="day-assistant-heading">Ask about a day or its observances</h2>
+        <p class="hint">Questions use the finite, SHA-256-checked public Core day records. Observance names, rules, notes and source references are copied from the published Core, not invented by this page.</p>
+        <form id="dayQuestionForm" class="field-row">
+          <div class="question-field">
+            <label for="dayQuestion">Published Common day or observance question</label>
+            <input id="dayQuestion" type="text" required maxlength="160"
+              placeholder="Explain Common Calendar observances for 2026-11-17."
+              aria-describedby="dayQuestionHint">
+          </div>
+          <button type="submit" class="primary" id="dayQuestionSubmit">Read Core day</button>
+        </form>
+        <p id="dayQuestionHint" class="hint">Try “What is the Common Calendar date for 2026-11-17?” or “Explain Common Calendar observances on Common day 1 of 2027.” Only published years 2026–2075.</p>
+        <p id="dayQuestionStatus" class="status" role="status" aria-live="polite"></p>
+        <div id="dayAnswerResult" class="assistant-answer hidden">
+          <p id="dayAnswerText"></p>
+          <ul id="dayEvidenceList" class="day-evidence"></ul>
+          <h3>Published observance evidence</h3>
+          <ul id="dayObservanceEvidence" class="day-evidence"></ul>
+          <p id="dayShardDigest" class="digest-line"></p>
+          <p id="dayReplayCommand" class="digest-line"></p>
+        </div>
+        <p class="assistant-disclaimer">The year-file SHA-256 check confirms agreement with this site's manifest, not a signature or a separate Python answer receipt. To reproduce and independently verify a full receipt, run the displayed <code>stillpoint ask</code> request with the matching public Core and use <code>stillpoint verify-answer</code>. Source references describe this author's selected profile; they are not automatic civil law or required practice for other communities.</p>
+      </section>
     </div>
   </main>
   <footer class="wrap">
@@ -221,6 +252,7 @@
     let selectionToken = 0;
     let assistantToken = 0;
     let questionToken = 0;
+    let dayQuestionToken = 0;
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -242,12 +274,29 @@
         return entry.first_civil_date <= iso && iso <= entry.last_civil_date;
       });
     }
+    async function sha256Hex(bytes) {
+      if (!window.crypto || !window.crypto.subtle) {
+        throw new Error("Public data integrity requires an HTTPS or localhost browser context.");
+      }
+      return Array.from(
+        new Uint8Array(await window.crypto.subtle.digest("SHA-256", bytes)),
+        function (part) { return part.toString(16).padStart(2, "0"); }
+      ).join("");
+    }
     async function getShard(entry) {
       if (cache.has(entry.year)) return cache.get(entry.year);
-      const response = await fetch("./" + entry.path, {cache:"force-cache"});
+      if (!/^[a-f0-9]{64}$/.test(entry.sha256)) {
+        throw new Error("Missing public Core year-file digest.");
+      }
+      const response = await fetch("./" + entry.path + "?sha256=" + entry.sha256, {cache:"force-cache"});
       if (!response.ok) throw new Error("Could not load the public year " + entry.year + ".");
-      const data = await response.json();
-      if (data.publication_digest !== manifest.publication_digest ||
+      const bytes = await response.arrayBuffer();
+      if (await sha256Hex(bytes) !== entry.sha256) {
+        throw new Error("Public Core year file failed its manifest SHA-256 integrity check.");
+      }
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      if (data.schema !== "stillpoint.public-calendar-static.v1.year" ||
+          data.publication_digest !== manifest.publication_digest ||
           data.year !== entry.year || !Array.isArray(data.days) ||
           data.days.length !== 364 ||
           data.days[0].civil_date !== entry.first_civil_date ||
@@ -265,7 +314,7 @@
       if (!window.crypto || !window.crypto.subtle) {
         throw new Error("Receipt integrity requires a secure HTTPS or localhost browser context.");
       }
-      const response = await fetch("./" + entry.assistant_path, {cache:"force-cache"});
+      const response = await fetch("./" + entry.assistant_path + "?sha256=" + entry.assistant_sha256, {cache:"force-cache"});
       if (!response.ok) throw new Error("Could not load the public assistant answers.");
       const bytes = await response.arrayBuffer();
       const computed = Array.from(
@@ -353,6 +402,7 @@
       activeWeek = {year:selected.common_date.year, week:selected.common_date.week};
       activeReceipt = null;
       $("assistantResult").classList.add("hidden");
+      $("dayAnswerResult").classList.add("hidden");
       $("askWeek").disabled = false;
       $("downloadAnswer").disabled = true;
       $("assistantRequest").textContent =
@@ -509,6 +559,132 @@
         if (queryToken === questionToken) $("questionSubmit").disabled = false;
       }
     }
+    function parsePublicDayQuestion(text) {
+      const query = String(text).trim();
+      const commonDate = /^(?:what is|show(?: me)?)(?: the)? common(?: calendar)? date for (\d{4}-\d{2}-\d{2})[.?!]?$/i.exec(query);
+      if (commonDate) return {kind:"day", civil_date:commonDate[1]};
+      const observanceDate = /^(?:explain|list)(?: the)? common(?: calendar)? observances (?:for|on) (?:gregorian )?(\d{4}-\d{2}-\d{2})[.?!]?$/i.exec(query);
+      if (observanceDate) return {kind:"observances", civil_date:observanceDate[1]};
+      const commonDay = /^show(?: me)?(?: the)? common(?: calendar)? day (\d{1,3}) (?:of|in) (\d{4})[.?!]?$/i.exec(query);
+      const observanceDay = /^(?:explain|list)(?: the)? common(?: calendar)? observances (?:for|on) common day (\d{1,3}) (?:of|in) (\d{4})[.?!]?$/i.exec(query);
+      const hit = commonDay || observanceDay;
+      if (!hit) throw new Error("Only a published Common day or an observance question with an explicit date is supported.");
+      const ordinal = Number(hit[1]);
+      const year = Number(hit[2]);
+      if (year < 2026 || year > 2075) {
+        throw new Error("Only published Common years 2026–2075 are available; 2076 remains mathematical only.");
+      }
+      if (ordinal < 1 || ordinal > 364) {
+        throw new Error("Common day ordinals must be 1 through 364.");
+      }
+      return {kind:commonDay ? "day" : "observances", year, ordinal};
+    }
+    function renderCoreDayEvidence(selected, entry, kind) {
+      const day = selected.common_date;
+      const label = "Common " + day.year + "-" +
+        String(day.month).padStart(2,"0") + "-" +
+        String(day.day).padStart(2,"0");
+      const count = selected.observances.length;
+      $("dayAnswerText").textContent = kind === "observances"
+        ? (count ? label + " records " + count + " named StillPoint observance(s)."
+                 : label + " has no named observances in the published Core.")
+        : ("Gregorian " + selected.civil_date + " is " + label +
+           " (" + day.weekday + "), week " + day.week + ".");
+      const facts = $("dayEvidenceList");
+      facts.replaceChildren();
+      facts.appendChild(node("li", "Address: " + selected.calendar_address +
+        "; Common ordinal: " + day.ordinal + "/364; civil translation: " + selected.civil_date));
+      facts.appendChild(node("li", "Sacred-source overlay: month " +
+        selected.sacred_date.month + ", day " + selected.sacred_date.day +
+        ", source year " + selected.sacred_date.year + " (not a civil-date replacement)."));
+      facts.appendChild(node("li", selected.jubilee.year === null
+        ? "Selected Jubilee epoch has not begun at this Common year."
+        : "Selected Jubilee cycle " + selected.jubilee.cycle +
+          ", year " + selected.jubilee.year + "."));
+      const details = $("dayObservanceEvidence");
+      details.replaceChildren();
+      if (!count) {
+        details.appendChild(node("li",
+          "No named Core observance for this day. Sabbath and protected-time markers are separate overlays."));
+      }
+      selected.observances.forEach(function (item) {
+        const line = node("li", item.name + " — jurisdiction: " + item.jurisdiction +
+          "; Core rule: " + item.rule + "; projection: " + item.projection_status + ".");
+        if (item.source_coordinate) {
+          const source = item.source_coordinate;
+          line.appendChild(node("div", "Schematic source coordinate: " +
+            source.calendar + " month " + source.month + ", day " + source.day +
+            (source.end_month === null ? "" :
+              " through month " + source.end_month + ", day " + source.end_day) + "."));
+          line.lastChild.className = "day-evidence-detail";
+        }
+        const references = item.source_refs.length
+          ? "Core source references: " + item.source_refs.join("; ")
+          : "No textual reference recorded for this Common observance.";
+        line.appendChild(node("div", references));
+        line.lastChild.className = "day-evidence-detail";
+        if (item.note) {
+          line.appendChild(node("div", "Core note: " + item.note));
+          line.lastChild.className = "day-evidence-detail";
+        }
+        details.appendChild(line);
+      });
+      $("dayShardDigest").textContent = "Public year-file SHA-256 checked against site manifest: " +
+        entry.sha256 + " · Publication digest: " + manifest.publication_digest;
+      const command = kind === "observances"
+        ? "Explain Common Calendar observances on Common day " + day.ordinal + " of " + day.year + "."
+        : "Show Common Calendar day " + day.ordinal + " of " + day.year + ".";
+      $("dayReplayCommand").textContent =
+        'Reproduce a full Python Core receipt: stillpoint ask "' + command +
+        '" > answer.json ; stillpoint verify-answer answer.json';
+      $("dayAnswerResult").classList.remove("hidden");
+    }
+    async function answerPublicDayQuestion() {
+      const token = ++dayQuestionToken;
+      const beforeSelection = selectionToken;
+      // A rejected new day request must not leave a prior week receipt active.
+      assistantToken += 1;
+      activeReceipt = null;
+      $("assistantResult").classList.add("hidden");
+      $("downloadAnswer").disabled = true;
+      $("dayAnswerResult").classList.add("hidden");
+      $("dayQuestionSubmit").disabled = true;
+      $("dayQuestionStatus").textContent = "Reading the published Core day and checking year-file integrity…";
+      $("dayQuestionStatus").classList.remove("error");
+      try {
+        if (!manifest) throw new Error("Published Core data is not ready.");
+        const parsed = parsePublicDayQuestion($("dayQuestion").value);
+        const entry = parsed.civil_date
+          ? chooseYear(parsed.civil_date)
+          : manifest.years.find(function (item) { return item.year === parsed.year; });
+        if (!entry) throw new Error("That date is outside the published 2026–2075 projection.");
+        const shard = await getShard(entry);
+        const selected = shard.days.find(function (row) {
+          return parsed.civil_date
+            ? row.civil_date === parsed.civil_date
+            : row.common_date.ordinal === parsed.ordinal;
+        });
+        if (!selected) throw new Error("No published Common day matches that request.");
+        if (token !== dayQuestionToken || beforeSelection !== selectionToken) return;
+        await showDate(selected.civil_date);
+        if (token !== dayQuestionToken || selectionToken !== beforeSelection + 1) return;
+        renderCoreDayEvidence(selected, entry, parsed.kind);
+        $("dayQuestionStatus").textContent =
+          "Published Core day loaded. Year-file SHA-256 agrees with the manifest.";
+      } catch (error) {
+        if (token === dayQuestionToken) {
+          $("dayQuestionStatus").textContent =
+            error.message || "Unable to read this published day.";
+          $("dayQuestionStatus").classList.add("error");
+        }
+      } finally {
+        if (token === dayQuestionToken) $("dayQuestionSubmit").disabled = false;
+      }
+    }
+    $("dayQuestionForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      void answerPublicDayQuestion();
+    });
     $("questionForm").addEventListener("submit", function (event) {
       event.preventDefault();
       void answerPublicWeekQuestion();

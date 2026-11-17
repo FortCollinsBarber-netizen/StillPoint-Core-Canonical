@@ -96,7 +96,7 @@ checked in a live browser (including mobile layout and keyboard operation).
 - Apple Watch CI and device deployment need their own verifiable evidence.
 - Site usage does not change legal rights, discharge debt or enforce rules.
 
-## Bounded typed week questions (candidate UI)
+## Bounded typed week questions (live since PR #102)
 
 The browser includes a form accepting **only** two question shapes:
 `Show Common Calendar week 46 of 2026.` and
@@ -112,5 +112,18 @@ JavaScript never computes calendar dates or Jubilee law, broadens permissions,
 creates new receipts, sends information to a provider, or modifies anything.
 Existing date navigation and one-click assistant use are unchanged.
 
-A new GitHub PR must pass browser/export and public Core CI; a merged deployment
-also needs live text-entry, keyboard, and narrow-viewport verification.
+PR #102 merged on November 17, 2026 and was verified on live GitHub Pages:
+calendar-week typing, finite year limits, Enter submission, and a 320px browser
+viewport were tested against the deployed source.
+
+## Proposed day questions and observance provenance
+
+The separate public day/observance capability is defined in
+[PUBLIC_DAY_OBSERVANCE_ASSISTANT_V1.md](PUBLIC_DAY_OBSERVANCE_ASSISTANT_V1.md).
+It adds explicit observance-read permission in Python Core, publishes the
+existing Core rules/notes/source references in year shards, and accepts
+bounded day or observance questions in the static browser. Year-file bytes
+must match their manifest SHA-256 before details are displayed. A source
+shard integrity check is **not a standalone Python receipt or signature**.
+A branch candidate needs independent executable CI and post-merge live
+verification; its presence here does not claim release.

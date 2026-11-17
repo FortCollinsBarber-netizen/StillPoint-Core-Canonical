@@ -21,7 +21,8 @@ from .calendar_core.week_view import calendar_week_payload
 ANSWER_SCHEMA = "stillpoint.public-assistant-answer.v1"
 DAY_READ = "calendar.day.read"
 WEEK_READ = "calendar.week.read"
-PUBLIC_READ_CAPABILITIES = frozenset({DAY_READ, WEEK_READ})
+OBSERVANCES_READ = "calendar.observances.read"
+PUBLIC_READ_CAPABILITIES = frozenset({DAY_READ, WEEK_READ, OBSERVANCES_READ})
 MAX_REQUEST_CHARACTERS = 512
 MAX_RECEIPT_BYTES = 256_000
 _ROOT = Path(__file__).resolve().parent
@@ -29,6 +30,7 @@ _SOURCES = (
     "public_assistant.py", "authority/deterministic.py", "authority/clauses.py",
     "authority/schema.py", "calendar_core/civil_lookup.py",
     "calendar_core/runtime_surface.py", "calendar_core/week_view.py",
+    "calendar_core/observances.py",
     "calendar_core/governor.py", "calendar_core/publication.py",
     "contracts/calendar_publication_2026_2075.json",
 )
@@ -37,6 +39,8 @@ _EXAMPLES = (
     "Show the Common Calendar week for 2026-11-17.",
     "Show Common Calendar week 12 of 2027.",
     "Show Common Calendar day 364 of 2075.",
+    "Explain Common Calendar observances for 2026-11-17.",
+    "Explain Common Calendar observances on Common day 1 of 2027.",
 )
 
 
@@ -58,7 +62,12 @@ def interpret_request(request: str) -> dict[str, Any] | None:
     common = r"(?:the )?common(?: calendar)? "
     show = r"show(?: me)? "
     iso = r"([0-9]{4}-[0-9]{2}-[0-9]{2})"
+    explain = r"(?:explain|list)(?: the)? common(?: calendar)? observances (?:for|on) "
     patterns = (
+        (explain + r"(?:gregorian )?" + iso,
+         OBSERVANCES_READ, ("civil_date",)),
+        (explain + r"common day ([0-9]{1,3}) (?:of|in) ([0-9]{4})",
+         OBSERVANCES_READ, ("ordinal", "year")),
         (r"(?:what is |" + show + r")" + common + r"date for (?:gregorian )?" + iso,
          DAY_READ, ("civil_date",)),
         (show + common + r"week (?:for|containing) (?:gregorian )?" + iso,
@@ -83,10 +92,10 @@ def _project(plan: dict[str, Any]) -> dict[str, Any]:
     args = plan["arguments"]
     if "civil_date" in args:
         day = civil_date_lookup_payload(args["civil_date"])["calendar_day"]
-        if plan["capability"] == DAY_READ:
+        if plan["capability"] in {DAY_READ, OBSERVANCES_READ}:
             return day
         return calendar_week_payload(day["common_date"]["year"], day["common_date"]["week"])
-    if plan["capability"] == DAY_READ:
+    if plan["capability"] in {DAY_READ, OBSERVANCES_READ}:
         return calendar_day_payload(args["year"], args["ordinal"])
     return calendar_week_payload(args["year"], args["week"])
 
@@ -94,8 +103,8 @@ def _project(plan: dict[str, Any]) -> dict[str, Any]:
 def _check_projection(result: dict[str, Any], plan: dict[str, Any]) -> dict[str, Any]:
     publication = load_enacted_publication()
     rows = publication["years"]
-    expected_schema = ("stillpoint.calendar-day.v2" if plan["capability"] == DAY_READ
-                       else "stillpoint.calendar-week.v1")
+    expected_schema = ("stillpoint.calendar-week.v1" if plan["capability"] == WEEK_READ
+                       else "stillpoint.calendar-day.v2")
     if (result.get("schema") != expected_schema
             or result.get("authority") != "read-only-calendar-law"
             or result["publication"]["digest"] != publication["publicationDigest"]
@@ -112,6 +121,29 @@ def _label(day: dict[str, Any]) -> str:
 
 def _answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
     civil = plan["arguments"].get("civil_date")
+    if plan["capability"] == OBSERVANCES_READ:
+        day = result["common_date"]
+        events = result["observances"]
+        label = f"Common {_label(day)} ({day['weekday']})"
+        if not events:
+            return (f"{label} has no named observances in the published StillPoint "
+                    "Common Calendar. This does not negate separate Sabbath, "
+                    "protected-time, or external-calendar overlays.")
+        details = []
+        for event in events:
+            parts = [
+                f"{event['name']} (jurisdiction: {event['jurisdiction']}; "
+                f"Core rule: {event['rule']}; projection: {event['projection_status']})",
+            ]
+            if event["source_refs"]:
+                parts.append("source references: " + "; ".join(event["source_refs"]))
+            if event["note"]:
+                parts.append("Core note: " + event["note"])
+            details.append("; ".join(parts))
+        return (f"{label} records {len(events)} named StillPoint observance(s): "
+                + " | ".join(details)
+                + ". These are published Core annotations, not automatic civil "
+                  "enactments or prescriptions for other communities.")
     if plan["capability"] == DAY_READ:
         day = result["common_date"]
         prefix = f"Gregorian {civil} is " if civil else ""

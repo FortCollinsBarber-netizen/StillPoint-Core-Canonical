@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -118,6 +120,49 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
             for years in ([2076], [2027, 2026], [2026, 2026], []):
                 with self.subTest(years=years), self.assertRaises(ValueError):
                     export_site(Path(td), years=years)
+
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js required to execute browser parser contract")
+    def test_typed_question_parser_executes_and_fails_closed(self):
+        """Execute the actual embedded JavaScript grammar, not a Python rewrite."""
+        site = Path(__file__).resolve().parents[2] / "site" / "stillpoint-calendar" / "index.html"
+        node_script = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const start = html.indexOf("    function parsePublicWeekQuestion(text)");
+const end = html.indexOf("    function node(tag, text)", start);
+assert.ok(start >= 0 && end > start, "question parser must be present");
+const sandbox = {};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start, end), sandbox);
+function shape(value) { return JSON.parse(JSON.stringify(value)); }
+assert.deepEqual(shape(sandbox.parsePublicWeekQuestion("Show Common Calendar week 46 of 2026.")),
+  {kind:"week", year:2026, week:46});
+assert.deepEqual(shape(sandbox.parsePublicWeekQuestion("display stillpoint week 52 in 2075!")),
+  {kind:"week", year:2075, week:52});
+assert.deepEqual(shape(sandbox.parsePublicWeekQuestion("Which Common Calendar week contains 2026-11-17?")),
+  {kind:"civil_date", civil_date:"2026-11-17"});
+for (const invalid of [
+  "Show Common Calendar week 0 of 2026.",
+  "Show Common Calendar week 53 of 2026.",
+  "Show Common Calendar week 1 of 2076.",
+  "Show Common Calendar week 1 of 2025.",
+  "Send an email to my contacts",
+  "Show every week forever",
+  "What day is tomorrow?"
+]) {
+  assert.throws(() => sandbox.parsePublicWeekQuestion(invalid), invalid);
+}
+console.log("Executed bounded public week question grammar: PASS");
+"""
+        proc = subprocess.run(
+            [shutil.which("node"), "-e", node_script, str(site)],
+            capture_output=True, text=True, check=False, timeout=15,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("PASS", proc.stdout)
 
     def test_site_is_standalone_and_uses_only_exported_data_urls(self):
         site = Path(__file__).resolve().parents[2] / "site" / "stillpoint-calendar" / "index.html"

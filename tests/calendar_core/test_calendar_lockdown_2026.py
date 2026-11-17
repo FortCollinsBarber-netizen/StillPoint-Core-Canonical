@@ -132,8 +132,6 @@ class CalendarLockdown2026Tests(unittest.TestCase):
         expected = {
             (1, 1): "New Year's Day",
             (2, 14): "Valentine's Day",
-            (4, 3): "Good Friday",
-            (4, 5): "Easter Sunday",
             (7, 4): "Independence Day",
             (10, 31): "Halloween",
             (11, 26): "Thanksgiving Day",
@@ -148,6 +146,17 @@ class CalendarLockdown2026Tests(unittest.TestCase):
                 for item in observances_for_ordinal(ordinal_day(month, day))
             }
             self.assertIn(name, names)
+
+    def test_2026_easter_seed_does_not_claim_perpetual_christian_authority(self):
+        # April 3 and 5 remain historical example dates, not a universal
+        # Easter/Pascha rule applied to every future Common Calendar year.
+        for month, day in ((4, 3), (4, 5)):
+            names = {
+                item.name
+                for item in observances_for_ordinal(ordinal_day(month, day))
+            }
+            self.assertNotIn("Good Friday", names)
+            self.assertNotIn("Easter Sunday", names)
 
     def test_all_observance_addresses_repeat_across_fifty_years(self):
         document = load_enacted_publication()

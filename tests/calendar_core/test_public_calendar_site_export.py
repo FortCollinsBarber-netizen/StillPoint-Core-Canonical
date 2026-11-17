@@ -74,6 +74,106 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
             self.assertIn(".skip-link:focus-visible { top:12px; }", html)
             self.assertIn("#mainContent:focus { outline:", html)
 
+    @unittest.skipUnless(shutil.which("node"), "Node.js required for real keyboard-focus regression")
+    def test_week_day_button_rerender_preserves_keyboard_focus_without_stealing_it(self):
+        """Exercise the site's real JS renderWeek with a minimal DOM contract."""
+        page = (Path(__file__).resolve().parents[2]
+                / "site/stillpoint-calendar/index.html")
+        js = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const html = fs.readFileSync(process.argv[1],"utf8");
+const start = html.indexOf("    function node(tag, text) {");
+const end = html.indexOf("    function render(selected, shard) {",start);
+assert.ok(start >= 0 && end > start,"real week renderer must exist");
+let document;
+class Element {
+  constructor(tag) {
+    this.tagName = tag.toUpperCase();
+    this.attributes = {};
+    this.children = [];
+    this.parent = null;
+    this.listeners = {};
+    this.textContent = "";
+  }
+  setAttribute(name,value) { this.attributes[name] = String(value); }
+  getAttribute(name) { return this.attributes[name] ?? null; }
+  appendChild(child) { child.parent=this; this.children.push(child); return child; }
+  get lastChild() { return this.children.at(-1) || null; }
+  replaceChildren(...items) {
+    for (const child of this.children) child.parent = null;
+    this.children = [];
+    for (const child of items) this.appendChild(child);
+  }
+  contains(target) { return target === this ||
+    this.children.some(child => child.contains(target)); }
+  addEventListener(name,cb) { this.listeners[name] = cb; }
+  focus(options) { document.activeElement = this; this.focusOptions = options; }
+}
+const host = new Element("div");
+const address = new Element("span");
+const body = new Element("body");
+const otherInput = new Element("input");
+document = {
+  activeElement:body,
+  createElement:tag => new Element(tag)
+};
+const sandbox = {
+  document,
+  $:id => ({weekDays:host,weekAddress:address})[id],
+};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start,end),sandbox);
+const days=Array.from({length:7},(_,i)=>({
+  civil_date:"2026-11-"+String(i+12).padStart(2,"0"),
+  common_date:{week:46,day:i+12,month:11,weekday:
+    ["Thursday","Friday","Saturday","Sunday","Monday","Tuesday","Wednesday"][i]},
+  observances:[],
+}));
+const shard={days};
+function selected(index) {
+  return {civil_date:days[index].civil_date,common_date:days[index].common_date};
+}
+// First draw should never seize focus from outside the week group.
+sandbox.renderWeek(selected(0),shard);
+assert.equal(document.activeElement,body);
+assert.equal(host.children.length,7);
+assert.equal(host.children[0].getAttribute("aria-pressed"),"true");
+// Activating a week button renders a replacement. Focus must not fall to BODY.
+const original=host.children[2];
+original.focus();
+sandbox.renderWeek(selected(2),shard);
+assert.equal(host.contains(original),false,"old button must be detached");
+assert.notEqual(document.activeElement,original);
+assert.equal(document.activeElement,host.children[2]);
+assert.equal(document.activeElement.getAttribute("data-civil-date"),days[2].civil_date);
+assert.equal(document.activeElement.getAttribute("aria-pressed"),"true");
+assert.equal(document.activeElement.focusOptions.preventScroll,true);
+// A day change made through another control must not steal its focus.
+otherInput.focus();
+sandbox.renderWeek(selected(3),shard);
+assert.equal(document.activeElement,otherInput);
+// Cross-week rerenders may no longer include the previously focused day;
+// in that case transfer focus to the newly selected day, never BODY.
+host.children[1].focus();
+const nextDays=days.map((d,i)=>({
+  ...d,civil_date:"2026-11-"+String(i+19).padStart(2,"0"),
+  common_date:{...d.common_date,week:47,day:i+19},
+}));
+sandbox.renderWeek({civil_date:nextDays[0].civil_date,
+  common_date:nextDays[0].common_date},{days:nextDays});
+assert.equal(document.activeElement,host.children[0]);
+assert.equal(document.activeElement.getAttribute("aria-pressed"),"true");
+console.log("Executed public Common-week focused-button DOM-rerender regression: PASS");
+"""
+        completed = subprocess.run(
+            [shutil.which("node"), "-e", js, str(page)],
+            capture_output=True, text=True, check=False, timeout=15,
+        )
+        self.assertEqual(completed.returncode,0,completed.stderr)
+        self.assertIn("PASS",completed.stdout)
+
     def test_bounded_core_generated_shards_and_year_transition(self):
         with tempfile.TemporaryDirectory(prefix="stillpoint-browser-test-") as td:
             root = Path(td)

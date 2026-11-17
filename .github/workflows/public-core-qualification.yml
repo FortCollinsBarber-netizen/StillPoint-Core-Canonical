@@ -8,6 +8,7 @@ on:
       - "stillpoint/contracts/**"
       - "stillpoint/cli.py"
       - "tests/public_core/**"
+      - "tests/calendar_core/test_public_consumer_conformance.py"
       - "pyproject.toml"
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - "stillpoint/contracts/**"
       - "stillpoint/cli.py"
       - "tests/public_core/**"
+      - "tests/calendar_core/test_public_consumer_conformance.py"
       - "pyproject.toml"
 
 permissions:

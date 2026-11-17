@@ -201,7 +201,7 @@ const filters = (changes={}) => ({name:"", jurisdiction:"", year:null,
   assert.equal(passovers.rows.length, 3);
   assert.ok(passovers.rows.every(x => x.name === "Passover"));
   const civic = sandbox.filterObservanceOccurrences(index,
-    filters({name:"New Year",jurisdiction:"civic",year:2027}));
+    filters({name:"New Year\'s Day",jurisdiction:"civic",year:2027}));
   assert.equal(civic.total, 1);
   assert.equal(civic.rows[0].calendar_address, "Y_2027-001");
   assert.equal(civic.rows[0].civil_date, "2026-12-31");

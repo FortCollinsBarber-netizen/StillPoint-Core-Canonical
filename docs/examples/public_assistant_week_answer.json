@@ -253,7 +253,7 @@
     "sources": [
       {
         "path": "stillpoint/public_assistant.py",
-        "sha256": "c0222ab24b0077bbba00d50378c9b2ec58d5319a9e0669f9f32249a77cbc605d"
+        "sha256": "9c10a3dee81847bc7912f873916ddf81fc6cd9656ee7221c805de3b3282991ff"
       },
       {
         "path": "stillpoint/authority/deterministic.py",
@@ -280,6 +280,10 @@
         "sha256": "b051aea0dd30118126d6e368e1004cd7f580e38583ae07bd40fa63c735fc251e"
       },
       {
+        "path": "stillpoint/calendar_core/observances.py",
+        "sha256": "e3ca26bf1469664d60453c4058d2de87f194eaabedc23b85ae84bfa5ee7c0543"
+      },
+      {
         "path": "stillpoint/calendar_core/governor.py",
         "sha256": "cdd2e95f1de9d9a256b865c15dbee107a4687f065727e973512dc088322b4165"
       },
@@ -295,5 +299,5 @@
   },
   "status": "completed",
   "answer": "Gregorian 2026-11-17 falls in Common year 2026, week 46: Common 2026-11-12 through 2026-11-18 (7 days).",
-  "receipt_sha256": "7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7"
+  "receipt_sha256": "722affa8cfb8b2781a96cdbef10497e7eb597c1a12c67a1c833fba2437c74028"
 }

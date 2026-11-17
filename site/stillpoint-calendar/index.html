@@ -16,6 +16,11 @@
     button { cursor:pointer; }
     button:disabled { cursor:not-allowed; opacity:.45; }
     :focus-visible { outline:3px solid #ab761f; outline-offset:3px; }
+    .skip-link { position:fixed; top:-140px; left:16px; z-index:1000;
+      color:#16202a; background:white; border:3px solid #ab761f;
+      border-radius:9px; padding:10px 16px; font-weight:750; }
+    .skip-link:focus-visible { top:12px; }
+    #mainContent:focus { outline:3px solid #ab761f; outline-offset:3px; }
     .wrap { max-width:1100px; padding:0 22px; margin:0 auto; }
     header { color:white; background:linear-gradient(125deg,#14283d,#254c70);
       padding:40px 0 44px; border-bottom:5px solid var(--accent); }
@@ -133,6 +138,7 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to calendar content</a>
   <header>
     <div class="wrap">
       <p class="eyebrow">StillPoint / public calendar</p>
@@ -140,7 +146,7 @@
       <p>Find your place in the 364-day Common Calendar. No account, subscription, location tracking or AI provider key required.</p>
     </div>
   </header>
-  <main class="wrap">
+  <main class="wrap" id="mainContent" tabindex="-1">
     <section class="panel" aria-labelledby="lookup-heading">
       <h2 id="lookup-heading">Find a calendar day</h2>
       <form id="dateForm" class="field-row">
@@ -162,7 +168,7 @@
             <h2 class="big-date" id="day-heading">—</h2>
             <p id="dateAddress" class="address">—</p>
           </div>
-          <div class="nav" aria-label="Civil-date navigation">
+          <div class="nav" role="group" aria-label="Civil-date navigation">
             <button class="secondary" type="button" id="prevDay" aria-label="Previous date">Previous</button>
             <button class="secondary" type="button" id="nextDay" aria-label="Next date">Next</button>
           </div>
@@ -180,7 +186,7 @@
             <h3 id="week-heading">Your seven-day Common week</h3>
             <span id="weekAddress" class="soft"></span>
           </div>
-          <div class="week" id="weekDays" aria-label="Choose a day from this Common week"></div>
+          <div class="week" id="weekDays" role="group" aria-label="Choose a day from this Common week"></div>
           <p class="week-note">Week boundaries come from the published Core. This is not an ISO or Gregorian week.</p>
         </section>
         <section class="panel" aria-labelledby="observances-heading">
@@ -245,7 +251,7 @@
           <p id="dayShardDigest" class="digest-line"></p>
           <p id="dayReplayCommand" class="digest-line"></p>
         </div>
-        <div class="assistant-controls" aria-label="Download independently reproducible read-only receipts">
+        <div class="assistant-controls" role="group" aria-label="Download independently reproducible read-only receipts">
           <button type="button" class="primary" id="saveDayReceipt" disabled>Save verified day receipt</button>
           <button type="button" class="secondary" id="saveObservanceReceipt" disabled>Save verified observance receipt</button>
         </div>

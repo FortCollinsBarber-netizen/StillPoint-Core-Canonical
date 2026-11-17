@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+from html.parser import HTMLParser
 import json
 import shutil
 import subprocess
@@ -20,6 +21,59 @@ from stillpoint.public_assistant import verify_answer_receipt
 
 
 class PublicCalendarSiteExportTests(unittest.TestCase):
+    def test_accessible_navigation_and_named_control_groups_are_in_actual_export(self):
+        """Guard the shipped source's real landmark and group semantics without
+        introducing JavaScript or paid accessibility dependencies into CI.
+        """
+        class Structure(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.elements = []
+                self.links = []
+                self.mains = []
+                self.groups = []
+                self.unroled_named_divs = []
+
+            def handle_starttag(self, tag, attrs):
+                a = dict(attrs)
+                self.elements.append((tag, a))
+                if tag == "a" and a.get("class") == "skip-link":
+                    self.links.append(a)
+                if tag == "main":
+                    self.mains.append(a)
+                if a.get("role") == "group" and a.get("aria-label"):
+                    self.groups.append((tag, a))
+                if tag == "div" and a.get("aria-label") and not a.get("role"):
+                    self.unroled_named_divs.append(a)
+
+        with tempfile.TemporaryDirectory(prefix="stillpoint-a11y-source-") as td:
+            root = Path(td)
+            export_site(root, years=[2026])
+            html = (root / "index.html").read_text(encoding="utf-8")
+            view = Structure()
+            view.feed(html)
+            self.assertEqual(len(view.mains), 1)
+            self.assertEqual(view.mains[0].get("id"), "mainContent")
+            self.assertEqual(view.mains[0].get("tabindex"), "-1")
+            self.assertEqual(len(view.links), 1)
+            self.assertEqual(view.links[0].get("href"), "#mainContent")
+            self.assertLess(
+                next(i for i, (tag, a) in enumerate(view.elements)
+                     if tag == "a" and a.get("class") == "skip-link"),
+                next(i for i, (tag, _) in enumerate(view.elements)
+                     if tag == "header"),
+            )
+            labels = {a["aria-label"] for _, a in view.groups}
+            self.assertTrue({
+                "Civil-date navigation",
+                "Choose a day from this Common week",
+                "Download independently reproducible read-only receipts",
+            }.issubset(labels))
+            self.assertEqual(view.unroled_named_divs, [],
+                             "generic divs must not claim unsupported ARIA labels")
+            self.assertIn(".skip-link:focus-visible { top:12px; }", html)
+            self.assertIn("#mainContent:focus { outline:", html)
+
     def test_bounded_core_generated_shards_and_year_transition(self):
         with tempfile.TemporaryDirectory(prefix="stillpoint-browser-test-") as td:
             root = Path(td)

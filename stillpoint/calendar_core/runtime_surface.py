@@ -179,7 +179,12 @@ def calendar_day_payload(
                     else "declared-project-profile"
                 ),
                 "authority_scope": "calculation-inputs-only",
-                "decision_status": PROFILE_STATUS,
+                "decision_status": (
+                    PROFILE_STATUS
+                    if jubilee_configuration is None
+                    else "explicit-comparison-input-not-author-selected"
+                ),
+                "selected_policy_applies": jubilee_configuration is None,
             },
             "designation_status": (
                 "unconfigured-epoch"
@@ -188,7 +193,11 @@ def calendar_day_payload(
                 if day.year < configuration.epoch_common_year
                 else "computed-under-stated-configuration"
             ),
-            "release_day_projection_status": PROFILE_STATUS,
+            "release_day_projection_status": (
+                PROFILE_STATUS
+                if jubilee_configuration is None
+                else "computed-under-explicit-comparison-not-author-selected"
+            ),
             "proclamation_ordinal_year": cycle_state.proclamation_ordinal_year if cycle_state else None,
             "completed_cycle": cycle_state.completed_cycle if cycle_state else None,
             "cycle": day.jubilee_cycle,

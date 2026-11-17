@@ -699,6 +699,158 @@
         $("observanceSearchStatus").classList.add("error");
       }
     }
+    function canonicalReceiptJson(value, depth) {
+      // Mirrors Python json.dumps(sort_keys=True, separators=(",", ":"),
+      // ensure_ascii=False) for the bounded, integer-valued Core receipt schema.
+      // The checksum is not sufficient without the current published data match.
+      if (depth === undefined) depth = 0;
+      if (depth > 48) throw new Error("Receipt nesting exceeds the read-only limit.");
+      if (value === null) return "null";
+      if (typeof value === "string") return JSON.stringify(value);
+      if (typeof value === "boolean") return value ? "true" : "false";
+      if (typeof value === "number") {
+        if (!Number.isSafeInteger(value) || Object.is(value,-0)) {
+          throw new Error("Unexpected noninteger receipt value.");
+        }
+        return String(value);
+      }
+      if (Array.isArray(value)) {
+        if (value.length > 20000) throw new Error("Receipt array is too large.");
+        return "[" + value.map(function (v) {
+          return canonicalReceiptJson(v,depth+1);
+        }).join(",") + "]";
+      }
+      if (typeof value !== "object") throw new Error("Unexpected receipt JSON type.");
+      const keys = Object.keys(value).sort();
+      if (keys.length > 5000) throw new Error("Receipt object has too many fields.");
+      return "{" + keys.map(function (key) {
+        return JSON.stringify(key) + ":" + canonicalReceiptJson(value[key],depth+1);
+      }).join(",") + "}";
+    }
+    async function inspectReceiptAgainstPublication(receipt) {
+      if (!manifest) throw new Error("The published Core manifest is not ready.");
+      if (!receipt || typeof receipt !== "object" || Array.isArray(receipt) ||
+          receipt.schema !== "stillpoint.public-assistant-answer.v1" ||
+          receipt.status !== "completed" ||
+          !receipt.authorization || receipt.authorization.allowed !== true ||
+          receipt.authorization.execution_warrant !== false ||
+          !receipt.interpretation || !receipt.result || !receipt.evidence ||
+          typeof receipt.request !== "string" || receipt.request.length > 512 ||
+          !/^[a-f0-9]{64}$/.test(receipt.receipt_sha256)) {
+        throw new Error("A complete, bounded, read-only StillPoint Core receipt is required.");
+      }
+      const {receipt_sha256: declared, ...unsigned} = receipt;
+      const computed = await sha256Hex(
+        new TextEncoder().encode(canonicalReceiptJson(unsigned))
+      );
+      if (computed !== declared) {
+        throw new Error("Receipt self-hash mismatch: saved JSON was changed or damaged.");
+      }
+      const capability = receipt.interpretation.capability;
+      const dayKind = capability === "calendar.day.read"
+        ? "day" : capability === "calendar.observances.read" ? "observances" : null;
+      if (!dayKind && capability !== "calendar.week.read") {
+        throw new Error("The receipt requests an unsupported or consequential capability.");
+      }
+      const common = dayKind ? receipt.result.common_date : receipt.result;
+      const year = common && common.year;
+      const number = dayKind ? common.ordinal : common.week;
+      if (!Number.isSafeInteger(year) || year < 2026 || year > 2075 ||
+          !Number.isSafeInteger(number) || number < 1 ||
+          number > (dayKind ? 364 : 52)) {
+        throw new Error("Receipt addresses an unpublished Common year, day or week.");
+      }
+      const request = capability === "calendar.day.read"
+        ? "Show Common Calendar day " + number + " of " + year + "."
+        : capability === "calendar.observances.read"
+          ? "Explain Common Calendar observances on Common day " + number +
+            " of " + year + "."
+          : "Show Common Calendar week " + number + " of " + year + ".";
+      if (receipt.request !== request ||
+          receipt.interpretation.arguments.year !== year ||
+          (dayKind ? receipt.interpretation.arguments.ordinal : receipt.interpretation.arguments.week) !== number ||
+          receipt.evidence.publication_digest !== manifest.publication_digest) {
+        throw new Error("Receipt request or publication boundary is not the selected public Core contract.");
+      }
+      const entry = manifest.years.find(function (item) { return item.year === year; });
+      if (!entry) throw new Error("Receipt refers to an unpublished Common year.");
+      // The shard loaders independently check byte SHA-256 against the manifest,
+      // per-receipt scope, and the finite published year.
+      const shard = dayKind
+        ? await getDetailReceiptShard(entry,dayKind)
+        : await getAssistantShard(entry);
+      const original = shard.receipts[number-1];
+      const matched = canonicalReceiptJson(receipt) === canonicalReceiptJson(original);
+      return {
+        matched, self_hash_valid:true, capability, year, coordinate:number,
+        receipt_sha256:declared,
+        publication_digest:manifest.publication_digest,
+        sources:matched ? original.evidence.sources : [],
+        request:matched ? original.request : request
+      };
+    }
+    function renderReceiptInspection(report) {
+      const result = $("receiptInspectorResult");
+      const matched = report.matched;
+      $("receiptInspectorSummary").textContent = matched
+        ? "Matches the current published, build-verified Core receipt."
+        : "Self-hash matches, but this receipt is NOT identical to the current published Core receipt. It may be from an older Core revision or have been modified.";
+      $("receiptInspectorHashes").textContent =
+        "Self SHA-256: " + report.receipt_sha256 +
+        " · Current Core publication digest: " + report.publication_digest +
+        " · Exact published match: " + (matched ? "YES" : "NO");
+      $("receiptInspectorScope").textContent =
+        "Read-only capability: " + report.capability + " · Common year " +
+        report.year + (report.capability === "calendar.week.read" ? ", week " : ", ordinal ") +
+        report.coordinate + " · Execution warrant: false";
+      const list = $("receiptInspectorSources");
+      list.replaceChildren();
+      if (matched && Array.isArray(report.sources)) {
+        for (const item of report.sources) {
+          list.appendChild(node("li", item.path + " · SHA-256 " + item.sha256));
+        }
+      } else {
+        list.appendChild(node("li","No current publication source fingerprints were accepted for this file."));
+      }
+      result.classList.remove("hidden");
+      $("receiptInspectorStatus").textContent = matched
+        ? "Browser checks passed: local self-hash and exact current public archive match."
+        : "No current archive match. Independent reproduction requires the matching Python Core revision.";
+      $("receiptInspectorStatus").classList.toggle("error", !matched);
+    }
+    async function inspectSavedReceipt() {
+      const token = ++receiptInspectorToken;
+      $("receiptInspectorResult").classList.add("hidden");
+      $("receiptInspectorSources").replaceChildren();
+      $("receiptInspectorStatus").classList.remove("error");
+      $("receiptInspectorSubmit").disabled = true;
+      $("receiptInspectorStatus").textContent = "Inspecting the saved file locally and checking the published Core archive…";
+      try {
+        const file = $("receiptInspectorFile").files[0];
+        if (!file) throw new Error("Choose a saved StillPoint receipt JSON file.");
+        if (!/\.json$/i.test(file.name) || file.size < 2 || file.size > 256000) {
+          throw new Error("Choose a JSON receipt file between 2 bytes and 256 KB.");
+        }
+        let receipt;
+        try {
+          receipt = JSON.parse(await file.text());
+        } catch {
+          throw new Error("The selected file is not valid JSON.");
+        }
+        const report = await inspectReceiptAgainstPublication(receipt);
+        if (token !== receiptInspectorToken) return;
+        renderReceiptInspection(report);
+      } catch (error) {
+        if (token === receiptInspectorToken) {
+          $("receiptInspectorResult").classList.add("hidden");
+          $("receiptInspectorStatus").textContent =
+            error.message || "Receipt inspection failed closed.";
+          $("receiptInspectorStatus").classList.add("error");
+        }
+      } finally {
+        if (token === receiptInspectorToken) $("receiptInspectorSubmit").disabled = false;
+      }
+    }
     function parsePublicWeekQuestion(text) {
       const question = String(text).trim();
       const numberQuery = /^(?:show|display|find)\s+(?:me\s+)?(?:the\s+)?(?:common calendar|stillpoint)\s+week\s+(\d{1,2})\s+(?:of|in)\s+(\d{4})[.?!]?$/i.exec(question);
@@ -1110,6 +1262,17 @@
         }
       }
     }
+    $("receiptInspectorForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      void inspectSavedReceipt();
+    });
+    $("receiptInspectorFile").addEventListener("change", function () {
+      receiptInspectorToken += 1;
+      $("receiptInspectorSubmit").disabled = false;
+      $("receiptInspectorResult").classList.add("hidden");
+      $("receiptInspectorStatus").classList.remove("error");
+      $("receiptInspectorStatus").textContent = "File selected; choose Inspect receipt locally.";
+    });
     $("saveDayReceipt").addEventListener("click", function () {
       void saveSelectedReadReceipt("day");
     });

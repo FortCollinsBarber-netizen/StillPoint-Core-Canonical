@@ -13,6 +13,7 @@ import unittest
 
 from tools.export_public_calendar_site import export_site
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
+from stillpoint.public_assistant import verify_answer_receipt
 
 
 class PublicCalendarSiteExportTests(unittest.TestCase):
@@ -27,6 +28,9 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
             self.assertTrue(manifest["no_2076_publication"])
             self.assertEqual(len(manifest["years"]), 3)
             self.assertTrue((root / "index.html").is_file())
+            self.assertEqual(
+                manifest["assistant_schema"], "stillpoint.public-assistant-static-weeks.v1",
+            )
             self.assertEqual(
                 json.loads((root / "data" / "index.json").read_text()),
                 manifest,
@@ -47,6 +51,39 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
                     list(range(1, 365)),
                 )
                 year_files[entry["year"]] = data["days"]
+
+                assistant_bytes = (root / entry["assistant_path"]).read_bytes()
+                self.assertEqual(
+                    hashlib.sha256(assistant_bytes).hexdigest(),
+                    entry["assistant_sha256"],
+                )
+                assistant = json.loads(assistant_bytes)
+                self.assertEqual(
+                    assistant["schema"], manifest["assistant_schema"],
+                )
+                self.assertEqual(assistant["year"], entry["year"])
+                self.assertEqual(
+                    assistant["publication_digest"], manifest["publication_digest"],
+                )
+                self.assertEqual(entry["assistant_week_count"], 52)
+                self.assertEqual(len(assistant["receipts"]), 52)
+                for number, receipt in enumerate(assistant["receipts"], start=1):
+                    self.assertEqual(
+                        receipt["request"],
+                        f"Show Common Calendar week {number} of {entry['year']}.",
+                    )
+                    self.assertEqual(receipt["result"]["week"], number)
+                    self.assertEqual(len(receipt["result"]["days"]), 7)
+                    self.assertEqual(
+                        receipt["authorization"]["capability"], "calendar.week.read",
+                    )
+                    self.assertFalse(receipt["authorization"]["execution_warrant"])
+                    self.assertTrue(verify_answer_receipt(receipt)["verified"])
+                # The file digest and the installed Core reproduction are
+                # distinct: a tampered result does not become valid by rehashing.
+                tampered = dict(assistant["receipts"][0])
+                tampered["answer"] = "Common year 2076 is published."
+                self.assertFalse(verify_answer_receipt(tampered)["verified"])
 
             self.assertEqual(
                 year_files[2026][0]["calendar_address"], "Y_2026-001",
@@ -89,6 +126,12 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
         self.assertIn('fetch("./" + entry.path', text)
         self.assertIn('id="civilDate"', text)
         self.assertIn('id="weekDays"', text)
+        self.assertIn('id="askWeek"', text)
+        self.assertIn('id="downloadAnswer"', text)
+        self.assertIn('id="assistantReceiptHash"', text)
+        self.assertIn('window.crypto.subtle.digest("SHA-256", bytes)', text)
+        self.assertIn('fetch("./" + entry.assistant_path', text)
+        self.assertIn("This static page does not run Python", text)
         self.assertIn("complete_publication !== true", text)
         self.assertNotIn("OPENAI_API_KEY", text)
         self.assertNotIn("XAI_API_KEY", text)

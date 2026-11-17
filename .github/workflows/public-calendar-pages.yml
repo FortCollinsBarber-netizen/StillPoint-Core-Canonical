@@ -101,6 +101,10 @@ jobs:
           assert sum(x["count"] for x in m["years"]) == 18200
           assert [x["year"] for x in m["years"]] == list(range(2026,2076))
           assert not (root/"data/Y_2076.json").exists()
+          assert m["assistant_schema"] == "stillpoint.public-assistant-static-weeks.v1"
+          assert sum(x["assistant_week_count"] for x in m["years"]) == 2600
+          assert all((root/x["assistant_path"]).is_file() for x in m["years"])
+          assert not (root/"data/assistant/Y_2076.json").exists()
           assert (root/"index.html").is_file()
           print("Pages publication boundary: PASS")
           PY

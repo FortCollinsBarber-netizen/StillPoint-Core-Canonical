@@ -1,8 +1,8 @@
-# StillPoint rollover and sacred-year resolution proposal
+# StillPoint rollover and sacred-year author-selected working resolution
 
 **Originating author:** Robert Emmanuel LaDay  
 **Prepared:** November 17, 2026  
-**Status:** executable proposal; modern anchor awaits the author's selection.
+**Status:** author-selected working rules, November 17, 2026; not an ancient prescription, civil enactment, or governmental authority.
 
 ## The rollover resolution
 
@@ -20,7 +20,7 @@ seven-year and priestly-course counting continuous through the proclamation.
 | 2125 | Cycle 3, Year 1 | Next proclamation, 49 years later |
 | 2321 | Cycle 7, Year 1 | Sixth proclamation; 294 years elapsed |
 
-2027 is adopted here as the explicit proposed planning epoch, rather than
+2027 is author-selected as the explicit working planning epoch, rather than
 inferred from the publication's first year. The standalone-50 counter remains
 available by name for comparison. It is not mixed into this default model.
 
@@ -36,7 +36,7 @@ resolution of every tradition's exegesis.
 Preserve 30/30/31 source months and a Wednesday opening as a separate overlay.
 Do not equate scriptural month numbers with civil month names.
 
-The recommendation is **source Month 1 Day 1 = Common March 25**, always
+The author-selected working rule is **source Month 1 Day 1 = Common March 25**, always
 Wednesday. It was the first Wednesday after the March 20 equinox in the 2026
 reference year. This is a disclosed one-time project convention. The Sun does
 not subsequently move the anchor or insert days. A strict 364-day year drifts
@@ -44,10 +44,10 @@ relative to seasons, so this profile does not promise continuous spring
 alignment or fulfill every seasonal reading of Abib in Deuteronomy 16.
 
 Other Wednesdays would preserve the same internal arithmetic. No ancient text
-can uniquely select a date in the new Common Calendar. March 25 therefore
-requires the originating author's design selection; it is not attributed
-retroactively to an ancient community or the September manuscript. Other
-communities' religious calendars remain independent.
+can uniquely select a date in the new Common Calendar. Robert Emmanuel LaDay selected March 25 on November 17, 2026 as the
+working StillPoint source-calendar anchor. This subsequent decision is not
+attributed retroactively to any ancient community or the September manuscript.
+Other communities' religious calendars remain independent.
 
 ## Feast projection
 
@@ -82,7 +82,7 @@ StillPoint profile. Schematic month markers are not asserted to be new moons.
 
 The nine layers, civil geometry, clock and original publication remain intact.
 The 2026–2075 map does not authorize a 2076 payload. A publication extension is
-separate from calculating the first proposed proclamation year.
+separate from calculating the first author-selected working proclamation year.
 
 Checks include every source day; 4,732 Common dates across 13 years; fixed
 weekdays; inclusive Firstfruits counting; both counter models; six proclamation

@@ -773,8 +773,18 @@
       $("prevDay").disabled = selected.civil_date === first;
       $("nextDay").disabled = selected.civil_date === last;
     }
+    function invalidateDetailReceiptSelection(message) {
+      receiptToken += 1;
+      activeReceiptDay = null;
+      $("saveDayReceipt").disabled = true;
+      $("saveObservanceReceipt").disabled = true;
+      $("detailReceiptStatus").classList.remove("error");
+      $("detailReceiptStatus").textContent = message;
+      $("detailReceiptDigest").textContent = "";
+    }
     async function showDate(iso) {
       const token = ++selectionToken;
+      invalidateDetailReceiptSelection("Reading the selected published day…");
       try {
         if (!manifest) throw new Error("Calendar data is not ready.");
         const entry = chooseYear(iso);
@@ -972,6 +982,7 @@
     async function answerPublicDayQuestion() {
       const token = ++dayQuestionToken;
       const beforeSelection = selectionToken;
+      invalidateDetailReceiptSelection("Choose a valid published Common day before downloading receipts.");
       // A rejected new day request must not leave a prior week receipt active.
       assistantToken += 1;
       activeReceipt = null;

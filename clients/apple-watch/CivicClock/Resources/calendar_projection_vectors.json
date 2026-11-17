@@ -62,7 +62,7 @@
         "continuousK": 260,
         "lordsDay": false,
         "namedDay": "Friday",
-        "nextProtectedBoundaryLabel": null,
+        "nextProtectedBoundaryLabel": "SABBATH BEGINS \u00b7 FRIDAY SUNSET",
         "sabbath": false,
         "solarGate": 1,
         "state": "ORDINARY",
@@ -91,11 +91,11 @@
         "continuousK": 260,
         "lordsDay": false,
         "namedDay": "Saturday",
-        "nextProtectedBoundaryLabel": "SABBATH ENDS \u00b7 LORD'S DAY BEGINS",
+        "nextProtectedBoundaryLabel": "STILLPOINT BEGINS \u00b7 FRIDAY CIVIL DUSK",
         "sabbath": true,
         "solarGate": 1,
         "state": "ORDINARY",
-        "stillPoint": true
+        "stillPoint": false
       },
       "id": "friday-after-sunset",
       "instantUTC": "2026-09-19T01:04:27Z"
@@ -120,7 +120,7 @@
         "continuousK": 261,
         "lordsDay": true,
         "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY CIVIL DAWN",
         "sabbath": false,
         "solarGate": 1,
         "state": "ORDINARY",
@@ -149,11 +149,11 @@
         "continuousK": 262,
         "lordsDay": true,
         "namedDay": "Sunday",
-        "nextProtectedBoundaryLabel": "STILLPOINT RELEASE \u00b7 SUNDAY SUNRISE",
+        "nextProtectedBoundaryLabel": "LORD'S DAY ENDS \u00b7 SUNDAY SUNSET",
         "sabbath": false,
         "solarGate": 1,
         "state": "ORDINARY",
-        "stillPoint": true
+        "stillPoint": false
       },
       "id": "sunday-before-sunrise",
       "instantUTC": "2026-09-20T12:45:39Z"

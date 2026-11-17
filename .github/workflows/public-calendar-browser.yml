@@ -53,6 +53,11 @@ jobs:
           assert sum(entry["count"] for entry in manifest["years"]) == 18200
           assert {entry["year"] for entry in manifest["years"]} == set(range(2026, 2076))
           assert not (root/"data/Y_2076.json").exists()
+          assert manifest["assistant_schema"] == "stillpoint.public-assistant-static-weeks.v1"
+          assert sum(entry["assistant_week_count"] for entry in manifest["years"]) == 2600
+          for entry in manifest["years"]:
+              assert (root/entry["assistant_path"]).is_file()
+          assert not (root/"data/assistant/Y_2076.json").exists()
           assert all((root/entry["path"]).is_file() for entry in manifest["years"])
           assert (root/"index.html").is_file()
           print("PUBLIC_BROWSER_50_YEAR_EXPORT_PASS")

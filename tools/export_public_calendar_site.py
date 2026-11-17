@@ -55,7 +55,17 @@ def _consumer_day(payload: dict) -> dict:
         },
         "sacred_date": payload["sacred_date"],
         "observances": [
-            {"name": item["name"], "jurisdiction": item["jurisdiction"]}
+            {
+                "id": item["id"],
+                "name": item["name"],
+                "jurisdiction": item["jurisdiction"],
+                "rule": item["rule"],
+                "note": item["note"],
+                "source_refs": item["source_refs"],
+                "source_coordinate": item["source_coordinate"],
+                "profile_id": item["profile_id"],
+                "projection_status": item["projection_status"],
+            }
             for item in payload["observances"]
         ],
         "is_sabbath_date": payload["protected_time"]["is_sabbath_date"],

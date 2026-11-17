@@ -285,6 +285,8 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
         "day_receipt_schema": DAY_RECEIPT_SCHEMA,
         "observance_receipt_schema": OBSERVANCE_RECEIPT_SCHEMA,
         "receipt_format": "gzip-json-mtime-zero",
+        "day_receipt_total": sum(row["day_receipt_count"] for row in entries),
+        "observance_receipt_total": sum(row["observance_receipt_count"] for row in entries),
         "receipt_verification": "each generated public Python Core receipt reproduced at build time",
         "observance_index_schema": OBSERVANCE_INDEX_SCHEMA,
         "observance_index_path": "data/" + observance_index_name,

@@ -180,6 +180,8 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('year < 2026 || year > 2075', text)
         self.assertIn('selectionToken !== originalSelection', text)
         self.assertIn('await showAssistantWeek()', text)
+        self.assertIn('An invalid new question must not leave an older answer', text)
+        self.assertIn('$("assistantResult").classList.add("hidden");', text)
         self.assertIn('No unrestricted AI or actions.', text)
         self.assertIn('id="downloadAnswer"', text)
         self.assertIn('id="assistantReceiptHash"', text)

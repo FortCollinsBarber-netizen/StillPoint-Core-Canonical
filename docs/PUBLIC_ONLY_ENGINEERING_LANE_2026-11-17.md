@@ -7,17 +7,17 @@
 
 This repository already hosts the active, author-selected StillPoint Calendar Core and
 Apple Watch shared resources. A new public-only GitHub Actions gate,
-\`.github/workflows/public-core-qualification.yml\`, can execute with standard
+`.github/workflows/public-core-qualification.yml`, can execute with standard
 GitHub-hosted Ubuntu runners without consuming the private-repository compute
 allowance. It checks out **only this already-public repository**, installs its
 own source package, and verifies the public runtime contract.
 
 Local/CI command:
 
-\`\`\`sh
+```sh
 python -m pip install .
 python -m unittest discover -s tests/public_core -p 'test_*.py' -v
-\`\`\`
+```
 
 The public tests guard the v2 read-only calendar interface, 364-day / 52-week
 geometry, March 25 sacred source-year coordinate distinct from civil January 1,

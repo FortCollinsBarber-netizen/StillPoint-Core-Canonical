@@ -213,7 +213,8 @@ class ClockOSTests(unittest.TestCase):
         )
         self.assertEqual(snapshot["protected_time"]["named_day"], "Saturday")
         self.assertTrue(snapshot["protected_time"]["is_sabbath"])
-        self.assertTrue(snapshot["protected_time"]["is_stillpoint"])
+        # Sunset starts sacred Sabbath; civil protection begins at later dusk.
+        self.assertFalse(snapshot["protected_time"]["is_stillpoint"])
         self.assertFalse(snapshot["protected_time"]["is_lords_day"])
 
     def test_saturday_sunset_moves_protected_time_to_lords_day_not_calendar_date(self):

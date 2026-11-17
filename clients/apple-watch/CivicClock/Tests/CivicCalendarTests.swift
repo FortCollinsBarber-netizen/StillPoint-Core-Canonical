@@ -136,30 +136,46 @@ final class CivicCalendarTests: XCTestCase {
         XCTAssertLessThan(sunrise, sunset)
     }
 
-    func testFridaySunsetOpensSabbathAndStillPoint() throws {
+    func testFridaySunsetOpensSacredSabbathThenCivilDuskOpensStillPoint() throws {
         let calendar = denverCalendar
         let friday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 18, hour: 12
         ))!
-        let boundary = try XCTUnwrap(SolarBoundaryCalculator.sunset(
+        let sunset = try XCTUnwrap(SolarBoundaryCalculator.sunset(
             on: friday,
             latitude: latitude,
             longitude: longitude,
             calendar: calendar
         ))
+        let dusk = try XCTUnwrap(SolarBoundaryCalculator.civilDusk(
+            on: friday,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
+        XCTAssertLessThan(sunset, dusk)
 
-        let snapshot = CivicCalendarEngine.snapshot(
-            now: boundary,
+        let sacred = CivicCalendarEngine.snapshot(
+            now: sunset,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: seedFixture(),
             calendar: calendar
         )
+        XCTAssertEqual(sacred.namedDay, "SATURDAY")
+        XCTAssertTrue(sacred.isSabbath)
+        XCTAssertFalse(sacred.isStillPoint)
+        XCTAssertFalse(sacred.isLordsDay)
 
-        XCTAssertEqual(snapshot.namedDay, "SATURDAY")
-        XCTAssertTrue(snapshot.isSabbath)
-        XCTAssertTrue(snapshot.isStillPoint)
-        XCTAssertFalse(snapshot.isLordsDay)
+        let civic = CivicCalendarEngine.snapshot(
+            now: dusk,
+            latitude: latitude,
+            longitude: longitude,
+            publishedCalendar: seedFixture(),
+            calendar: calendar
+        )
+        XCTAssertTrue(civic.isSabbath)
+        XCTAssertTrue(civic.isStillPoint)
     }
 
     func testSaturdaySunsetClosesSabbathAndOpensLordsDayWhileStillPointContinues() throws {
@@ -173,7 +189,6 @@ final class CivicCalendarTests: XCTestCase {
             longitude: longitude,
             calendar: calendar
         ))
-
         let snapshot = CivicCalendarEngine.snapshot(
             now: boundary,
             latitude: latitude,
@@ -181,44 +196,49 @@ final class CivicCalendarTests: XCTestCase {
             publishedCalendar: seedFixture(),
             calendar: calendar
         )
-
         XCTAssertEqual(snapshot.namedDay, "SUNDAY")
         XCTAssertFalse(snapshot.isSabbath)
         XCTAssertTrue(snapshot.isLordsDay)
         XCTAssertTrue(snapshot.isStillPoint)
         XCTAssertEqual(
             snapshot.nextProtectedBoundaryLabel,
-            "STILLPOINT RELEASE · SUNDAY SUNRISE"
+            "STILLPOINT RELEASE · SUNDAY CIVIL DAWN"
         )
     }
 
-    func testSundaySunriseReleasesStillPointButLordsDayContinues() throws {
+    func testSundayCivilDawnReleasesStillPointButLordsDayContinues() throws {
         let calendar = denverCalendar
         let sunday = calendar.date(from: DateComponents(
             year: 2026, month: 9, day: 20, hour: 12
         ))!
+        let dawn = try XCTUnwrap(SolarBoundaryCalculator.civilDawn(
+            on: sunday,
+            latitude: latitude,
+            longitude: longitude,
+            calendar: calendar
+        ))
         let sunrise = try XCTUnwrap(SolarBoundaryCalculator.sunrise(
             on: sunday,
             latitude: latitude,
             longitude: longitude,
             calendar: calendar
         ))
+        XCTAssertLessThan(dawn, sunrise)
 
         let before = CivicCalendarEngine.snapshot(
-            now: sunrise.addingTimeInterval(-1),
+            now: dawn.addingTimeInterval(-1),
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: seedFixture(),
             calendar: calendar
         )
         let at = CivicCalendarEngine.snapshot(
-            now: sunrise,
+            now: dawn,
             latitude: latitude,
             longitude: longitude,
             publishedCalendar: seedFixture(),
             calendar: calendar
         )
-
         XCTAssertTrue(before.isStillPoint)
         XCTAssertTrue(before.isLordsDay)
         XCTAssertFalse(at.isStillPoint)

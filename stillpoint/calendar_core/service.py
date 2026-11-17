@@ -9,7 +9,7 @@ from .gates import phase_for_base_day
 from .jubilee import jubilee_state
 from .models import CalendarSnapshot, GeoPoint
 from .sunset import bracket_sunset
-from .week import protected_time_state
+from .week import protected_time_state, protected_time_state_for_common_date
 
 
 @dataclass(frozen=True)
@@ -42,11 +42,22 @@ def get_calendar_snapshot(
     pair = bracket_sunset(
         instant, config.location, config.local_zone
     )
-    weekly = protected_time_state(
-        instant,
-        location=config.location,
-        local_zone=config.local_zone,
-    )
+    # The Common Calendar weekday—not the host Gregorian weekday—governs
+    # the weekly civic rhythm once a finite Common-year projection exists.
+    # External date stamps are used only for local-light measurement.
+    if dual.common_date is not None:
+        weekly = protected_time_state_for_common_date(
+            instant,
+            common_weekday=dual.common_date.weekday,
+            projection_date=dual.common_standard_timestamp.date(),
+            location=config.location,
+        )
+    else:
+        weekly = protected_time_state(
+            instant,
+            location=config.location,
+            local_zone=config.local_zone,
+        )
     phase = (
         phase_for_base_day(dual.common_date.ordinal)
         if dual.common_date else None

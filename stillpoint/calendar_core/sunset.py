@@ -8,6 +8,10 @@ from .models import DuskProtocol, GeoPoint, SolarBoundaryPair
 
 UTC = timezone.utc
 DEFAULT_PROTOCOL = DuskProtocol()
+CIVIL_TWILIGHT_PROTOCOL = DuskProtocol(
+    id="civil-twilight-solar-depression-6deg",
+    zenith_degrees=96.0,
+)
 
 
 def _norm_degrees(value: float) -> float:
@@ -93,6 +97,25 @@ def apparent_sunset_utc(
     protocol: DuskProtocol = DEFAULT_PROTOCOL,
 ) -> datetime:
     return solar_event_utc(civil_date, location, rising=False, protocol=protocol)
+
+
+def civil_dusk_utc(civil_date: date, location: GeoPoint) -> datetime:
+    """Evening end of civil twilight: Sun center 6 degrees below horizon.
+
+    Civic-time evidence only. Does not alter the apparent-sunset
+    boundary used by a community for Sabbath or other sacred observance.
+    Missing events at extreme latitudes fail explicitly.
+    """
+    return solar_event_utc(
+        civil_date, location, rising=False, protocol=CIVIL_TWILIGHT_PROTOCOL
+    )
+
+
+def civil_dawn_utc(civil_date: date, location: GeoPoint) -> datetime:
+    """Morning start of civil twilight: Sun center 6 degrees below horizon."""
+    return solar_event_utc(
+        civil_date, location, rising=True, protocol=CIVIL_TWILIGHT_PROTOCOL
+    )
 
 
 def bracket_sunset(

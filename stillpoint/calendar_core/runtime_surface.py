@@ -109,8 +109,8 @@ def calendar_day_payload(
             "is_sabbath_date": day.is_sabbath_date,
             "sabbath_opens": "Friday local sunset",
             "sabbath_closes": "Saturday local sunset",
-            "stillpoint_opens": "Friday local sunset",
-            "stillpoint_releases": "Sunday local sunrise",
+            "stillpoint_opens": "Friday civil dusk (solar center -6 degrees)",
+            "stillpoint_releases": "Sunday civil dawn (solar center -6 degrees)",
             "boundary_authority": "local-light-overlay-no-grid-mutation",
         },
         "observances": [

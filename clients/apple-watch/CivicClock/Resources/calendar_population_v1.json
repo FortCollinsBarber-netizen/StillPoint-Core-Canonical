@@ -38,7 +38,7 @@
     "mayMoveYearOpening": false
   },
   "longCyclePolicy": {
-    "authorityScope": "project-calculation-and-proposed-policy-only",
+    "authorityScope": "StillPoint-working-cycle-calculation-only",
     "cycleYears": 49,
     "epochCommonYear": 2027,
     "epochCycle": 1,
@@ -47,7 +47,9 @@
     "proclamationOrdinalYear": 50,
     "releaseObservanceId": "atonement",
     "rolloverRule": "overlap-49",
-    "selectionStatus": "proposed-project-rule-awaiting-author-selection",
+    "selectedBy": "Robert Emmanuel LaDay",
+    "selectedOn": "2026-11-17",
+    "selectionStatus": "author-selected-working-rule-not-civil-enactment",
     "year50OverlapsNextYear1": true
   },
   "observances": [
@@ -834,7 +836,9 @@
       31
     ],
     "note": "Fixed modern project convention; not an ancient Common date or a rule for other communities.",
-    "selectionStatus": "proposed-project-rule-awaiting-author-selection",
+    "selectedBy": "Robert Emmanuel LaDay",
+    "selectedOn": "2026-11-17",
+    "selectionStatus": "author-selected-working-rule-not-civil-enactment",
     "sourceCalendar": "schematic-enochic-364",
     "weeksSourceDay": 15,
     "weeksSourceMonth": 3

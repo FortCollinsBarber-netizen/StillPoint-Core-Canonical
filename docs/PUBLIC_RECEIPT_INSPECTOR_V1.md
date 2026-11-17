@@ -1,0 +1,101 @@
+# Browser receipt inspection — public read-only v1
+
+**Release status:** public Canonical Core feature candidate, not a production
+deployment until the exact merged `main` SHA passes actual post-merge CI,
+automatic Pages publication, and independent live browser acceptance.
+
+## Why this matters
+
+People can already save StillPoint's precomputed, Python-verified day,
+observance and week receipts from the public calendar without installing
+Python. Now the same static website can **inspect an existing JSON receipt
+chosen from their own computer** and distinguish **three different evidence
+levels** that must never be collapsed into one claim.
+
+1. **Self-hash check:** canonicalizes the JSON fields using the published
+   Python assistant's sorted-key, UTF-8, compact JSON hash convention
+   (integer-valued public Core schema only). Checks the receipt's own
+   `receipt_sha256` after excluding that field. A valid checksum establishes
+   *internal consistency only*: an adversary can modify content and recalculate
+   this hash. It is not a signature, identity or consent proof.
+2. **Current published archive match:** locates the exact selected Common
+   day/observance or week within published years **2026–2075**. Loads only
+   the site's existing Core-produced receipt shard, verifies its **exact bytes**
+   by SHA-256 against the public manifest, checks finite, read-only scope,
+   and compares the **complete** saved receipt with the public
+   Python-build-verified original (canonical key order, not just a digest
+   or selected fields). A rehashed forged receipt fails this match.
+   Older-but-valid historical source versions may not match the *current*
+   archive; this is not conclusive evidence of malice.
+3. **Independent Python reproduction:** remains the strongest available
+   correctness test: using the *matching* public Python Core source/data, run
+   `stillpoint verify-answer saved-receipt.json`. The browser **does not
+   execute Python** or verify that the publisher's source is authenticated.
+   Neither an exact archive match nor a Python result constitutes a signature,
+   civil/religious enactment, personal authorization, or private integration
+   qualification.
+
+The browser displays the specific public capability
+(`calendar.day.read`, `calendar.observances.read` or `calendar.week.read`),
+Common year/day or week, receipt SHA-256, publication digest and the exact
+**source-file names and SHA-256 fingerprints recorded in the original Core
+receipt** after a current-archive match. It does not invent provenance.
+
+## Secure and bounded behavior
+
+The inspector is a form on the existing public static website. The user's
+selected `.json` file is **read locally** with the standard browser File
+API. The page does not send that file to an API, email, third-party service,
+analytics provider or new backend. **Only previously public static Core
+archives** may be fetched from this same Pages website for comparison.
+
+- Maximum local file size: **256,000 bytes**, matching the Python Core's
+  read-receipt limit. JSON must be parseable; arbitrary other file formats
+  and unsupported request types are rejected without executing file content.
+- Only completed original public read receipts are supported; any claimed
+  `execution_warrant: true`, write/action capability, missing scope, or
+  mathematical-only **Common 2076** is rejected. Day 365, week 53 and
+  out-of-map years are also rejected before fetching a shard.
+- A matching self-hash with a different result/source fingerprint still
+  reports **NOT identical to the current published receipt**. The browser
+  does not silently bless a rehashed forgery.
+- All file-derived strings are rendered using `textContent`, never as HTML.
+  Re-selecting another file invalidates the earlier result, and async
+  result tokens prevent a stale comparison from overwriting a newer
+  inspection. The receipt is not stored or retained on the site.
+
+The canonical JSON hashing is deliberately scoped to the existing
+integer-valued StillPoint public receipt schema: booleans, integers, strings,
+nulls, arrays and dictionaries are supported; unsupported floating-point
+values, unusually deep nested objects and excessive arrays fail closed.
+The actual Node and browser tests compare the browser's digest calculation
+to **real Python-generated receipts**, including source references and
+their Unicode text.
+
+## Executable qualification
+
+```sh
+python -m unittest discover -s tests/calendar_core -p 'test_public_calendar_site_export.py' -v
+python tools/export_public_calendar_site.py --output /tmp/stillpoint-inspector-site
+```
+
+The new Node VM test evaluates the **actual browser inspector functions**
+against the original Python-exported gzip day and observance receipts and the
+week JSON shard. Cases include: correct saved day/observance/week receipts;
+edited answer with stale checksum; **forged answer with correctly recalculated
+checksum**; unsupported write authority; a modified source fingerprint with
+correctly recalculated checksum; publication digest mismatch; and Common
+2076. An independent live-browser test must also confirm local file selection
+and accessible results, no file uploads, and behavior at mobile width.
+
+The exporter, Core calendar law, current receipt schemas, source map, and
+existing fixed annual and week files remain unchanged by this inspector.
+No new repository, workflow, paid hosting, model provider, payment, private
+runner retry, or private source integration is required.
+
+**Protected boundaries:** the March 25 selected sacred-source anchor; 2027
+Jubilee epoch and overlapping 49-year cycle; independently selected 364-day
+Common grid; finite published **2026–2075** span. Common **2076 remains
+mathematical only**. RobertOS, StillPointOS, StillPoint and writing-corpus
+remain private and unchanged. Passing public browser/Core CI **never** proves
+their live private bridge has qualified.

@@ -45,7 +45,7 @@ receipt** after a current-archive match. It does not invent provenance.
 
 ## Clearly separated visitor outcomes and historical provenance
 
-An accessible result names **one of three current-publication outcomes**, with
+An accessible result names **one of four clearly bounded outcomes**, with
 ordinary-language next steps instead of implying a signature, fraud verdict,
 or archival verification.
 
@@ -65,6 +65,16 @@ or archival verification.
   ever belonged to an official release, and does not display accepted
   current-archive source fingerprints. This is a *claim only*, not proof of
   a legitimate older receipt.
+- **OLDER READ REQUEST SHAPE (UNVERIFIED)**: a narrow, bounded, read-only
+  civil-date week-request grammar is recognized from a **preserved actual
+  public historical example** at
+  `docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json`.
+  Its correct original self-hash and recognizable grammar explain why it
+  cannot be directly compared with the current week-number request form.
+  **Neither its recorded history nor the grammar alone authenticates an
+  arbitrary uploaded receipt**; this branch does not fetch older archives,
+  accept a current match, or show accepted source fingerprints for this
+  outcome. Arbitrary, write-like or unrecognized requests still fail closed.
 
 The inspector displays **both the claimed and current publication digests**
 when applicable. To qualify a historical receipt, independently obtain the
@@ -125,8 +135,11 @@ week JSON shard. Cases include: correct saved day/observance/week receipts;
 edited answer with stale checksum; **forged answer with correctly recalculated
 checksum**; unsupported write authority; a modified source fingerprint with
 correctly recalculated checksum; a self-consistent *different-publication claim*
-reported as **unverified without fetching any old archive**; a malformed
-publication digest; and Common 2076. An independent live-browser test must also
+reported as **unverified without fetching any old archive**; the exact
+historical public week example using the previous civil-date request form,
+which must receive an **unverified** explanation rather than a current
+match; arbitrary unsafe request types; a malformed publication digest;
+and Common 2076. An independent live-browser test must also
 confirm locally selected files, three distinct accessible outcomes, focus and
 announcements for errors, no file uploads, and behavior at mobile width.
 

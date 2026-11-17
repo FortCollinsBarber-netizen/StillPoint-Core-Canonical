@@ -110,6 +110,7 @@
       border-radius:9px; padding:12px; background:#fff; color:var(--ink); }
     .inspector-sources { margin:12px 0; font-size:.87rem; overflow-wrap:anywhere; }
     .inspector-sources li { margin:7px 0; }
+    .status.review { color:#725018; font-weight:700; }
     @media(max-width:540px) { .search-filters { grid-template-columns:1fr; } }
     @media(max-width:760px) {
       header { padding:32px 0 35px; }
@@ -292,24 +293,26 @@
     <section class="panel assistant-panel" aria-labelledby="inspectorHeading">
       <p class="overline">Fourth public assistant capability</p>
       <h2 id="inspectorHeading">Inspect a saved Core receipt</h2>
-      <p class="hint">Choose a previously saved StillPoint week, day, or observance JSON receipt. Your file is read locally in this browser; it is not uploaded. The inspector checks its own receipt SHA-256 and compares the complete content with the matching Core receipt in this site's manifest-checked publication.</p>
+      <p class="hint" id="receiptInspectorHint">Choose a saved StillPoint week, day, or observance JSON receipt. The file stays on your device; this page only fetches published Core data to compare it. A self-hash match does not prove that a receipt is authentic. An older release is possible, but cannot be authenticated by the current archive.</p>
       <form id="receiptInspectorForm">
         <label for="receiptInspectorFile">Saved receipt (.json, 256 KB maximum)</label>
-        <input id="receiptInspectorFile" class="inspector-input" type="file" accept=".json,application/json" required>
+        <input id="receiptInspectorFile" class="inspector-input" type="file" accept=".json,application/json" aria-describedby="receiptInspectorHint" required>
         <div class="assistant-controls">
-          <button id="receiptInspectorSubmit" class="primary" type="submit">Inspect receipt locally</button>
+          <button id="receiptInspectorSubmit" class="primary" type="submit" aria-controls="receiptInspectorResult">Inspect receipt locally</button>
         </div>
       </form>
-      <p id="receiptInspectorStatus" class="status" role="status" aria-live="polite">Select a saved public Core receipt to inspect its integrity and provenance.</p>
-      <div id="receiptInspectorResult" class="assistant-answer hidden" aria-live="polite">
+      <p id="receiptInspectorStatus" class="status" role="status" aria-live="polite" aria-atomic="true" tabindex="-1">Select a saved public Core receipt to inspect its integrity and provenance.</p>
+      <div id="receiptInspectorResult" class="assistant-answer hidden" role="region" aria-labelledby="receiptInspectorOutcomeHeading">
+        <h3 id="receiptInspectorOutcomeHeading">Receipt inspection result</h3>
         <p id="receiptInspectorSummary"></p>
         <p id="receiptInspectorHashes" class="digest-line"></p>
         <p id="receiptInspectorScope" class="hint"></p>
+        <p id="receiptInspectorNextSteps" class="hint"></p>
         <h3>Recorded public source fingerprints</h3>
         <ul id="receiptInspectorSources" class="inspector-sources"></ul>
         <p class="digest-line">Independent reproduction: <code>stillpoint verify-answer saved-receipt.json</code> using the matching public Python Core source and data.</p>
       </div>
-      <p class="assistant-disclaimer">A matching self-hash only establishes internal consistency; it can be recalculated after tampering. A complete match to this site's SHA-256-checked archive is stronger but still depends on the unsigned public manifest. This browser does not execute the Python verifier, prove an author's identity or consent, sign receipts, or grant any civil, religious, or execution authority. Receipts from prior public releases may not match the current source revision.</p>
+      <p class="assistant-disclaimer">The inspector distinguishes a current archive match, a self-consistent current difference, a claimed different publication, and a narrowly recognized older read-only request format. Neither a mismatch nor an older request format proves a historical receipt is authentic or that it was tampered with. Check a historical receipt using its independently obtained matching Python Core revision and data. This browser does not check older archives, run Python, sign receipts, authenticate authors or consent, or grant any civil, religious, or execution authority.</p>
     </section>
   </main>
   <footer class="wrap">
@@ -766,14 +769,50 @@
           ? "Explain Common Calendar observances on Common day " + number +
             " of " + year + "."
           : "Show Common Calendar week " + number + " of " + year + ".";
-      if (receipt.request !== request ||
-          receipt.interpretation.arguments.year !== year ||
-          (dayKind ? receipt.interpretation.arguments.ordinal : receipt.interpretation.arguments.week) !== number ||
-          receipt.evidence.publication_digest !== manifest.publication_digest) {
-        throw new Error("Receipt request or publication boundary is not the selected public Core contract.");
+      const claimedDigest = receipt.evidence.publication_digest;
+      if (typeof claimedDigest !== "string" ||
+          !/^[a-f0-9]{64}$/.test(claimedDigest)) {
+        throw new Error("Receipt has an invalid claimed publication digest.");
       }
       const entry = manifest.years.find(function (item) { return item.year === year; });
       if (!entry) throw new Error("Receipt refers to an unpublished Common year.");
+      const argumentsValue = receipt.interpretation.arguments;
+      const currentRequest = argumentsValue &&
+        receipt.request === request && argumentsValue.year === year &&
+        (dayKind ? argumentsValue.ordinal : argumentsValue.week) === number;
+      if (!currentRequest) {
+        // Old public week receipts once used this explicitly read-only
+        // question form and a civil-date argument. Recognizing the shape
+        // cannot validate the old source revision or saved content.
+        const olderWeek = capability === "calendar.week.read" &&
+          /^Show the Common Calendar week for (\d{4}-\d{2}-\d{2})\.$/.exec(receipt.request);
+        if (olderWeek && argumentsValue &&
+            argumentsValue.civil_date === olderWeek[1] &&
+            olderWeek[1] >= entry.first_civil_date &&
+            olderWeek[1] <= entry.last_civil_date) {
+          return {
+            disposition:"older-read-request-unverified", matched:false,
+            self_hash_valid:true, capability, year, coordinate:number,
+            receipt_sha256:declared,
+            publication_digest:manifest.publication_digest,
+            claimed_publication_digest:claimedDigest,
+            sources:[], request:receipt.request
+          };
+        }
+        throw new Error("Receipt request does not match a supported read-only Common Calendar coordinate.");
+      }
+      if (claimedDigest !== manifest.publication_digest) {
+        // This is a claim in a self-consistent file, NOT verification of
+        // historical authenticity. Do not fetch or trust an older archive.
+        return {
+          disposition:"different-publication-claimed", matched:false,
+          self_hash_valid:true, capability, year, coordinate:number,
+          receipt_sha256:declared,
+          publication_digest:manifest.publication_digest,
+          claimed_publication_digest:claimedDigest,
+          sources:[], request
+        };
+      }
       // The shard loaders independently check byte SHA-256 against the manifest,
       // per-receipt scope, and the finite published year.
       const shard = dayKind
@@ -782,27 +821,43 @@
       const original = shard.receipts[number-1];
       const matched = canonicalReceiptJson(receipt) === canonicalReceiptJson(original);
       return {
+        disposition:matched ? "current-match" : "current-difference",
         matched, self_hash_valid:true, capability, year, coordinate:number,
         receipt_sha256:declared,
         publication_digest:manifest.publication_digest,
+        claimed_publication_digest:claimedDigest,
         sources:matched ? original.evidence.sources : [],
         request:matched ? original.request : request
       };
     }
     function renderReceiptInspection(report) {
       const result = $("receiptInspectorResult");
-      const matched = report.matched;
+      const matched = report.disposition === "current-match";
+      const differentPublication = report.disposition === "different-publication-claimed";
+      const olderRequest = report.disposition === "older-read-request-unverified";
       $("receiptInspectorSummary").textContent = matched
-        ? "Matches the current published, build-verified Core receipt."
-        : "Self-hash matches, but this receipt is NOT identical to the current published Core receipt. It may be from an older Core revision or have been modified.";
+        ? "CURRENT MATCH: the saved receipt exactly matches the current published, build-verified Core receipt."
+        : differentPublication
+          ? "DIFFERENT PUBLICATION CLAIM: the saved receipt's self-hash is consistent, but it names a different Core publication digest. This site cannot verify the older publication or its authenticity."
+          : olderRequest
+            ? "OLDER READ REQUEST SHAPE (UNVERIFIED): this self-consistent receipt uses a bounded week-request form seen in earlier public Core records. This site does not verify the historical revision, its answer, or its authenticity."
+          : "CURRENT DIFFERENCE: the saved receipt's self-hash is consistent, but its complete content differs from the current published Core receipt. A historical revision, modification or forgery is possible; this result alone cannot distinguish them.";
       $("receiptInspectorHashes").textContent =
         "Self SHA-256: " + report.receipt_sha256 +
-        " · Current Core publication digest: " + report.publication_digest +
-        " · Exact published match: " + (matched ? "YES" : "NO");
+        " · Claimed publication digest: " + report.claimed_publication_digest +
+        " · Current publication digest: " + report.publication_digest +
+        " · Current archive exact match: " + (matched ? "YES" : "NO");
       $("receiptInspectorScope").textContent =
         "Read-only capability: " + report.capability + " · Common year " +
         report.year + (report.capability === "calendar.week.read" ? ", week " : ", ordinal ") +
         report.coordinate + " · Execution warrant: false";
+      $("receiptInspectorNextSteps").textContent = matched
+        ? "The current archive agrees. For independent reproduction, run stillpoint verify-answer with the exact matching public Python Core source and data."
+        : differentPublication
+          ? "Do not treat the claimed older digest as proof of historical validity. Obtain the exact historical public Core revision and its published data independently, then run stillpoint verify-answer against that matching source."
+          : olderRequest
+            ? "The older request form is recognized for explanation only, not accepted as a current answer. Independently recover its exact public Core revision and data, then reproduce with stillpoint verify-answer."
+          : "No current match was established. Check which public Core revision produced the saved receipt; reproduce it using that exact source and data. A mismatch alone is not proof of tampering.";
       const list = $("receiptInspectorSources");
       list.replaceChildren();
       if (matched && Array.isArray(report.sources)) {
@@ -810,20 +865,30 @@
           list.appendChild(node("li", item.path + " · SHA-256 " + item.sha256));
         }
       } else {
-        list.appendChild(node("li","No current publication source fingerprints were accepted for this file."));
+        list.appendChild(node("li","No current-publication source fingerprints were independently accepted for this file."));
       }
       result.classList.remove("hidden");
       $("receiptInspectorStatus").textContent = matched
-        ? "Browser checks passed: local self-hash and exact current public archive match."
-        : "No current archive match. Independent reproduction requires the matching Python Core revision.";
-      $("receiptInspectorStatus").classList.toggle("error", !matched);
+        ? "Inspection completed: self-hash and exact current archive match."
+        : differentPublication
+          ? "Inspection completed: different publication claimed; historical authenticity unverified."
+          : olderRequest
+            ? "Inspection completed: older read-only request shape recognized; historical authenticity unverified."
+          : "Inspection completed: self-hash consistent but no current archive match.";
+      $("receiptInspectorStatus").classList.remove("error");
+      $("receiptInspectorStatus").classList.toggle("review", !matched);
     }
     async function inspectSavedReceipt() {
       const token = ++receiptInspectorToken;
       $("receiptInspectorResult").classList.add("hidden");
       $("receiptInspectorSources").replaceChildren();
-      $("receiptInspectorStatus").classList.remove("error");
+      $("receiptInspectorSummary").textContent = "";
+      $("receiptInspectorHashes").textContent = "";
+      $("receiptInspectorScope").textContent = "";
+      $("receiptInspectorNextSteps").textContent = "";
+      $("receiptInspectorStatus").classList.remove("error","review");
       $("receiptInspectorSubmit").disabled = true;
+      $("receiptInspectorForm").setAttribute("aria-busy","true");
       $("receiptInspectorStatus").textContent = "Inspecting the saved file locally and checking the published Core archive…";
       try {
         const file = $("receiptInspectorFile").files[0];
@@ -840,15 +905,21 @@
         const report = await inspectReceiptAgainstPublication(receipt);
         if (token !== receiptInspectorToken) return;
         renderReceiptInspection(report);
+        $("receiptInspectorStatus").focus();
       } catch (error) {
         if (token === receiptInspectorToken) {
           $("receiptInspectorResult").classList.add("hidden");
           $("receiptInspectorStatus").textContent =
             error.message || "Receipt inspection failed closed.";
+          $("receiptInspectorStatus").classList.remove("review");
           $("receiptInspectorStatus").classList.add("error");
+          $("receiptInspectorStatus").focus();
         }
       } finally {
-        if (token === receiptInspectorToken) $("receiptInspectorSubmit").disabled = false;
+        if (token === receiptInspectorToken) {
+          $("receiptInspectorSubmit").disabled = false;
+          $("receiptInspectorForm").setAttribute("aria-busy","false");
+        }
       }
     }
     function parsePublicWeekQuestion(text) {
@@ -1269,8 +1340,14 @@
     $("receiptInspectorFile").addEventListener("change", function () {
       receiptInspectorToken += 1;
       $("receiptInspectorSubmit").disabled = false;
+      $("receiptInspectorForm").setAttribute("aria-busy","false");
       $("receiptInspectorResult").classList.add("hidden");
-      $("receiptInspectorStatus").classList.remove("error");
+      $("receiptInspectorSources").replaceChildren();
+      $("receiptInspectorSummary").textContent = "";
+      $("receiptInspectorHashes").textContent = "";
+      $("receiptInspectorScope").textContent = "";
+      $("receiptInspectorNextSteps").textContent = "";
+      $("receiptInspectorStatus").classList.remove("error","review");
       $("receiptInspectorStatus").textContent = "File selected; choose Inspect receipt locally.";
     });
     $("saveDayReceipt").addEventListener("click", function () {

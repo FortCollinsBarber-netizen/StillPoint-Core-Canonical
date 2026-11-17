@@ -1,8 +1,10 @@
 # Browser receipt inspection — public read-only v1
 
-**Release status:** public Canonical Core feature candidate, not a production
-deployment until the exact merged `main` SHA passes actual post-merge CI,
-automatic Pages publication, and independent live browser acceptance.
+**Release status:** receipt inspection v1 shipped on public Canonical Core at
+`e9b514704fc34db212d602fa3c396b0da6211d93`. The follow-on historical
+receipt explanation and keyboard accessibility changes remain a **candidate**
+until the new exact merged `main` SHA passes post-merge public CI, automatic
+Pages publication and independent live browser acceptance.
 
 ## Why this matters
 
@@ -40,6 +42,54 @@ The browser displays the specific public capability
 Common year/day or week, receipt SHA-256, publication digest and the exact
 **source-file names and SHA-256 fingerprints recorded in the original Core
 receipt** after a current-archive match. It does not invent provenance.
+
+## Clearly separated visitor outcomes and historical provenance
+
+An accessible result names **one of four clearly bounded outcomes**, with
+ordinary-language next steps instead of implying a signature, fraud verdict,
+or archival verification.
+
+- **CURRENT MATCH**: both the self-hash and full content equality with the
+  current SHA-256-checked public Core archive passed. The original archive's
+  11 recorded source fingerprints can be shown; the local browser still did
+  not run the Python verifier.
+- **CURRENT DIFFERENCE**: self-hash is consistent and the saved receipt
+  claims this publication digest, but the complete content differs from the
+  current archive. An older source revision, a changed file, or a rehashed
+  forgery may explain it. There is **no evidence here to choose among them**,
+  and no archive source fingerprints are accepted.
+- **DIFFERENT PUBLICATION CLAIM**: self-hash is consistent, the read-only
+  address and request are within the published Common scope, but the receipt
+  claims a different well-formed publication digest. The inspector **does not
+  fetch or trust a historical archive**, does not certify that the digest
+  ever belonged to an official release, and does not display accepted
+  current-archive source fingerprints. This is a *claim only*, not proof of
+  a legitimate older receipt.
+- **OLDER READ REQUEST SHAPE (UNVERIFIED)**: a narrow, bounded, read-only
+  civil-date week-request grammar is recognized from a **preserved actual
+  public historical example** at
+  `docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json`.
+  Its correct original self-hash and recognizable grammar explain why it
+  cannot be directly compared with the current week-number request form.
+  **Neither its recorded history nor the grammar alone authenticates an
+  arbitrary uploaded receipt**; this branch does not fetch older archives,
+  accept a current match, or show accepted source fingerprints for this
+  outcome. Arbitrary, write-like or unrecognized requests still fail closed.
+
+The inspector displays **both the claimed and current publication digests**
+when applicable. To qualify a historical receipt, independently obtain the
+exact public Core revision and matching original data that issued it, then
+run `stillpoint verify-answer saved-receipt.json` with that revision.
+The currently live site's comparison cannot substitute for this.
+
+For keyboard and assistive-technology users, the selected-file input has an
+explicit visible label and hint; the submit control is associated with its
+result region; the result has a stable heading; the live status is atomic and
+receives focus after inspection success or rejection without trapping the
+keyboard. Busy state is explicitly communicated while comparisons run.
+Selecting a different file clears old result text and provenance, prevents
+stale asynchronous results, and returns to the initial inspection state.
+Information is communicated by *words*, not by color alone.
 
 ## Secure and bounded behavior
 
@@ -84,9 +134,14 @@ against the original Python-exported gzip day and observance receipts and the
 week JSON shard. Cases include: correct saved day/observance/week receipts;
 edited answer with stale checksum; **forged answer with correctly recalculated
 checksum**; unsupported write authority; a modified source fingerprint with
-correctly recalculated checksum; publication digest mismatch; and Common
-2076. An independent live-browser test must also confirm local file selection
-and accessible results, no file uploads, and behavior at mobile width.
+correctly recalculated checksum; a self-consistent *different-publication claim*
+reported as **unverified without fetching any old archive**; the exact
+historical public week example using the previous civil-date request form,
+which must receive an **unverified** explanation rather than a current
+match; arbitrary unsafe request types; a malformed publication digest;
+and Common 2076. An independent live-browser test must also
+confirm locally selected files, three distinct accessible outcomes, focus and
+announcements for errors, no file uploads, and behavior at mobile width.
 
 The exporter, Core calendar law, current receipt schemas, source map, and
 existing fixed annual and week files remain unchanged by this inspector.

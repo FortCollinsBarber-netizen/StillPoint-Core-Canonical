@@ -362,6 +362,9 @@ vm.runInContext(html.slice(start,end),sandbox);
             day = root / manifest["years"][0]["day_receipt_path"]
             observance = root / manifest["years"][1]["observance_receipt_path"]
             week = root / manifest["years"][0]["assistant_path"]
+            historical = (Path(__file__).resolve().parents[2] / "docs/examples/archive"
+                          / "public_assistant_week_answer_0261e0c_pre_observance.json")
+            self.assertTrue(historical.is_file())
             code = r"""
 const fs = require("node:fs");
 const vm = require("node:vm");
@@ -375,18 +378,22 @@ const day = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[3]))
 const observance = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[4]))
   .toString("utf8"));
 const week = JSON.parse(fs.readFileSync(process.argv[5],"utf8"));
+const archived = JSON.parse(fs.readFileSync(process.argv[6],"utf8"));
 const start = html.indexOf("    function canonicalReceiptJson(value, depth)");
 const end = html.indexOf("    function parsePublicWeekQuestion(text)",start);
 assert.ok(start>=0 && end>start,"real in-page receipt inspector must exist");
+let detailFetchCount=0, weekFetchCount=0;
 const sandbox = {
  manifest, TextEncoder,
  sha256Hex:async bytes=>crypto.createHash("sha256")
    .update(Buffer.from(bytes)).digest("hex"),
  getDetailReceiptShard:async(entry,kind)=>{
+   detailFetchCount+=1;
    assert.ok([2026,2027].includes(entry.year));
    return kind==="day" ? day : observance;
  },
  getAssistantShard:async(entry)=>{
+   weekFetchCount+=1;
    assert.equal(entry.year,2026);
    return week;
  }
@@ -407,6 +414,7 @@ async function digestWithoutSelf(receipt) {
     assert.equal(await digestWithoutSelf(receipt),receipt.receipt_sha256);
     const report=await sandbox.inspectReceiptAgainstPublication(clone(receipt));
     assert.equal(report.matched,true);
+    assert.equal(report.disposition,"current-match");
     assert.equal(report.self_hash_valid,true);
     assert.equal(report.receipt_sha256,receipt.receipt_sha256);
     assert.equal(report.publication_digest,manifest.publication_digest);
@@ -419,7 +427,10 @@ async function digestWithoutSelf(receipt) {
   const forged=clone(day.receipts[320]);
   forged.answer="An unsupported holiday has been created.";
   forged.receipt_sha256=await digestWithoutSelf(forged);
-  assert.equal((await sandbox.inspectReceiptAgainstPublication(forged)).matched,false);
+  const forgedReport=await sandbox.inspectReceiptAgainstPublication(forged);
+  assert.equal(forgedReport.matched,false);
+  assert.equal(forgedReport.disposition,"current-difference");
+  assert.equal(forgedReport.claimed_publication_digest,manifest.publication_digest);
   const warrant=clone(day.receipts[320]);
   warrant.authorization.execution_warrant=true;
   warrant.receipt_sha256=await digestWithoutSelf(warrant);
@@ -440,18 +451,48 @@ async function digestWithoutSelf(receipt) {
   const badScope=clone(observance.receipts[96]);
   badScope.evidence.publication_digest="0".repeat(64);
   badScope.receipt_sha256=await digestWithoutSelf(badScope);
-  await assert.rejects(sandbox.inspectReceiptAgainstPublication(badScope),
-    /publication boundary/);
+  const beforeHistorical=detailFetchCount;
+  const historicalClaim=await sandbox.inspectReceiptAgainstPublication(badScope);
+  assert.equal(historicalClaim.disposition,"different-publication-claimed");
+  assert.equal(historicalClaim.matched,false);
+  assert.equal(historicalClaim.claimed_publication_digest,"0".repeat(64));
+  assert.equal(historicalClaim.sources.length,0);
+  assert.equal(detailFetchCount,beforeHistorical,
+    "a claimed older publication must not fetch an untrusted historical archive");
+  const malformedDigest=clone(observance.receipts[96]);
+  malformedDigest.evidence.publication_digest="not-a-sha";
+  malformedDigest.receipt_sha256=await digestWithoutSelf(malformedDigest);
+  await assert.rejects(
+    sandbox.inspectReceiptAgainstPublication(malformedDigest),/invalid claimed publication digest/);
+
   const stale=clone(week.receipts[45]);
   stale.evidence.sources[0].sha256="0".repeat(64);
   stale.receipt_sha256=await digestWithoutSelf(stale);
-  assert.equal((await sandbox.inspectReceiptAgainstPublication(stale)).matched,false);
+  const staleReport=await sandbox.inspectReceiptAgainstPublication(stale);
+  assert.equal(staleReport.matched,false);
+  assert.equal(staleReport.disposition,"current-difference");
+  // This is an actual unchanged public historical receipt preserved in Core,
+  // not a fabricated older-version example. The old civil-date request shape
+  // must be explained, but never accepted as a verified current archive match.
+  assert.equal(await digestWithoutSelf(archived),archived.receipt_sha256);
+  const beforeOldWeek=weekFetchCount;
+  const oldReport=await sandbox.inspectReceiptAgainstPublication(clone(archived));
+  assert.equal(oldReport.disposition,"older-read-request-unverified");
+  assert.equal(oldReport.matched,false);
+  assert.equal(oldReport.sources.length,0);
+  assert.equal(weekFetchCount,beforeOldWeek);
+  const unsafeOld=clone(archived);
+  unsafeOld.request="Delete all Calendar records.";
+  unsafeOld.receipt_sha256=await digestWithoutSelf(unsafeOld);
+  await assert.rejects(sandbox.inspectReceiptAgainstPublication(unsafeOld),
+    /supported read-only Common Calendar coordinate/);
   console.log("Browser exact receipt self-hash and public archive comparison: PASS");
 })().catch(error=>{console.error(error);process.exitCode=1});
 """
             run = subprocess.run(
                 [shutil.which("node"), "-e", code,
-                 str(site), str(mpath), str(day), str(observance), str(week)],
+                 str(site), str(mpath), str(day), str(observance), str(week),
+                 str(historical)],
                 capture_output=True, text=True, check=False, timeout=40,
             )
             self.assertEqual(run.returncode,0,run.stderr)
@@ -670,6 +711,15 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('invalidateDetailReceiptSelection(', text)
         self.assertIn('activeReceiptDay = null;', text)
         self.assertIn('id="receiptInspectorForm"', text)
+        self.assertIn('id="receiptInspectorNextSteps"', text)
+        self.assertIn('aria-atomic="true" tabindex="-1"', text)
+        self.assertIn('aria-controls="receiptInspectorResult"', text)
+        self.assertIn('aria-describedby="receiptInspectorHint"', text)
+        self.assertIn('DIFFERENT PUBLICATION CLAIM:', text)
+        self.assertIn('OLDER READ REQUEST SHAPE (UNVERIFIED):', text)
+        self.assertIn('CURRENT DIFFERENCE:', text)
+        self.assertIn('receiptInspectorStatus").focus()', text)
+        self.assertIn('setAttribute("aria-busy","true")', text)
         self.assertIn('id="receiptInspectorStatus"', text)
         self.assertIn('id="receiptInspectorSources"', text)
         self.assertIn('async function inspectReceiptAgainstPublication(receipt)', text)

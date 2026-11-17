@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Explore the public StillPoint Common Calendar, generated from the published Canonical Core.">
+  <title>StillPoint | Public Common Calendar</title>
+  <style>
+    :root { --ink:#16202a; --muted:#53616e; --blue:#183d67; --line:#dbe1e6;
+      --bg:#f5f6f4; --paper:#ffffff; --accent:#d4a65b; --soft:#ecf2f7; --danger:#8b2732; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--bg);
+      font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.45; }
+    :focus-visible { outline:3px solid #ab761f; outline-offset:3px; }
+    .wrap { max-width:1100px; padding:0 22px; margin:0 auto; }
+    header { color:white; background:linear-gradient(125deg,#14283d,#254c70);
+      padding:40px 0 44px; border-bottom:5px solid var(--accent); }
+    .eyebrow { margin:0 0 12px; letter-spacing:.16em; text-transform:uppercase;
+      font-size:.73rem; font-weight:800; color:#f0d7a9; }
+    h1 { font-size:clamp(2rem,5vw,3.55rem); line-height:1.12; letter-spacing:-.045em;
+      margin:0 0 12px; font-weight:760; }
+    header p { max-width:710px; margin:0; color:#d9e3ec; font-size:1.03rem; }
+    main { padding-top:28px; padding-bottom:34px; }
+    .panel { background:var(--paper); border:1px solid var(--line); border-radius:17px;
+      box-shadow:0 4px 25px rgba(20,42,60,.035); padding:25px; margin-bottom:18px; }
+    .field-row { display:flex; flex-wrap:wrap; align-items:end; gap:12px; }
+    label { display:block; font-weight:750; font-size:.87rem; margin-bottom:7px; }
+    input[type=date] { min-height:48px; border-radius:9px; border:1px solid #aebac4;
+      padding:9px 12px; color:var(--ink); background:white; min-width:205px; }
+    .primary { min-height:48px; border:0; border-radius:9px; padding:9px 23px;
+      background:var(--blue); color:white; font-weight:750; }
+    .primary:hover { background:#295582; }
+    .secondary { min-height:44px; background:var(--soft); border:1px solid #c7d6e4;
+      border-radius:9px; color:var(--blue); font-weight:700; padding:7px 17px; }
+    .secondary:hover:not(:disabled) { background:#deebf5; }
+    .hint { color:var(--muted); font-size:.87rem; margin:10px 0 0; }
+    .status { margin:13px 0 0; min-height:1.5em; font-size:.91rem; color:var(--muted); }
+    .status.error { color:var(--danger); font-weight:700; }
+    .topline { display:flex; justify-content:space-between; align-items:center;
+      flex-wrap:wrap; gap:10px; }
+    h2 { margin:0; letter-spacing:-.025em; font-size:1.55rem; }
+    h3 { font-size:1.09rem; margin:0 0 12px; }
+    .overline { color:var(--muted); text-transform:uppercase; letter-spacing:.12em;
+      font-size:.73rem; font-weight:800; margin:0 0 4px; }
+    .big-date { font-size:clamp(1.7rem,4vw,2.8rem); letter-spacing:-.04em;
+      line-height:1.15; margin:0 0 8px; }
+    .soft { color:var(--muted); }
+    .address { font-weight:750; color:var(--blue); }
+    .nav { display:flex; gap:8px; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:22px; }
+    .fact { padding:14px 16px; border-radius:11px; background:#f4f7fa; }
+    .fact dt { font-size:.78rem; font-weight:750; color:var(--muted); margin-bottom:5px; }
+    .fact dd { margin:0; font-size:1.04rem; font-weight:700; overflow-wrap:anywhere; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(270px,1fr); gap:18px; }
+    .week { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:7px; margin-top:16px; }
+    .day { border:1px solid var(--line); border-radius:10px; background:white;
+      padding:10px 4px; text-align:center; min-width:0; min-height:95px; }
+    .day:hover { border-color:#7f9db7; background:#f3f8fc; }
+    .day[aria-pressed=true] { background:var(--blue); color:white; border-color:var(--blue); }
+    .day strong { display:block; font-size:1.32rem; margin-top:3px; }
+    .day small { display:block; font-size:.66rem; white-space:nowrap; overflow:hidden;
+      text-overflow:ellipsis; opacity:.82; }
+    .day .mark { display:block; height:7px; font-size:.68rem; line-height:7px;
+      color:#9b6921; }
+    .day[aria-pressed=true] .mark { color:#f4ca86; }
+    .week-note { font-size:.86rem; color:var(--muted); margin:14px 0 0; }
+    ul { margin:0; padding-left:20px; }
+    li { margin:6px 0; }
+    .empty { color:var(--muted); }
+    footer { border-top:1px solid var(--line); margin-top:13px; padding:25px 0 40px;
+      font-size:.88rem; color:var(--muted); }
+    footer p { margin:8px 0; }
+    .code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.79rem;
+      overflow-wrap:anywhere; }
+    .hidden { display:none; }
+    @media(max-width:760px) {
+      header { padding:32px 0 35px; }
+      .panel { padding:18px; }
+      .layout { grid-template-columns:1fr; }
+      .grid { grid-template-columns:1fr 1fr; }
+      .week { gap:4px; }
+      .day { padding:8px 1px; min-height:80px; }
+      .day small { font-size:.59rem; }
+      .day strong { font-size:1.05rem; }
+    }
+    @media(max-width:420px) {
+      .wrap { padding:0 13px; }
+      .grid { grid-template-columns:1fr; }
+      .field-row { align-items:stretch; }
+      .field-row > div { flex:1; }
+      input[type=date] { width:100%; min-width:0; }
+      .primary { width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="eyebrow">StillPoint / public calendar</p>
+      <h1>A day you can explore.</h1>
+      <p>Find your place in the 364-day Common Calendar. No account, subscription, location tracking or AI provider key required.</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="panel" aria-labelledby="lookup-heading">
+      <h2 id="lookup-heading">Find a calendar day</h2>
+      <form id="dateForm" class="field-row">
+        <div>
+          <label for="civilDate">Ordinary Gregorian date</label>
+          <input id="civilDate" type="date" required aria-describedby="dateHint">
+        </div>
+        <button class="primary" type="submit">Explore date</button>
+      </form>
+      <p class="hint" id="dateHint">An ordinary date is a reference point, not the Common Calendar's governing year or day.</p>
+      <p class="status" id="status" role="status" aria-live="polite">Loading verified public calendar data…</p>
+    </section>
+
+    <div id="results" class="hidden">
+      <section class="panel" aria-labelledby="day-heading">
+        <div class="topline">
+          <div>
+            <p class="overline">Published Common Calendar date</p>
+            <h2 class="big-date" id="day-heading">—</h2>
+            <p id="dateAddress" class="address">—</p>
+          </div>
+          <div class="nav" aria-label="Civil-date navigation">
+            <button class="secondary" type="button" id="prevDay" aria-label="Previous date">Previous</button>
+            <button class="secondary" type="button" id="nextDay" aria-label="Next date">Next</button>
+          </div>
+        </div>
+        <dl class="grid">
+          <div class="fact"><dt>Week of Common year</dt><dd id="weekValue">—</dd></div>
+          <div class="fact"><dt>Sacred-source overlay</dt><dd id="sacredValue">—</dd></div>
+          <div class="fact"><dt>Jubilee coordinate</dt><dd id="jubileeValue">—</dd></div>
+        </dl>
+      </section>
+
+      <div class="layout">
+        <section class="panel" aria-labelledby="week-heading">
+          <div class="topline">
+            <h3 id="week-heading">Your seven-day Common week</h3>
+            <span id="weekAddress" class="soft"></span>
+          </div>
+          <div class="week" id="weekDays" aria-label="Choose a day from this Common week"></div>
+          <p class="week-note">Week boundaries come from the published Core. This is not an ISO or Gregorian week.</p>
+        </section>
+        <section class="panel" aria-labelledby="observances-heading">
+          <h3 id="observances-heading">Observances and protected time</h3>
+          <ul id="observanceList"></ul>
+          <p class="week-note" id="protectedNote"></p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="wrap">
+    <p><strong>Read-only public information.</strong> The sacred profile is an author-selected working StillPoint interpretation, not a universal religious prescription or civil enactment.</p>
+    <p>The protected interval is described as Friday civil dusk to Sunday civil dawn. Actual local solar event times are not calculated or displayed on this page.</p>
+    <p>Only published Common years 2026–2075 are available. Mathematical calculations do not publish Common year 2076.</p>
+    <p class="code" id="provenance">Source: public Canonical Core</p>
+  </footer>
+  <script>
+    "use strict";
+    const $ = function (id) { return document.getElementById(id); };
+    const monthNames = ["January","February","March","April","May","June",
+      "July","August","September","October","November","December"];
+    let manifest = null;
+    const cache = new Map();
+
+    function setStatus(message, error) {
+      $("status").textContent = message;
+      $("status").classList.toggle("error", !!error);
+    }
+    function localISO(date) {
+      const year = String(date.getFullYear()).padStart(4, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+    function nextCivilDate(iso, delta) {
+      const numbers = iso.split("-").map(Number);
+      const date = new Date(numbers[0], numbers[1] - 1, numbers[2] + delta, 12);
+      return localISO(date);
+    }
+    function chooseYear(iso) {
+      return manifest.years.find(function (entry) {
+        return entry.first_civil_date <= iso && iso <= entry.last_civil_date;
+      });
+    }
+    async function getShard(entry) {
+      if (cache.has(entry.year)) return cache.get(entry.year);
+      const response = await fetch("./" + entry.path, {cache:"force-cache"});
+      if (!response.ok) throw new Error("Could not load the public year " + entry.year + ".");
+      const data = await response.json();
+      if (data.publication_digest !== manifest.publication_digest ||
+          data.year !== entry.year || !Array.isArray(data.days) ||
+          data.days.length !== 364 ||
+          data.days[0].civil_date !== entry.first_civil_date ||
+          data.days[363].civil_date !== entry.last_civil_date) {
+        throw new Error("The public calendar data did not pass its publication checks.");
+      }
+      cache.set(entry.year, data);
+      return data;
+    }
+    function node(tag, text) {
+      const element = document.createElement(tag);
+      if (text !== undefined) element.textContent = String(text);
+      return element;
+    }
+    function renderWeek(selected, shard) {
+      const host = $("weekDays");
+      host.replaceChildren();
+      const week = selected.common_date.week;
+      const seven = shard.days.filter(function (day) {
+        return day.common_date.week === week;
+      });
+      if (seven.length !== 7) throw new Error("Invalid Common week data.");
+      $("weekAddress").textContent = "Week " + week + " / 52";
+      seven.forEach(function (day) {
+        const button = node("button");
+        button.type = "button";
+        button.className = "day";
+        button.setAttribute("aria-pressed", String(day.civil_date === selected.civil_date));
+        button.setAttribute("aria-label", day.common_date.weekday +
+          ", Common " + day.common_date.month + "/" + day.common_date.day +
+          ", Gregorian " + day.civil_date);
+        button.appendChild(node("small", day.common_date.weekday.slice(0,3)));
+        button.appendChild(node("strong", day.common_date.day));
+        button.appendChild(node("span", day.observances.length ? "•" : " "));
+        button.lastChild.className = "mark";
+        button.addEventListener("click", function () { void showDate(day.civil_date); });
+        host.appendChild(button);
+      });
+    }
+    function render(selected, shard) {
+      const day = selected.common_date;
+      $("results").classList.remove("hidden");
+      $("day-heading").textContent = day.weekday + ", " +
+        monthNames[day.month - 1] + " " + day.day + ", " + day.year;
+      $("dateAddress").textContent = selected.calendar_address +
+        " · Ordinary date " + selected.civil_date;
+      $("weekValue").textContent = day.week + " of 52 · day " + day.ordinal + " of 364";
+      const sacred = selected.sacred_date;
+      $("sacredValue").textContent = "Month " + sacred.month + ", day " +
+        sacred.day + " (source year " + sacred.year + ")";
+      const jubilee = selected.jubilee;
+      $("jubileeValue").textContent = jubilee.year === null
+        ? "Before selected epoch"
+        : "Cycle " + jubilee.cycle + ", year " + jubilee.year;
+      const items = $("observanceList");
+      items.replaceChildren();
+      if (!selected.observances.length) {
+        const li = node("li", "No named observances on this day.");
+        li.className = "empty";
+        items.appendChild(li);
+      } else {
+        selected.observances.forEach(function (item) {
+          items.appendChild(node("li", item.name + " (" + item.jurisdiction + ")"));
+        });
+      }
+      $("protectedNote").textContent = selected.is_sabbath_date
+        ? "Sabbath-date marker. Sacred sunset and civil twilight are separate boundaries."
+        : "Selected protected time is Friday civil dusk to Sunday civil dawn; location-specific times are not included.";
+      renderWeek(selected, shard);
+      const first = manifest.years[0].first_civil_date;
+      const last = manifest.years[manifest.years.length - 1].last_civil_date;
+      $("prevDay").disabled = selected.civil_date === first;
+      $("nextDay").disabled = selected.civil_date === last;
+    }
+    async function showDate(iso) {
+      try {
+        if (!manifest) throw new Error("Calendar data is not ready.");
+        const entry = chooseYear(iso);
+        if (!entry) throw new Error(
+          "That ordinary date is outside this finite public calendar projection."
+        );
+        const shard = await getShard(entry);
+        const selected = shard.days.find(function (day) {
+          return day.civil_date === iso;
+        });
+        if (!selected) throw new Error("No published Common day matches that date.");
+        render(selected, shard);
+        $("civilDate").value = iso;
+        setStatus("Published calendar day loaded from Canonical Core.", false);
+      } catch (error) {
+        setStatus(error.message || "Unable to load the selected date.", true);
+      }
+    }
+    $("dateForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      void showDate($("civilDate").value);
+    });
+    $("prevDay").addEventListener("click", function () {
+      void showDate(nextCivilDate($("civilDate").value, -1));
+    });
+    $("nextDay").addEventListener("click", function () {
+      void showDate(nextCivilDate($("civilDate").value, 1));
+    });
+    async function initialize() {
+      try {
+        const response = await fetch("./data/index.json", {cache:"no-cache"});
+        if (!response.ok) throw new Error("The published calendar index is unavailable.");
+        const data = await response.json();
+        if (data.schema !== "stillpoint.public-calendar-static.v1" ||
+            data.complete_publication !== true || data.year_days !== 364 ||
+            data.first_common_year !== 2026 || data.last_common_year !== 2075 ||
+            !Array.isArray(data.years) || data.years.length !== 50) {
+          throw new Error("The expected complete 2026–2075 public export was not found.");
+        }
+        manifest = data;
+        const first = data.years[0].first_civil_date;
+        const last = data.years[data.years.length - 1].last_civil_date;
+        $("civilDate").min = first;
+        $("civilDate").max = last;
+        $("provenance").textContent = "Canonical Core publication digest: " +
+          data.publication_digest.slice(0, 24) + "… · Data is precomputed from public Python Core";
+        const today = localISO(new Date());
+        await showDate(today >= first && today <= last ? today : first);
+      } catch (error) {
+        setStatus((error.message || "Could not initialize the calendar.") +
+          " If viewing local files, serve the exported folder with a static HTTP server.", true);
+      }
+    }
+    void initialize();
+  </script>
+</body>
+</html>

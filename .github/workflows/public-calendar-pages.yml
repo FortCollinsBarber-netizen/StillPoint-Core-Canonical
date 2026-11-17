@@ -1,0 +1,128 @@
+name: StillPoint Calendar Pages publication (public Core only)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/public-calendar-pages.yml"
+  push:
+    branches: [main]
+    paths:
+      - "site/stillpoint-calendar/**"
+      - "tools/export_public_calendar_site.py"
+      - "tests/calendar_core/test_public_calendar_site_export.py"
+      - ".github/workflows/public-calendar-pages.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stillpoint-pages
+  cancel-in-progress: false
+
+jobs:
+  check-pages:
+    name: Check GitHub Pages publishing readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      ready: ${{ steps.status.outputs.ready }}
+    steps:
+      - name: Check Pages configuration without changing settings
+        id: status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --location \
+            --output "$RUNNER_TEMP/stillpoint-pages.json" \
+            --write-out '%{http_code}' \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$REPO/pages")"
+          if [[ "$status" == "200" ]] && python - "$RUNNER_TEMP/stillpoint-pages.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          pages = json.loads(Path(sys.argv[1]).read_text())
+          # GitHub Pages must be configured to publish from Actions, not a branch.
+          raise SystemExit(0 if pages.get("build_type") == "workflow" else 1)
+          PY
+          then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "GitHub Pages is configured for Actions; verified Core site may deploy." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### GitHub Pages publication not yet authorized"
+              echo "This workflow safely skipped deployment because the Pages API did not confirm"
+              echo "a GitHub Actions publishing source (HTTP $status)."
+              echo "No settings, billing, private files or credentials were changed."
+              echo "When Pages is enabled with Source: GitHub Actions, dispatch this existing workflow again."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  build:
+    name: Verify and prepare complete static site
+    needs: [check-pages]
+    if: needs.check-pages.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out only public Canonical Core
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install public Core
+        run: python -m pip install .
+      - name: Run browser export tests against Core
+        run: python -m unittest discover -s tests/calendar_core -p 'test_public_calendar_site_export.py' -v
+      - name: Export full 2026–2075 calendar from public Core
+        run: python tools/export_public_calendar_site.py --output "$RUNNER_TEMP/stillpoint-public-site"
+      - name: Verify complete finite publication
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])/"stillpoint-public-site"
+          m = json.loads((root/"data/index.json").read_text())
+          assert m["complete_publication"] is True
+          assert len(m["years"]) == 50
+          assert sum(x["count"] for x in m["years"]) == 18200
+          assert [x["year"] for x in m["years"]] == list(range(2026,2076))
+          assert not (root/"data/Y_2076.json").exists()
+          assert (root/"index.html").is_file()
+          print("Pages publication boundary: PASS")
+          PY
+      - name: Upload only public, verified static files
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: ${{ runner.temp }}/stillpoint-public-site
+
+  deploy:
+    name: Publish approved public calendar to Pages
+    needs: [check-pages, build]
+    if: needs.check-pages.outputs.ready == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy verified public-only site
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

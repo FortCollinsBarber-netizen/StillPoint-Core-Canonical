@@ -990,6 +990,11 @@
     }
     function renderWeek(selected, shard) {
       const host = $("weekDays");
+      // A focused day button is replaced when the Core selection is rendered.
+      // Preserve that user's keyboard position, but never steal focus from
+      // a date field, navigation button or another control.
+      const focusedCivilDay = host.contains(document.activeElement)
+        ? document.activeElement.getAttribute("data-civil-date") : null;
       host.replaceChildren();
       const week = selected.common_date.week;
       const seven = shard.days.filter(function (day) {
@@ -1001,6 +1006,7 @@
         const button = node("button");
         button.type = "button";
         button.className = "day";
+        button.setAttribute("data-civil-date", day.civil_date);
         button.setAttribute("aria-pressed", String(day.civil_date === selected.civil_date));
         button.setAttribute("aria-label", day.common_date.weekday +
           ", Common " + day.common_date.month + "/" + day.common_date.day +
@@ -1012,6 +1018,14 @@
         button.addEventListener("click", function () { void showDate(day.civil_date); });
         host.appendChild(button);
       });
+      if (focusedCivilDay) {
+        const replacement = Array.from(host.children).find(function (button) {
+          return button.getAttribute("data-civil-date") === focusedCivilDay;
+        }) || Array.from(host.children).find(function (button) {
+          return button.getAttribute("aria-pressed") === "true";
+        });
+        if (replacement) replacement.focus({preventScroll:true});
+      }
     }
     function render(selected, shard) {
       assistantToken += 1;

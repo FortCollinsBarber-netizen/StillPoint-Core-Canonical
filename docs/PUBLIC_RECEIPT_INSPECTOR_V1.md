@@ -45,7 +45,7 @@ receipt** after a current-archive match. It does not invent provenance.
 
 ## Clearly separated visitor outcomes and historical provenance
 
-An accessible result names **one of four clearly bounded outcomes**, with
+An accessible result names **one of five clearly bounded outcomes**, with
 ordinary-language next steps instead of implying a signature, fraud verdict,
 or archival verification.
 
@@ -65,6 +65,23 @@ or archival verification.
   ever belonged to an official release, and does not display accepted
   current-archive source fingerprints. This is a *claim only*, not proof of
   a legitimate older receipt.
+- **PINNED HISTORICAL EXAMPLE MATCH**: *exactly one* public archived
+  week receipt is matched against a hard-coded complete receipt digest, after
+  its own canonical self-hash has passed. The recognized example is the
+  Gregorian-date week request for 2026-11-17, corresponding to Common 2026
+  week 46, with receipt SHA-256
+  `7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7`.
+  Its public Python source was independently reopened at **full commit
+  `0261e0cda145f4eddd9b039cb81e7928a6397859`** and
+  `verify_answer_receipt` returned `verified: true` while
+  `answer_request` recreated the **identical complete receipt**.
+  The archived example is publicly preserved at full commit
+  `fa0dca150cd29e598ef07668b12697a213aa6403`, path
+  `docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json`.
+  Only this exact independently reproduced example is recognized by the
+  website. This is **not** a signed original, identity/consent proof, a
+  current release match, or general verification of other historical
+  receipts. The current browser does not rerun the old Python code.
 - **OLDER READ REQUEST SHAPE (UNVERIFIED)**: a narrow, bounded, read-only
   civil-date week-request grammar is recognized from a **preserved actual
   public historical example** at
@@ -90,6 +107,50 @@ keyboard. Busy state is explicitly communicated while comparisons run.
 Selecting a different file clears old result text and provenance, prevents
 stale asynchronous results, and returns to the initial inspection state.
 Information is communicated by *words*, not by color alone.
+
+## Reproduce the historical example using the pinned public source
+
+The following reference commands use a *public source checkout* and the
+*public archived receipt*; use a clean temporary directory. They do not
+require a private repository, paid account or private runner. Run a Python
+version supported by the pinned repository and do not import current
+Core source accidentally. The archived receipt was stored after the
+source commit; the source checkout alone does not contain its copy.
+
+```sh
+git clone https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical.git public-core-proof
+cd public-core-proof
+git checkout --detach 0261e0cda145f4eddd9b039cb81e7928a6397859
+
+# Save the archived public JSON example separately, e.g. /tmp/old-week.json,
+# from the immutable GitHub blob URL pinned above.
+PYTHONPATH=. python -c '
+import json
+from pathlib import Path
+from stillpoint.public_assistant import (
+    verify_answer_receipt, answer_request, WEEK_READ
+)
+receipt = json.loads(Path("/tmp/old-week.json").read_text())
+verdict = verify_answer_receipt(receipt)
+replayed = answer_request(
+    receipt["request"],
+    allowed_capabilities=frozenset({WEEK_READ})
+)
+assert verdict["verified"] is True
+assert replayed == receipt
+print("PUBLIC_HISTORICAL_RECEIPT_REPRODUCED")
+'
+```
+
+**Exact evidence already executed:** with the public source zip pinned to
+`0261e0cda145f4eddd9b039cb81e7928a6397859` and the archived
+public fixture, the Python verifier returned `verified: true`, and
+`answer_request` recreated the same receipt SHA-256
+`7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7`.
+The browser matches that fixed digest *only after* checking the entire
+receipt's canonical self-hash; a rehashed forgery following the same old
+request grammar must remain `OLDER READ REQUEST SHAPE (UNVERIFIED)`.
+Source publication/reproduction is not a cryptographic signature.
 
 ## Secure and bounded behavior
 

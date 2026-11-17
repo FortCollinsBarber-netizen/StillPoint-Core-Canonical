@@ -379,9 +379,12 @@ const observance = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[4]))
   .toString("utf8"));
 const week = JSON.parse(fs.readFileSync(process.argv[5],"utf8"));
 const archived = JSON.parse(fs.readFileSync(process.argv[6],"utf8"));
+const pinStart = html.indexOf("    const PINNED_HISTORICAL_WEEK = Object.freeze({");
+const pinEnd = html.indexOf("    });",pinStart) + "    });".length;
 const start = html.indexOf("    function canonicalReceiptJson(value, depth)");
 const end = html.indexOf("    function parsePublicWeekQuestion(text)",start);
-assert.ok(start>=0 && end>start,"real in-page receipt inspector must exist");
+assert.ok(pinStart>=0 && pinEnd>pinStart && start>=0 && end>start,
+  "real in-page public historical pin and receipt inspector must exist");
 let detailFetchCount=0, weekFetchCount=0;
 const sandbox = {
  manifest, TextEncoder,
@@ -399,7 +402,11 @@ const sandbox = {
  }
 };
 vm.createContext(sandbox);
+vm.runInContext(html.slice(pinStart,pinEnd),sandbox);
 vm.runInContext(html.slice(start,end),sandbox);
+const pin=vm.runInContext("PINNED_HISTORICAL_WEEK",sandbox);
+assert.equal(pin.source_commit,"0261e0cda145f4eddd9b039cb81e7928a6397859");
+assert.equal(pin.archive_commit,"fa0dca150cd29e598ef07668b12697a213aa6403");
 const clone = value=>JSON.parse(JSON.stringify(value));
 async function digestWithoutSelf(receipt) {
   const {receipt_sha256, ...unsigned}=receipt;
@@ -477,9 +484,20 @@ async function digestWithoutSelf(receipt) {
   assert.equal(await digestWithoutSelf(archived),archived.receipt_sha256);
   const beforeOldWeek=weekFetchCount;
   const oldReport=await sandbox.inspectReceiptAgainstPublication(clone(archived));
-  assert.equal(oldReport.disposition,"older-read-request-unverified");
+  assert.equal(pin.receipt_sha256,archived.receipt_sha256);
+  assert.equal(oldReport.disposition,"pinned-public-example-match");
+  assert.equal(oldReport.historical_source_commit,pin.source_commit);
+  assert.equal(oldReport.pinned_historical_example,true);
   assert.equal(oldReport.matched,false);
   assert.equal(oldReport.sources.length,0);
+  assert.equal(weekFetchCount,beforeOldWeek);
+  const forgedOld=clone(archived);
+  forgedOld.answer="Invented jurisdiction from an old request grammar.";
+  forgedOld.receipt_sha256=await digestWithoutSelf(forgedOld);
+  const fake=await sandbox.inspectReceiptAgainstPublication(forgedOld);
+  assert.equal(fake.disposition,"older-read-request-unverified");
+  assert.equal(fake.pinned_historical_example,false);
+  assert.equal(fake.sources.length,0);
   assert.equal(weekFetchCount,beforeOldWeek);
   const unsafeOld=clone(archived);
   unsafeOld.request="Delete all Calendar records.";
@@ -717,6 +735,10 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('aria-describedby="receiptInspectorHint"', text)
         self.assertIn('DIFFERENT PUBLICATION CLAIM:', text)
         self.assertIn('OLDER READ REQUEST SHAPE (UNVERIFIED):', text)
+        self.assertIn('PINNED HISTORICAL EXAMPLE MATCH:', text)
+        self.assertIn('id="receiptInspectorPinnedHistory"', text)
+        self.assertIn('0261e0cda145f4eddd9b039cb81e7928a6397859', text)
+        self.assertIn('7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7', text)
         self.assertIn('CURRENT DIFFERENCE:', text)
         self.assertIn('receiptInspectorStatus").focus()', text)
         self.assertIn('setAttribute("aria-busy","true")', text)

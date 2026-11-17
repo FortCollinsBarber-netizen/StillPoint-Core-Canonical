@@ -308,6 +308,12 @@
         <p id="receiptInspectorHashes" class="digest-line"></p>
         <p id="receiptInspectorScope" class="hint"></p>
         <p id="receiptInspectorNextSteps" class="hint"></p>
+        <div id="receiptInspectorPinnedHistory" class="hint hidden">
+          <p><strong>Pinned historical public example:</strong> this receipt matches one preserved public sample that was separately reproduced against its exact Python Core revision. The browser compares an allowlisted fingerprint; it does not execute Python, sign the receipt or authenticate a person.</p>
+          <p><a href="https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/tree/0261e0cda145f4eddd9b039cb81e7928a6397859" rel="noopener noreferrer" target="_blank">Inspect pinned historical public Core source</a></p>
+          <p><a href="https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/blob/fa0dca150cd29e598ef07668b12697a213aa6403/docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json" rel="noopener noreferrer" target="_blank">Inspect pinned public archived receipt example</a></p>
+          <p><strong>Scope:</strong> exactly this example, not other receipts from that revision. Repeat independent reproduction using the matching Python Core source. Details: <code>docs/PUBLIC_RECEIPT_INSPECTOR_V1.md</code>.</p>
+        </div>
         <h3>Recorded public source fingerprints</h3>
         <ul id="receiptInspectorSources" class="inspector-sources"></ul>
         <p class="digest-line">Independent reproduction: <code>stillpoint verify-answer saved-receipt.json</code> using the matching public Python Core source and data.</p>
@@ -341,6 +347,14 @@
     let activeReceiptDay = null;
     const detailReceiptCache = new Map();
     let receiptInspectorToken = 0;
+    // One fixed, public, Python-reproduced historical fixture; not a signature.
+    const PINNED_HISTORICAL_WEEK = Object.freeze({
+      source_commit:"0261e0cda145f4eddd9b039cb81e7928a6397859",
+      archive_commit:"fa0dca150cd29e598ef07668b12697a213aa6403",
+      receipt_sha256:"7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7",
+      request:"Show the Common Calendar week for 2026-11-17.",
+      year:2026,week:46,civil_date:"2026-11-17"
+    });
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -790,8 +804,21 @@
             argumentsValue.civil_date === olderWeek[1] &&
             olderWeek[1] >= entry.first_civil_date &&
             olderWeek[1] <= entry.last_civil_date) {
+          // Exact old public source was separately reexecuted in Python for
+          // one pinned fixture. Other old request forms remain unverified.
+          const pinnedExample =
+            declared === PINNED_HISTORICAL_WEEK.receipt_sha256 &&
+            receipt.request === PINNED_HISTORICAL_WEEK.request &&
+            year === PINNED_HISTORICAL_WEEK.year &&
+            number === PINNED_HISTORICAL_WEEK.week &&
+            olderWeek[1] === PINNED_HISTORICAL_WEEK.civil_date;
           return {
-            disposition:"older-read-request-unverified", matched:false,
+            disposition:pinnedExample
+              ? "pinned-public-example-match" : "older-read-request-unverified",
+            matched:false,
+            pinned_historical_example:pinnedExample,
+            historical_source_commit:pinnedExample
+              ? PINNED_HISTORICAL_WEEK.source_commit : null,
             self_hash_valid:true, capability, year, coordinate:number,
             receipt_sha256:declared,
             publication_digest:manifest.publication_digest,
@@ -835,10 +862,13 @@
       const matched = report.disposition === "current-match";
       const differentPublication = report.disposition === "different-publication-claimed";
       const olderRequest = report.disposition === "older-read-request-unverified";
+      const pinnedExample = report.disposition === "pinned-public-example-match";
       $("receiptInspectorSummary").textContent = matched
         ? "CURRENT MATCH: the saved receipt exactly matches the current published, build-verified Core receipt."
         : differentPublication
           ? "DIFFERENT PUBLICATION CLAIM: the saved receipt's self-hash is consistent, but it names a different Core publication digest. This site cannot verify the older publication or its authenticity."
+          : pinnedExample
+            ? "PINNED HISTORICAL EXAMPLE MATCH: this saved receipt exactly matches one preserved public week receipt separately reproduced against its pinned public Python Core revision. This is historical source reproducibility for that one example, not a current archive match, signature, identity proof or general historical validation."
           : olderRequest
             ? "OLDER READ REQUEST SHAPE (UNVERIFIED): this self-consistent receipt uses a bounded week-request form seen in earlier public Core records. This site does not verify the historical revision, its answer, or its authenticity."
           : "CURRENT DIFFERENCE: the saved receipt's self-hash is consistent, but its complete content differs from the current published Core receipt. A historical revision, modification or forgery is possible; this result alone cannot distinguish them.";
@@ -855,9 +885,12 @@
         ? "The current archive agrees. For independent reproduction, run stillpoint verify-answer with the exact matching public Python Core source and data."
         : differentPublication
           ? "Do not treat the claimed older digest as proof of historical validity. Obtain the exact historical public Core revision and its published data independently, then run stillpoint verify-answer against that matching source."
+          : pinnedExample
+            ? "The historical original reproduced with the public Python Core at commit " + report.historical_source_commit + ". Inspect the pinned source and archived receipt below, and repeat the verification independently. This does not cover other historical receipts."
           : olderRequest
             ? "The older request form is recognized for explanation only, not accepted as a current answer. Independently recover its exact public Core revision and data, then reproduce with stillpoint verify-answer."
           : "No current match was established. Check which public Core revision produced the saved receipt; reproduce it using that exact source and data. A mismatch alone is not proof of tampering.";
+      $("receiptInspectorPinnedHistory").classList.toggle("hidden", !pinnedExample);
       const list = $("receiptInspectorSources");
       list.replaceChildren();
       if (matched && Array.isArray(report.sources)) {
@@ -872,6 +905,8 @@
         ? "Inspection completed: self-hash and exact current archive match."
         : differentPublication
           ? "Inspection completed: different publication claimed; historical authenticity unverified."
+          : pinnedExample
+            ? "Inspection completed: one pinned public historical example separately reproduced with Python; not a current archive match."
           : olderRequest
             ? "Inspection completed: older read-only request shape recognized; historical authenticity unverified."
           : "Inspection completed: self-hash consistent but no current archive match.";
@@ -881,6 +916,7 @@
     async function inspectSavedReceipt() {
       const token = ++receiptInspectorToken;
       $("receiptInspectorResult").classList.add("hidden");
+      $("receiptInspectorPinnedHistory").classList.add("hidden");
       $("receiptInspectorSources").replaceChildren();
       $("receiptInspectorSummary").textContent = "";
       $("receiptInspectorHashes").textContent = "";
@@ -909,6 +945,7 @@
       } catch (error) {
         if (token === receiptInspectorToken) {
           $("receiptInspectorResult").classList.add("hidden");
+      $("receiptInspectorPinnedHistory").classList.add("hidden");
           $("receiptInspectorStatus").textContent =
             error.message || "Receipt inspection failed closed.";
           $("receiptInspectorStatus").classList.remove("review");
@@ -1342,6 +1379,7 @@
       $("receiptInspectorSubmit").disabled = false;
       $("receiptInspectorForm").setAttribute("aria-busy","false");
       $("receiptInspectorResult").classList.add("hidden");
+      $("receiptInspectorPinnedHistory").classList.add("hidden");
       $("receiptInspectorSources").replaceChildren();
       $("receiptInspectorSummary").textContent = "";
       $("receiptInspectorHashes").textContent = "";

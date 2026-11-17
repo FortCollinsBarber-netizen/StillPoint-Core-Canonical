@@ -5,6 +5,7 @@ must contain all 50 years and explicitly announces that fact in its manifest.
 """
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 import shutil
@@ -230,6 +231,126 @@ const filters = (changes={}) => ({name:"", jurisdiction:"", year:null,
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertIn("PASS", completed.stdout)
 
+    def test_gzipped_day_and_observance_receipts_reproduce_from_public_core(self):
+        with tempfile.TemporaryDirectory(prefix="stillpoint-detail-receipts-") as td:
+            root = Path(td)
+            manifest = export_site(root, years=[2026, 2027, 2075])
+            self.assertEqual(manifest["day_receipt_schema"],
+                             "stillpoint.public-assistant-static-day-receipts.v1")
+            self.assertEqual(manifest["observance_receipt_schema"],
+                             "stillpoint.public-assistant-static-observance-receipts.v1")
+            self.assertEqual(manifest["receipt_format"], "gzip-json-mtime-zero")
+            self.assertEqual(manifest["day_receipt_total"], 3 * 364)
+            self.assertEqual(manifest["observance_receipt_total"], 3 * 364)
+            self.assertTrue(manifest["no_2076_publication"])
+            for entry in manifest["years"]:
+                with self.subTest(year=entry["year"]):
+                    for kind, prefix, capability in (
+                        ("day", "day_receipt", "calendar.day.read"),
+                        ("observances", "observance_receipt",
+                         "calendar.observances.read"),
+                    ):
+                        location = root / entry[prefix + "_path"]
+                        blob = location.read_bytes()
+                        self.assertTrue(location.name.endswith(".json.gz"))
+                        self.assertLess(len(blob), 5_000_000)
+                        self.assertEqual(hashlib.sha256(blob).hexdigest(),
+                                         entry[prefix + "_sha256"])
+                        self.assertEqual(entry[prefix + "_count"], 364)
+                        uncompressed = gzip.decompress(blob)
+                        self.assertLess(len(uncompressed), 12_000_000)
+                        obj = json.loads(uncompressed)
+                        self.assertEqual(obj["year"], entry["year"])
+                        self.assertEqual(obj["capability"], capability)
+                        self.assertEqual(obj["publication_digest"],
+                                         manifest["publication_digest"])
+                        self.assertEqual(len(obj["receipts"]), 364)
+                        for ordinal in (1, 97, 321, 364):
+                            receipt = obj["receipts"][ordinal - 1]
+                            self.assertEqual(receipt["status"], "completed")
+                            self.assertEqual(receipt["interpretation"]["capability"],
+                                             capability)
+                            self.assertEqual(receipt["result"]["common_date"]["ordinal"],
+                                             ordinal)
+                            self.assertFalse(receipt["authorization"]["execution_warrant"])
+                            self.assertTrue(verify_answer_receipt(receipt)["verified"])
+                        if kind == "observances" and entry["year"] == 2026:
+                            self.assertEqual(
+                                obj["receipts"][320]["result"]["observances"], []
+                            )
+            self.assertFalse((root / "data/assistant/day/Y_2076.json.gz").exists())
+            self.assertFalse((root / "data/assistant/observances/Y_2076.json.gz").exists())
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js required to run the receipt loader")
+    def test_actual_browser_receipt_loader_rejects_tampered_gzip(self):
+        with tempfile.TemporaryDirectory(prefix="stillpoint-detail-loader-") as td:
+            root = Path(td)
+            manifest = export_site(root, years=[2027])
+            entry = manifest["years"][0]
+            site = root / "index.html"
+            index = root / "data" / "index.json"
+            day_blob = root / entry["day_receipt_path"]
+            obs_blob = root / entry["observance_receipt_path"]
+            script = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const crypto = require("node:crypto");
+const assert = require("node:assert/strict");
+const {DecompressionStream} = require("node:stream/web");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const day = fs.readFileSync(process.argv[3]);
+const obs = fs.readFileSync(process.argv[4]);
+const start = html.indexOf("    async function getDetailReceiptShard(entry, kind)");
+const end = html.indexOf("    async function getAssistantShard(entry)",start);
+assert.ok(start>=0 && end>start, "real gzip receipt loader must exist");
+let served = day;
+const sandbox = {
+  manifest, detailReceiptCache:new Map(), Blob, Response, DecompressionStream,
+  TextDecoder, Uint8Array,
+  sha256Hex:async bytes=>crypto.createHash("sha256")
+    .update(Buffer.from(bytes)).digest("hex"),
+  fetch:async url=>{
+    assert.match(url, /data\/assistant\/(day|observances)\/Y_2027\.json\.gz[?]sha256=/);
+    return {ok:true, arrayBuffer:async()=>
+      served.buffer.slice(served.byteOffset,served.byteOffset+served.byteLength)};
+  }
+};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start,end),sandbox);
+(async()=>{
+  const entry=manifest.years[0];
+  const d=await sandbox.getDetailReceiptShard(entry,"day");
+  assert.equal(d.receipts.length,364);
+  assert.equal(d.receipts[0].request,"Show Common Calendar day 1 of 2027.");
+  sandbox.detailReceiptCache.clear();
+  served=obs;
+  const o=await sandbox.getDetailReceiptShard(entry,"observances");
+  assert.equal(o.receipts.length,364);
+  assert.equal(o.receipts[0].request,
+    "Explain Common Calendar observances on Common day 1 of 2027.");
+  sandbox.detailReceiptCache.clear();
+  served=Buffer.concat([obs,Buffer.from(" ")]);
+  await assert.rejects(sandbox.getDetailReceiptShard(entry,"observances"),
+    /manifest SHA-256 check/);
+  sandbox.detailReceiptCache.clear();
+  served=day;
+  await assert.rejects(sandbox.getDetailReceiptShard(
+    {...entry,day_receipt_sha256:"0".repeat(64)},"day"),
+    /manifest SHA-256 check/);
+  await assert.rejects(sandbox.getDetailReceiptShard(entry,"execute"),
+    /Unsupported read-only receipt type/);
+  console.log("Real gzip receipt browser integrity and scope: PASS");
+})().catch(error=>{console.error(error);process.exitCode=1});
+"""
+            completed = subprocess.run(
+                [shutil.which("node"), "-e", script,
+                 str(site), str(index), str(day_blob), str(obs_blob)],
+                capture_output=True, text=True, check=False, timeout=30,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("PASS", completed.stdout)
+
     def test_published_observance_evidence_matches_public_core_exactly(self):
         from stillpoint.calendar_core.observances import SACRED_OBSERVANCES
         passover = next(item for item in SACRED_OBSERVANCES if item.id == "passover")
@@ -440,6 +561,16 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('entry.observance_index_sha256', text)
         self.assertIn('row.common_date.year !== filters.year', text)
         self.assertIn('No named Core occurrences matched', text)
+        self.assertIn('invalidateDetailReceiptSelection(', text)
+        self.assertIn('activeReceiptDay = null;', text)
+        self.assertIn('id="saveDayReceipt"', text)
+        self.assertIn('id="saveObservanceReceipt"', text)
+        self.assertIn('async function getDetailReceiptShard(entry, kind)', text)
+        self.assertIn('new DecompressionStream("gzip")', text)
+        self.assertIn('data.day_receipt_total !== 18200', text)
+        self.assertIn('data.observance_receipt_total !== 18200', text)
+        self.assertIn('await sha256Hex(bytes) !== sha', text)
+        self.assertIn('receipt.authorization.execution_warrant !== false', text)
         self.assertIn('id="dayQuestionForm"', text)
         self.assertIn('id="dayQuestionStatus"', text)
         self.assertIn('id="dayObservanceEvidence"', text)

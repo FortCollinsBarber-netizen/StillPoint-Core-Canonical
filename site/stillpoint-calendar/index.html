@@ -240,6 +240,12 @@
           <p id="dayShardDigest" class="digest-line"></p>
           <p id="dayReplayCommand" class="digest-line"></p>
         </div>
+        <div class="assistant-controls" aria-label="Download independently reproducible read-only receipts">
+          <button type="button" class="primary" id="saveDayReceipt" disabled>Save verified day receipt</button>
+          <button type="button" class="secondary" id="saveObservanceReceipt" disabled>Save verified observance receipt</button>
+        </div>
+        <p id="detailReceiptStatus" role="status" aria-live="polite" class="status">Choose a published Common day to save a build-verified receipt.</p>
+        <p id="detailReceiptDigest" class="digest-line"></p>
         <p class="assistant-disclaimer">The year-file SHA-256 check confirms agreement with this site's manifest, not a signature or a separate Python answer receipt. To reproduce and independently verify a full receipt, run the displayed <code>stillpoint ask</code> request with the matching public Core and use <code>stillpoint verify-answer</code>. Source references describe this author's selected profile; they are not automatic civil law or required practice for other communities.</p>
       </section>
     </div>
@@ -301,6 +307,9 @@
     let dayQuestionToken = 0;
     let observanceIndexPromise = null;
     let observanceSearchToken = 0;
+    let receiptToken = 0;
+    let activeReceiptDay = null;
+    const detailReceiptCache = new Map();
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -352,6 +361,67 @@
         throw new Error("The public calendar data did not pass its publication checks.");
       }
       cache.set(entry.year, data);
+      return data;
+    }
+    async function getDetailReceiptShard(entry, kind) {
+      const supported = kind === "day" || kind === "observances";
+      if (!supported) throw new Error("Unsupported read-only receipt type.");
+      const prefix = kind === "day" ? "day_receipt" : "observance_receipt";
+      const expectedCapability = kind === "day"
+        ? "calendar.day.read" : "calendar.observances.read";
+      const expectedSchema = kind === "day"
+        ? manifest.day_receipt_schema : manifest.observance_receipt_schema;
+      const path = entry[prefix + "_path"];
+      const sha = entry[prefix + "_sha256"];
+      const key = kind + ":" + entry.year;
+      if (detailReceiptCache.has(key)) return detailReceiptCache.get(key);
+      if (!path || !path.startsWith("data/assistant/") ||
+          !/^[a-f0-9]{64}$/.test(sha) || entry[prefix + "_count"] !== 364) {
+        throw new Error("No verified public receipt shard for this Common year.");
+      }
+      const response = await fetch("./" + path + "?sha256=" + sha,
+        {cache:"force-cache"});
+      if (!response.ok) throw new Error("Could not fetch published Core receipts.");
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength === 0 || bytes.byteLength > 5_000_000 ||
+          await sha256Hex(bytes) !== sha) {
+        throw new Error("Public receipt file failed its manifest SHA-256 check.");
+      }
+      if (typeof DecompressionStream === "undefined") {
+        throw new Error("This browser cannot safely read compressed Core receipts.");
+      }
+      const expanded = await new Response(
+        new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))
+      ).arrayBuffer();
+      if (expanded.byteLength > 12_000_000) {
+        throw new Error("The public receipt dataset exceeds its bounded size.");
+      }
+      const data = JSON.parse(new TextDecoder().decode(expanded));
+      if (data.schema !== expectedSchema || data.year !== entry.year ||
+          data.publication_digest !== manifest.publication_digest ||
+          data.capability !== expectedCapability ||
+          !Array.isArray(data.receipts) || data.receipts.length !== 364) {
+        throw new Error("The compressed Core receipts have invalid scope.");
+      }
+      data.receipts.forEach(function (receipt, index) {
+        const ordinal = index + 1;
+        const expected = kind === "day"
+          ? "Show Common Calendar day " + ordinal + " of " + entry.year + "."
+          : "Explain Common Calendar observances on Common day " +
+              ordinal + " of " + entry.year + ".";
+        if (receipt.schema !== "stillpoint.public-assistant-answer.v1" ||
+            receipt.status !== "completed" || receipt.request !== expected ||
+            receipt.interpretation.capability !== expectedCapability ||
+            receipt.authorization.allowed !== true ||
+            receipt.authorization.execution_warrant !== false ||
+            receipt.result.common_date.year !== entry.year ||
+            receipt.result.common_date.ordinal !== ordinal ||
+            receipt.evidence.publication_digest !== manifest.publication_digest ||
+            !/^[a-f0-9]{64}$/.test(receipt.receipt_sha256)) {
+          throw new Error("Published receipt violates the read-only Core contract.");
+        }
+      });
+      detailReceiptCache.set(key,data);
       return data;
     }
     async function getAssistantShard(entry) {
@@ -651,6 +721,14 @@
     }
     function render(selected, shard) {
       assistantToken += 1;
+      receiptToken += 1;
+      activeReceiptDay = {year:selected.common_date.year,
+        ordinal:selected.common_date.ordinal, civil_date:selected.civil_date};
+      $("detailReceiptStatus").textContent = "Core day selected. Save the preverified day or observance receipt.";
+      $("detailReceiptStatus").classList.remove("error");
+      $("detailReceiptDigest").textContent = "";
+      $("saveDayReceipt").disabled = false;
+      $("saveObservanceReceipt").disabled = false;
       activeWeek = {year:selected.common_date.year, week:selected.common_date.week};
       activeReceipt = null;
       $("assistantResult").classList.add("hidden");
@@ -695,8 +773,18 @@
       $("prevDay").disabled = selected.civil_date === first;
       $("nextDay").disabled = selected.civil_date === last;
     }
+    function invalidateDetailReceiptSelection(message) {
+      receiptToken += 1;
+      activeReceiptDay = null;
+      $("saveDayReceipt").disabled = true;
+      $("saveObservanceReceipt").disabled = true;
+      $("detailReceiptStatus").classList.remove("error");
+      $("detailReceiptStatus").textContent = message;
+      $("detailReceiptDigest").textContent = "";
+    }
     async function showDate(iso) {
       const token = ++selectionToken;
+      invalidateDetailReceiptSelection("Reading the selected published day…");
       try {
         if (!manifest) throw new Error("Calendar data is not ready.");
         const entry = chooseYear(iso);
@@ -894,6 +982,7 @@
     async function answerPublicDayQuestion() {
       const token = ++dayQuestionToken;
       const beforeSelection = selectionToken;
+      invalidateDetailReceiptSelection("Choose a valid published Common day before downloading receipts.");
       // A rejected new day request must not leave a prior week receipt active.
       assistantToken += 1;
       activeReceipt = null;
@@ -933,6 +1022,72 @@
         if (token === dayQuestionToken) $("dayQuestionSubmit").disabled = false;
       }
     }
+    async function saveSelectedReadReceipt(kind) {
+      const token = ++receiptToken;
+      const address = activeReceiptDay;
+      if (!address || !manifest) return;
+      $("saveDayReceipt").disabled = true;
+      $("saveObservanceReceipt").disabled = true;
+      $("detailReceiptStatus").textContent =
+        "Checking the published compressed Core receipt and its manifest digest…";
+      $("detailReceiptStatus").classList.remove("error");
+      $("detailReceiptDigest").textContent = "";
+      try {
+        const entry = manifest.years.find(function (item) {
+          return item.year === address.year;
+        });
+        if (!entry || entry.year < 2026 || entry.year > 2075) {
+          throw new Error("No published read-only receipt for that Common year.");
+        }
+        const dataset = await getDetailReceiptShard(entry,kind);
+        if (token !== receiptToken || !activeReceiptDay ||
+            activeReceiptDay.year !== address.year ||
+            activeReceiptDay.ordinal !== address.ordinal ||
+            activeReceiptDay.civil_date !== address.civil_date) return;
+        const receipt = dataset.receipts[address.ordinal - 1];
+        if (receipt.result.civil_window.opens !== address.civil_date) {
+          throw new Error("The verified receipt does not match the selected Common day.");
+        }
+        const file = "stillpoint-" + (kind === "day" ? "day" : "observances") +
+          "-" + address.year + "-" + String(address.ordinal).padStart(3,"0") +
+          "-receipt.json";
+        const blob = new Blob([JSON.stringify(receipt,null,2) + "\n"],
+          {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        try {
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = file;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        $("detailReceiptStatus").textContent =
+          "Saved published Python Core receipt. Python verification passed during export.";
+        $("detailReceiptDigest").textContent =
+          "Receipt SHA-256: " + receipt.receipt_sha256 +
+          " · This is reproducible using matching public Core source; it is not a signature or action warrant.";
+      } catch (error) {
+        if (token === receiptToken) {
+          $("detailReceiptStatus").textContent =
+            error.message || "Unable to save a verified read-only receipt.";
+          $("detailReceiptStatus").classList.add("error");
+        }
+      } finally {
+        if (token === receiptToken) {
+          $("saveDayReceipt").disabled = false;
+          $("saveObservanceReceipt").disabled = false;
+        }
+      }
+    }
+    $("saveDayReceipt").addEventListener("click", function () {
+      void saveSelectedReadReceipt("day");
+    });
+    $("saveObservanceReceipt").addEventListener("click", function () {
+      void saveSelectedReadReceipt("observances");
+    });
     $("observanceSearchForm").addEventListener("submit", function (event) {
       event.preventDefault();
       void searchObservances();
@@ -986,7 +1141,16 @@
             data.complete_publication !== true || data.year_days !== 364 ||
             data.first_common_year !== 2026 || data.last_common_year !== 2075 ||
             !Array.isArray(data.years) || data.years.length !== 50 ||
-            data.assistant_schema !== "stillpoint.public-assistant-static-weeks.v1") {
+            data.assistant_schema !== "stillpoint.public-assistant-static-weeks.v1" ||
+            data.day_receipt_schema !== "stillpoint.public-assistant-static-day-receipts.v1" ||
+            data.observance_receipt_schema !== "stillpoint.public-assistant-static-observance-receipts.v1" ||
+            data.receipt_format !== "gzip-json-mtime-zero" ||
+            data.day_receipt_total !== 18200 ||
+            data.observance_receipt_total !== 18200 ||
+            data.years.some(function (entry) {
+              return entry.day_receipt_count !== 364 ||
+                entry.observance_receipt_count !== 364;
+            })) {
           throw new Error("The expected complete 2026–2075 public export was not found.");
         }
         manifest = data;

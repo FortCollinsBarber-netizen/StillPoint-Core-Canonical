@@ -370,7 +370,7 @@ const zlib = require("node:zlib");
 const assert = require("node:assert/strict");
 const html = fs.readFileSync(process.argv[1],"utf8");
 const manifest = JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-const day = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[3],"utf8"))
+const day = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[3]))
   .toString("utf8"));
 const observance = JSON.parse(zlib.gunzipSync(fs.readFileSync(process.argv[4]))
   .toString("utf8"));

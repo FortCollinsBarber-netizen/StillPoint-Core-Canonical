@@ -111,9 +111,14 @@ class SacredProfileTests(unittest.TestCase):
         self.assertEqual(returns[-1] - 2027, 294)
         self.assertEqual(((294 * 52) % 24, 294 % 7), (0, 0))
 
-    def test_candidate_status_does_not_claim_author_acceptance_or_public_enactment(self):
+    def test_author_selected_working_rule_does_not_claim_public_enactment(self):
         value = calendar_day_payload(2027, ordinal_day(4, 19))
         self.assertEqual(value["sacred_year_profile"]["selectionStatus"], PROFILE_STATUS)
+        self.assertEqual(PROFILE_STATUS, "author-selected-working-rule-not-civil-enactment")
+        self.assertEqual(value["sacred_year_profile"]["selectedBy"], "Robert Emmanuel LaDay")
+        self.assertEqual(value["sacred_year_profile"]["selectedOn"], "2026-11-17")
+        self.assertEqual(value["long_cycle_policy"]["selectedBy"], "Robert Emmanuel LaDay")
+        self.assertEqual(value["long_cycle_policy"]["selectedOn"], "2026-11-17")
         self.assertEqual(value["long_cycle_policy"]["selectionStatus"], PROFILE_STATUS)
         source = next(x for x in value["observances"] if x["id"] == "firstfruits")
         self.assertEqual(source["source_coordinate"]["month"], 1)

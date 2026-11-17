@@ -516,6 +516,16 @@
           "No textual references recorded in Core for this occurrence.");
         refs.className = "details";
         li.appendChild(refs);
+        if (occurrence.source_coordinate) {
+          const source = occurrence.source_coordinate;
+          const sourceLabel = node("span",
+            "Recorded source coordinate: " + source.calendar + ", month " +
+            source.month + ", day " + source.day +
+            (source.end_month === null ? "" :
+             " through month " + source.end_month + ", day " + source.end_day) + ".");
+          sourceLabel.className = "details";
+          li.appendChild(sourceLabel);
+        }
         if (occurrence.note) {
           const note = node("span", "Core note: " + occurrence.note);
           note.className = "details";
@@ -929,6 +939,7 @@
     });
     $("observanceSearchForm").addEventListener("reset", function () {
       observanceSearchToken += 1;
+      $("observanceSearchSubmit").disabled = false;
       $("observanceSearchResults").replaceChildren();
       $("observanceSearchDigest").textContent = "";
       $("observanceSearchStatus").classList.remove("error");

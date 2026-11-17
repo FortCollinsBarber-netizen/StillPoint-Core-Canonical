@@ -79,6 +79,9 @@
     .hidden { display:none; }
     .assistant-panel { border-color:#bed0dd; background:linear-gradient(145deg,#fff,#f5f9fc); }
     .assistant-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:15px 0; }
+    .question-field { flex:1; min-width:245px; }
+    .question-field input { width:100%; min-height:48px; border:1px solid #aebac4;
+      border-radius:9px; padding:9px 12px; color:var(--ink); background:white; }
     .assistant-status { color:var(--muted); font-size:.9rem; min-height:1.5em; }
     .assistant-answer { padding:16px; background:white; border:1px solid var(--line);
       border-radius:11px; }
@@ -170,6 +173,17 @@
         <p class="overline">First public assistant capability</p>
         <h2 id="assistant-heading">Ask StillPoint about this week</h2>
         <p class="hint">Explore a real answer generated and independently verified by the public Python Core during site export. This static page does not run Python or execute new requests on a server.</p>
+        <form id="questionForm" class="field-row">
+          <div class="question-field">
+            <label for="weekQuestion">Ask a published Common Calendar question</label>
+            <input id="weekQuestion" type="text" required maxlength="120"
+              placeholder="Show Common Calendar week 46 of 2026."
+              aria-describedby="questionHint">
+          </div>
+          <button type="submit" class="primary" id="questionSubmit">Find verified answer</button>
+        </form>
+        <p class="hint" id="questionHint">Supported: “Show Common Calendar week 46 of 2026.” or “Which Common Calendar week contains 2026-11-17?” No unrestricted AI or actions.</p>
+        <p class="status" id="questionStatus" role="status" aria-live="polite"></p>
         <p class="code" id="assistantRequest"></p>
         <div class="assistant-controls">
           <button type="button" class="primary" id="askWeek">Show verified week answer</button>
@@ -206,6 +220,7 @@
     let activeReceipt = null;
     let selectionToken = 0;
     let assistantToken = 0;
+    let questionToken = 0;
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -284,6 +299,24 @@
       });
       assistantCache.set(entry.year, data);
       return data;
+    }
+    function parsePublicWeekQuestion(text) {
+      const question = String(text).trim();
+      const numberQuery = /^(?:show|display|find)\s+(?:me\s+)?(?:the\s+)?(?:common calendar|stillpoint)\s+week\s+(\d{1,2})\s+(?:of|in)\s+(\d{4})[.?!]?$/i.exec(question);
+      if (numberQuery) {
+        const week = Number(numberQuery[1]);
+        const year = Number(numberQuery[2]);
+        if (year < 2026 || year > 2075) {
+          throw new Error("Only Common years 2026–2075 are published. 2076 is mathematical only.");
+        }
+        if (week < 1 || week > 52) {
+          throw new Error("Published Common weeks must be numbered 1 through 52.");
+        }
+        return {kind:"week", year, week};
+      }
+      const dateQuery = /^(?:which|what)\s+(?:the\s+)?(?:common calendar|stillpoint)\s+week\s+contains\s+(\d{4}-\d{2}-\d{2})[.?!]?$/i.exec(question);
+      if (dateQuery) return {kind:"civil_date", civil_date:dateQuery[1]};
+      throw new Error("I can answer only a published week-number question or which week contains a YYYY-MM-DD date.");
     }
     function node(tag, text) {
       const element = document.createElement(tag);
@@ -429,6 +462,57 @@
         if (token === assistantToken) $("askWeek").disabled = false;
       }
     }
+    async function answerPublicWeekQuestion() {
+      const queryToken = ++questionToken;
+      const originalSelection = selectionToken;
+      // An invalid new question must not leave an older answer or receipt on screen.
+      assistantToken += 1;
+      activeReceipt = null;
+      $("assistantResult").classList.add("hidden");
+      $("downloadAnswer").disabled = true;
+      $("assistantStatus").textContent = "Only a supported published question can display a new answer.";
+      $("questionSubmit").disabled = true;
+      $("questionStatus").textContent = "Finding the published Core week for your question…";
+      $("questionStatus").classList.remove("error");
+      try {
+        if (!manifest) throw new Error("Published Core data is not ready.");
+        const parsed = parsePublicWeekQuestion($("weekQuestion").value);
+        const entry = parsed.kind === "week"
+          ? manifest.years.find(function (item) { return item.year === parsed.year; })
+          : chooseYear(parsed.civil_date);
+        if (!entry) throw new Error("That request is outside the published 2026–2075 calendar.");
+        const shard = await getShard(entry);
+        const selected = shard.days.find(function (day) {
+          return parsed.kind === "week"
+            ? day.common_date.week === parsed.week
+            : day.civil_date === parsed.civil_date;
+        });
+        if (!selected) throw new Error("No published Core week matches that request.");
+        if (queryToken !== questionToken || selectionToken !== originalSelection) return;
+        await showDate(selected.civil_date);
+        if (queryToken !== questionToken || selectionToken !== originalSelection + 1 ||
+            !activeWeek || activeWeek.year !== selected.common_date.year ||
+            activeWeek.week !== selected.common_date.week) return;
+        await showAssistantWeek();
+        if (queryToken !== questionToken || selectionToken !== originalSelection + 1) return;
+        if (!activeReceipt || activeReceipt.result.year !== activeWeek.year ||
+            activeReceipt.result.week !== activeWeek.week) {
+          throw new Error("No verified answer was available for that published week.");
+        }
+        $("questionStatus").textContent = "Your question matched a verified, read-only Core week answer.";
+      } catch (error) {
+        if (queryToken === questionToken) {
+          $("questionStatus").textContent = error.message || "Unable to answer this question.";
+          $("questionStatus").classList.add("error");
+        }
+      } finally {
+        if (queryToken === questionToken) $("questionSubmit").disabled = false;
+      }
+    }
+    $("questionForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      void answerPublicWeekQuestion();
+    });
     $("askWeek").addEventListener("click", function () { void showAssistantWeek(); });
     $("downloadAnswer").addEventListener("click", function () {
       if (!activeReceipt) return;

@@ -1,9 +1,10 @@
 # Public StillPoint Calendar browser — first usable interface
 
-**Status:** public-source, static-site implementation and build path. This
-document does **not** assert that the site has been deployed at a public URL,
-that the private RobertOS/StillPointOS integrations passed, or that a native
-Apple Watch binary has been qualified.
+**Status:** deployed public static browser at
+https://fortcollinsbarber-netizen.github.io/StillPoint-Core-Canonical/ .
+The independently verified [public Pages run #44171213236](https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/actions/runs/44171213236)
+completed November 17, 2026 (20:38 UTC) and served HTTP 200 to independent checks.
+This does **not** qualify private RobertOS/StillPointOS integration or native Apple Watch deployment.
 
 ## What people can do
 
@@ -78,13 +79,13 @@ The public-calendar-browser workflow runs these checks and builds the full
 static site on GitHub's **existing public standard Ubuntu runner**.
 It does not deploy the site, change Pages settings, or upload private artifacts.
 
-## Publication milestone, still separate
+## Published website and distinct future release gate
 
-After a green browser build, choose an available **free** static publishing
-path within the existing public repository (for example GitHub Pages after
-verifying it is configured), review the generated output and accessibility,
-and verify the actual public URL on desktop and mobile. Do not assert a
-deployed public website until its URL is independently reachable.
+The original read-only browser and week receipts were published through GitHub
+Pages in the existing public repository and independently checked on November
+17, 2026; see the verified run above. New UI changes on feature branches remain
+**unpublished proposals** until approved, merged, deployed, and separately
+checked in a live browser (including mobile layout and keyboard operation).
 
 ## Scope that remains intentionally unfinished
 
@@ -94,3 +95,22 @@ deployed public website until its URL is independently reachable.
   qualification remain a distinct issue.
 - Apple Watch CI and device deployment need their own verifiable evidence.
 - Site usage does not change legal rights, discharge debt or enforce rules.
+
+## Bounded typed week questions (candidate UI)
+
+The browser includes a form accepting **only** two question shapes:
+`Show Common Calendar week 46 of 2026.` and
+`Which Common Calendar week contains 2026-11-17?` (case-insensitive, optional
+end punctuation; `StillPoint` can replace `Common Calendar`).
+The form locates the matching day in the Core-exported year shard, selects its
+published Common week and presents the already-exported, independently
+Core-verified seven-day answer and downloadable receipt.
+
+This is a **bounded question router, not generative AI**. Other sentences,
+week 0/53, Common 2076, and dates outside published Core coordinates fail closed.
+JavaScript never computes calendar dates or Jubilee law, broadens permissions,
+creates new receipts, sends information to a provider, or modifies anything.
+Existing date navigation and one-click assistant use are unchanged.
+
+A new GitHub PR must pass browser/export and public Core CI; a merged deployment
+also needs live text-entry, keyboard, and narrow-viewport verification.

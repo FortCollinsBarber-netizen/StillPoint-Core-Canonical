@@ -1,0 +1,288 @@
+{
+  "schema": "stillpoint.public-assistant-answer.v1",
+  "request": "Explain Common Calendar observances on Common day 1 of 2027.",
+  "interpretation": {
+    "capability": "calendar.observances.read",
+    "arguments": {
+      "ordinal": 1,
+      "year": 2027
+    }
+  },
+  "authorization": {
+    "allowed": true,
+    "scope": "this-request-only",
+    "capability": "calendar.observances.read",
+    "basis": "invoking-caller-public-read-permission",
+    "execution_warrant": false
+  },
+  "result": {
+    "schema": "stillpoint.calendar-day.v2",
+    "authority": "read-only-calendar-law",
+    "calendar_address": "Y_2027-001",
+    "common_date": {
+      "year": 2027,
+      "month": 1,
+      "day": 1,
+      "ordinal": 1,
+      "week": 1,
+      "day_in_week": 1,
+      "weekday": "Thursday"
+    },
+    "common_civil_coordinate": {
+      "date": "2027-01-01",
+      "clock": "24-hour",
+      "date_boundary": "00:00",
+      "daylight_saving_time": false,
+      "role": "coordination-coordinate"
+    },
+    "sacred_date": {
+      "profile_id": "stillpoint-enochic-march25-v1",
+      "calendar": "schematic-enochic-364",
+      "year": 2026,
+      "month": 10,
+      "day": 9,
+      "ordinal": 282
+    },
+    "sacred_year_profile": {
+      "id": "stillpoint-enochic-march25-v1",
+      "selectionStatus": "author-selected-working-rule-not-civil-enactment",
+      "selectedBy": "Robert Emmanuel LaDay",
+      "selectedOn": "2026-11-17",
+      "authorityScope": "StillPoint-religious-overlay-only",
+      "sourceCalendar": "schematic-enochic-364",
+      "monthLengths": [
+        30,
+        30,
+        31,
+        30,
+        30,
+        31,
+        30,
+        30,
+        31,
+        30,
+        30,
+        31
+      ],
+      "anchorCommonMonth": 3,
+      "anchorCommonDay": 25,
+      "anchorWeekday": "Wednesday",
+      "firstfruitsSourceMonth": 1,
+      "firstfruitsSourceDay": 26,
+      "firstfruitsRule": "sunday-after-weekly-sabbath-following-unleavened-bread",
+      "weeksSourceMonth": 3,
+      "weeksSourceDay": 15,
+      "annualSolarReset": false,
+      "gridAuthority": false,
+      "note": "Fixed modern project convention; not an ancient Common date or a rule for other communities."
+    },
+    "long_cycle_policy": {
+      "id": "stillpoint-overlap49-2027-v1",
+      "selectionStatus": "author-selected-working-rule-not-civil-enactment",
+      "selectedBy": "Robert Emmanuel LaDay",
+      "selectedOn": "2026-11-17",
+      "authorityScope": "StillPoint-working-cycle-calculation-only",
+      "epochCommonYear": 2027,
+      "epochCycle": 1,
+      "rolloverRule": "overlap-49",
+      "cycleYears": 49,
+      "proclamationOrdinalYear": 50,
+      "year50OverlapsNextYear1": true,
+      "releaseObservanceId": "atonement",
+      "gridAuthority": false
+    },
+    "civil_window": {
+      "opens": "2026-12-31",
+      "closes": "2027-01-01",
+      "frame": "proleptic-gregorian",
+      "role": "external-translation-only",
+      "grid_authority": false
+    },
+    "external_witness_overlays": [],
+    "season": {
+      "number": 1,
+      "day": 1,
+      "enoch_phase": 1,
+      "enoch_gate": 4,
+      "enoch_motion": "northward"
+    },
+    "protected_time": {
+      "is_sabbath_date": false,
+      "sabbath_opens": "Friday local sunset",
+      "sabbath_closes": "Saturday local sunset",
+      "stillpoint_opens": "Friday civil dusk (solar center -6 degrees)",
+      "stillpoint_releases": "Sunday civil dawn (solar center -6 degrees)",
+      "boundary_authority": "local-light-overlay-no-grid-mutation"
+    },
+    "observances": [
+      {
+        "id": "new-year",
+        "name": "New Year's Day",
+        "jurisdiction": "civic",
+        "rule": "fixed-date",
+        "source_refs": [],
+        "note": null,
+        "common_coordinate": {
+          "month": 1,
+          "day": 1
+        },
+        "source_coordinate": null,
+        "profile_id": null,
+        "projection_status": "declared-common-observance"
+      }
+    ],
+    "jubilee": {
+      "configuration": {
+        "epoch_common_year": 2027,
+        "epoch_cycle": 1,
+        "rollover_rule": "overlap-49",
+        "selection_source": "declared-project-profile",
+        "authority_scope": "calculation-inputs-only",
+        "decision_status": "author-selected-working-rule-not-civil-enactment",
+        "selected_policy_applies": true
+      },
+      "designation_status": "computed-under-stated-configuration",
+      "release_day_projection_status": "author-selected-working-rule-not-civil-enactment",
+      "proclamation_ordinal_year": null,
+      "completed_cycle": null,
+      "cycle": 1,
+      "year": 1,
+      "seven_year": {
+        "block": 1,
+        "year_in_block": 1,
+        "is_seventh_year": false
+      },
+      "forty_nine": {
+        "year": 1,
+        "is_year_49": false,
+        "completed": false
+      },
+      "is_sabbatical_threshold": false,
+      "is_jubilee_year": false,
+      "is_jubilee_release_day": false
+    },
+    "long_cycle_comparison": {
+      "scope": "arithmetic-comparison-only",
+      "grid_authority": false,
+      "release_authority": false,
+      "common_year": 2027,
+      "epoch_common_year": 2027,
+      "standalone_counter_epoch_cycle": 1,
+      "assumptions": {
+        "year_days": 364,
+        "weeks_per_year": 52,
+        "weekly_courses": 24
+      },
+      "recurrence_years": {
+        "six_seven_forty_nine": 294,
+        "with_independent_fifty": 7350
+      },
+      "status": "comparison-only",
+      "models": {
+        "continuous_seven_year": {
+          "year": 1
+        },
+        "six_year_priestly": {
+          "year": 1,
+          "course_phase_at_year_start_zero_based": 0
+        },
+        "consecutive_forty_nine_year_blocks": {
+          "block_from_epoch": 1,
+          "year": 1,
+          "completed_blocks": 0,
+          "at_boundary_after_origin": false,
+          "proclamation_rule": "comparison-does-not-designate-authority"
+        },
+        "existing_standalone_fifty_year_counter": {
+          "cycle": 1,
+          "cycle_year": 1,
+          "seven_year_block": 1,
+          "year_within_block": 1,
+          "is_sabbatical_threshold": false,
+          "is_jubilee_year": false,
+          "rollover_rule": "standalone-50",
+          "proclamation_ordinal_year": null,
+          "completed_cycle": null
+        }
+      },
+      "elapsed_years": 0,
+      "ordinal_year_from_epoch": 1,
+      "at_294_year_return_after_origin": false
+    },
+    "provenance": [
+      "1 Enoch 72-82",
+      "Jubilees 6:29-32"
+    ],
+    "publication": {
+      "version": "stillpoint-calendar-publication-v2",
+      "digest": "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
+      "authority_id": "ROBERT_EMMANUEL_LADAY",
+      "authority_status": "enacted"
+    },
+    "map": {
+      "first_year": 2026,
+      "last_year": 2075,
+      "year_count": 50,
+      "total_days": 18200,
+      "day001_weekday": "Thursday",
+      "year_days": 364,
+      "weeks_per_year": 52,
+      "december_31_exists": false
+    }
+  },
+  "evidence": {
+    "kind": "reproducible-public-read-not-a-signature-or-warrant",
+    "request_sha256": "8791d4560b8fd4884e0f2113bd78de111c6ba4f52e145c6d7f246fb9f4c38711",
+    "result_sha256": "1bbc0f06dcf77ebefbcd6b2b907f77ef0ef830bb4f2ee754105e5b77bf2fef78",
+    "publication_digest": "49847804cc86fc2858aed019deaa0f702fd03bc6acc3b01f7036def7e51db2c8",
+    "sources": [
+      {
+        "path": "stillpoint/public_assistant.py",
+        "sha256": "9c10a3dee81847bc7912f873916ddf81fc6cd9656ee7221c805de3b3282991ff"
+      },
+      {
+        "path": "stillpoint/authority/deterministic.py",
+        "sha256": "9a3bd36372f0385730fecb64323b3a8636146089f8b887f8df33741ee7095594"
+      },
+      {
+        "path": "stillpoint/authority/clauses.py",
+        "sha256": "c9d2d9d7c23d5c23d8b5da7d3908310fe1ea38cdba55d03a685d1c42070f41d5"
+      },
+      {
+        "path": "stillpoint/authority/schema.py",
+        "sha256": "394b6458b50afe168af34e3f62c1e70695a24b1aee0d36c4bd129aee8646f1e5"
+      },
+      {
+        "path": "stillpoint/calendar_core/civil_lookup.py",
+        "sha256": "9b7f3e8e93e5ffe855333d0aec22566c1455cdfcb5de4f601fd2c48deeef67bb"
+      },
+      {
+        "path": "stillpoint/calendar_core/runtime_surface.py",
+        "sha256": "876d27cb635fd6cac6e6e721c9c24784c3861c4a7609e386738fe772f5112454"
+      },
+      {
+        "path": "stillpoint/calendar_core/week_view.py",
+        "sha256": "b051aea0dd30118126d6e368e1004cd7f580e38583ae07bd40fa63c735fc251e"
+      },
+      {
+        "path": "stillpoint/calendar_core/observances.py",
+        "sha256": "e3ca26bf1469664d60453c4058d2de87f194eaabedc23b85ae84bfa5ee7c0543"
+      },
+      {
+        "path": "stillpoint/calendar_core/governor.py",
+        "sha256": "cdd2e95f1de9d9a256b865c15dbee107a4687f065727e973512dc088322b4165"
+      },
+      {
+        "path": "stillpoint/calendar_core/publication.py",
+        "sha256": "736657dd8da1d3748c67882b362893960fcd5a6cf53961e38f49494a8dc0c404"
+      },
+      {
+        "path": "stillpoint/contracts/calendar_publication_2026_2075.json",
+        "sha256": "fdaa312021a671a4b45a0817313b845865c089e47c747874d90073635f74ab94"
+      }
+    ]
+  },
+  "status": "completed",
+  "answer": "Common 2027-01-01 (Thursday) records 1 named StillPoint observance(s): New Year's Day (jurisdiction: civic; Core rule: fixed-date; projection: declared-common-observance). These are published Core annotations, not automatic civil enactments or prescriptions for other communities.",
+  "receipt_sha256": "4343ccebf386e14d2dbae3ecf0ca72d51f87d7b1d950ff378059c6a496a094bd"
+}

@@ -1,12 +1,13 @@
-# Cycle and sacred-year configuration: candidate migration
+# Cycle and sacred-year configuration: selected working rules
 
-**Status:** implementation proposal awaiting the originating author's selection
-of its modern sacred-year anchor. Ancient texts do not prescribe Common March
-25; this proposal does not claim that date has already been accepted.
+**Status:** working source-calendar anchor and overlapping rollover selected
+by Robert Emmanuel LaDay on November 17, 2026. The selection governs the
+StillPoint working implementation, not ancient history, religious communities,
+or civil law.
 
-The concrete proposal is in `CALENDAR_RULE_RESOLUTION_2026-11-17.md`.
+The decision record and evidentiary limits are in `CALENDAR_RULE_RESOLUTION_2026-11-17.md`.
 
-## Proposed defaults
+## Author-selected working defaults
 
 - Common long-cycle Year 1 begins January 1, 2027, independently of publication.
 - Consecutive 49-year blocks; a fiftieth proclamation overlaps the next Year 1.
@@ -44,7 +45,7 @@ counter available as a named alternative; unsupported identifiers fail.
 
 The sacred year label runs from Common March 25 through the following March
 24. Common long-cycle years still change on January 1. Source and projected
-coordinates are stored separately. The first proposed proclamation in 2076
+coordinates are stored separately. The first calculated working proclamation in 2076
 remains outside the current 2026–2075 publication: arithmetic can examine that
 year, but runtime calendar payloads must reject it until a separate extension.
 

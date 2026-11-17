@@ -288,7 +288,7 @@
       if (!/^[a-f0-9]{64}$/.test(entry.sha256)) {
         throw new Error("Missing public Core year-file digest.");
       }
-      const response = await fetch("./" + entry.path, {cache:"force-cache"});
+      const response = await fetch("./" + entry.path + "?sha256=" + entry.sha256, {cache:"force-cache"});
       if (!response.ok) throw new Error("Could not load the public year " + entry.year + ".");
       const bytes = await response.arrayBuffer();
       if (await sha256Hex(bytes) !== entry.sha256) {
@@ -314,7 +314,7 @@
       if (!window.crypto || !window.crypto.subtle) {
         throw new Error("Receipt integrity requires a secure HTTPS or localhost browser context.");
       }
-      const response = await fetch("./" + entry.assistant_path, {cache:"force-cache"});
+      const response = await fetch("./" + entry.assistant_path + "?sha256=" + entry.assistant_sha256, {cache:"force-cache"});
       if (!response.ok) throw new Error("Could not load the public assistant answers.");
       const bytes = await response.arrayBuffer();
       const computed = Array.from(

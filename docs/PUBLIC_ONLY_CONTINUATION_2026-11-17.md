@@ -1,33 +1,47 @@
-# Public-only continuation — 2026-11-17
+# Public-only StillPoint development continuation
 
-Status: engineering operating boundary, **not** a product release, legal enactment, or downstream integration qualification.
+**Date:** November 17, 2026  
+**Status:** proposed engineering operating path; no release or promotion authority conferred
 
-## What stays active
+## Purpose
 
-- The already-public `FortCollinsBarber-netizen/StillPoint-Core-Canonical` remains the **single source-of-truth for new public Core work**. Its `main` history and approved successor policy remain intact.
-- The existing Core and Apple Watch CI workflows remain the baseline. The additional `public-core-continuation.yml` workflow executes **only this public repository's own files**, through standard GitHub-hosted Ubuntu runners.
-- The other existing public repositories remain available as separately identified historical or auxiliary sources. Do **not** silently infer that similarly named repositories are equivalent or authoritative.
+Keep StillPoint development moving using **already-public source** and the GitHub-hosted standard runners available to public repositories, without requiring an additional private-repository Actions budget. Maintain the distinction between an executable public Core and other independent codebases and evidence archives.
 
-## What stays private and paused for hosted qualification
+## Authoritative public working base
 
-The private RobertOS and StillPointOS implementations, private StillPoint material, and writing corpus retain their existing visibility, history, PRs, and source custody. Do not delete, expose, mirror, or reset them. Private-runner failure must not be misrepresented as Python test failure or used to force a merge. Resume downstream qualification only after a private execution route is demonstrably available or an independently authorized, publication-safe boundary is explicitly designed.
+- **Active Core:** `FortCollinsBarber-netizen/StillPoint-Core-Canonical`, default branch `main`.
+- **Public runtime lane:** `RobertEmmanuelLaDay/StillPoint-` is a separately versioned finite-warrant runtime; it does not replace or author the current Calendar Core.
+- **Historical export:** `RobertEmmanuelLaDay/StillPoint-Core` is a source/provenance archive and is **not** an active development or promotion target.
+- Keep the current selected Core temporal rules, finite publication, policy boundaries, authorial provenance, and historical evidence separate. A passing workflow is engineering evidence, not new jurisdiction or civil enactment.
 
-## Public CI safety boundary
+## Evidence that the public path runs
 
-1. Checkout only the public Core repository at the triggering commit; no cross-repository checkout.
-2. Use Python standard tooling and in-repository tests, with `permissions: contents: read`.
-3. Do not use secrets, private repository tokens, personal source archives, personal records, paid model calls, publishing credentials, or deployments.
-4. A green public CI result proves **only the exact public Core commit and stated tests**. It must **never** be inherited by a private RobertOS or StillPointOS commit.
-5. Keep fixed 364-day Common grid/52-week projection, the 2026–2075 finite publication boundary, protected civic vs. sacred-time distinction, independent Jubilee working profile, and no-grid-mutation safeguards under their established test/approval process.
-6. Preserve visible distinctions among source custody, proposed working rule, software implementation, verification evidence, and real-world legal authority.
-7. Do not modify billing or repository visibility as part of public Core development.
+On November 17, 2026, the existing Core CI and Apple Watch Common Calendar CI both completed successfully on GitHub-hosted runners:
 
-## Concrete first gate
+- [Core CI run #44088514711](https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/actions/runs/44088514711) — completed, success; includes actual Python tests and package checks.
+- [Apple Watch Common Calendar CI run #44088514978](https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/actions/runs/44088514978) — completed, success.
 
-The public continuation workflow installs this public repository with Python 3.11, executes the existing calendar-domain tests, selected temporal-authority tests, publication tests, and exercises the live public `calendar_day_payload` contract. It explicitly verifies the finite publication boundary: 2075 remains accessible; 2076 fails closed.
+These runs qualify the **tested public Core heads and their exact workflows**, not the unexecuted branches of any other repository.
 
-For release promotion, continue to require the separately declared authority and provenance gates; neither a smoke test nor a green Actions status grants a new operating policy automatically.
+## Operating rules for public-only continuation
 
-## Resume criteria for private integration
+1. **Do not change the visibility** of any other repository as part of this path. Preserve independent repositories and their source history.
+2. **Do not import or publish nonpublic source, documents, build artifacts, CI logs, git history, credentials, tokens, personal records, or private repository contents** into a public branch, job or artifact. This includes network checkout using an access token. A public runner cannot safely qualify a private product merely by copying it to public storage.
+3. **Use only source that is already public, or separately cleared for publication.** Explicit source/provenance review is required before a new component crosses that boundary; don't infer permission from a dependency or from access to its repository.
+4. **Continue in focused public branches and pull requests.** Run the existing `ubuntu-latest` Core CI and relevant Apple Watch checks on every proposed change. Preserve passing run IDs and exact tested commit IDs.
+5. **Do not trade verification for a green badge.** If a test requires unavailable private inputs, report that test as *not run* instead of substituting mocks and claiming it passed.
+6. **Keep no-charge infrastructure the default.** No payment-method changes, private-runner retries, premium runners, or paid external AI calls are authorized by this plan. Public Actions being free does not mean all API calls or third-party services are free.
+7. **Protect public release rights.** Visibility does not itself grant reuse rights; choose and review explicit licensing before representing the software as freely redistributable.
+8. **Do not change selected authority** or publish new Calendar years through a development-plan PR. Calendar successor decisions need their own author-directed review and tests.
 
-Only after an authorized test executor can obtain the **exact** private PR heads and execute their required tests with trusted provenance, preserve existing dependency order and verify the current Core pin. No private source copying into this public repository is permitted by this document. A separate explicit publication review is required before any public source extraction.
+## Practical next engineering milestones
+
+1. **Public-Core-only baseline** — confirm the active Core `main` remains green on its existing full CI and on the first public continuation PR; make no code-path changes purely to mask a runner failure elsewhere.
+2. **Public-safe development** — move new, self-contained Core/calendar/client improvements through a narrowly scoped PR and executable hosted checks.
+3. **Public runtime interoperability** — where needed, derive a narrow interface using existing *public* Core and *public* runtime source only, with independently executed contract tests. Do not import any unpublished system's code or historical archives.
+4. **Deferred private qualification** — preserve its open corrections and pin identities. Only mark another system qualified when its own exact source and required tests have actually executed in a permitted environment.
+5. **Publish free access deliberately** — keep source availability, access to outcomes, and administrative control separate, with an explicit reviewed license and security posture.
+
+## Decision record
+
+The public-only path is the current **development infrastructure choice**, not a decision to abandon preserved work, not a repo visibility change, not a claim that account billing explains every runner rejection, and not a final cross-system release. This proposal adds no private files and makes no change to the active runtime.

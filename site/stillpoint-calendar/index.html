@@ -308,6 +308,12 @@
         <p id="receiptInspectorHashes" class="digest-line"></p>
         <p id="receiptInspectorScope" class="hint"></p>
         <p id="receiptInspectorNextSteps" class="hint"></p>
+        <div id="receiptInspectorPinnedHistory" class="hint hidden">
+          <p><strong>Pinned historical public example:</strong> this receipt matches one preserved public sample that was separately reproduced against its exact Python Core revision. The browser compares an allowlisted fingerprint; it does not execute Python, sign the receipt or authenticate a person.</p>
+          <p><a href="https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/tree/0261e0cda145f4eddd9b039cb81e7928a6397859" rel="noopener noreferrer" target="_blank">Inspect pinned historical public Core source</a></p>
+          <p><a href="https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/blob/fa0dca150cd29e598ef07668b12697a213aa6403/docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json" rel="noopener noreferrer" target="_blank">Inspect pinned public archived receipt example</a></p>
+          <p><strong>Scope:</strong> exactly this example, not other receipts from that revision. Repeat independent reproduction using the matching Python Core source. Details: <code>docs/PUBLIC_RECEIPT_INSPECTOR_V1.md</code>.</p>
+        </div>
         <h3>Recorded public source fingerprints</h3>
         <ul id="receiptInspectorSources" class="inspector-sources"></ul>
         <p class="digest-line">Independent reproduction: <code>stillpoint verify-answer saved-receipt.json</code> using the matching public Python Core source and data.</p>
@@ -341,6 +347,14 @@
     let activeReceiptDay = null;
     const detailReceiptCache = new Map();
     let receiptInspectorToken = 0;
+    // One fixed, public, Python-reproduced historical fixture; not a signature.
+    const PINNED_HISTORICAL_WEEK = Object.freeze({
+      source_commit:"0261e0cda145f4eddd9b039cb81e7928a6397859",
+      archive_commit:"fa0dca150cd29e598ef07668b12697a213aa6403",
+      receipt_sha256:"7173c7bcc915f4b3ea8288b85c520a4ce159929008f7c530c4a294c5f411b2a7",
+      request:"Show the Common Calendar week for 2026-11-17.",
+      year:2026,week:46,civil_date:"2026-11-17"
+    });
 
     function setStatus(message, error) {
       $("status").textContent = message;

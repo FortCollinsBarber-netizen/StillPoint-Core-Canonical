@@ -255,4 +255,20 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         try JSONSerialization.data(withJSONObject: object).write(to: temporary)
         XCTAssertNil(CalendarPopulationLoader.load(url: temporary, calendarCoreSpec: spec))
     }
+    func testAuthorSelectedWorkingRuleHasVisibleProvenanceAndNoCivilAuthority() throws {
+        let loaded = try population(spec: coreSpec())
+        XCTAssertEqual(loaded.sacredYearProfile.selectionStatus, "author-selected-working-rule-not-civil-enactment")
+        XCTAssertEqual(loaded.longCyclePolicy.selectionStatus, "author-selected-working-rule-not-civil-enactment")
+        XCTAssertEqual(loaded.sacredYearProfile.selectedBy, "Robert Emmanuel LaDay")
+        XCTAssertEqual(loaded.longCyclePolicy.selectedBy, "Robert Emmanuel LaDay")
+        XCTAssertEqual(loaded.sacredYearProfile.selectedOn, "2026-11-17")
+        XCTAssertEqual(loaded.longCyclePolicy.selectedOn, "2026-11-17")
+        XCTAssertEqual(loaded.sacredYearProfile.anchorCommonMonth, 3)
+        XCTAssertEqual(loaded.sacredYearProfile.anchorCommonDay, 25)
+        XCTAssertEqual(loaded.longCyclePolicy.epochCommonYear, 2027)
+        XCTAssertTrue(loaded.longCyclePolicy.year50OverlapsNextYear1)
+        XCTAssertFalse(loaded.sacredYearProfile.gridAuthority)
+        XCTAssertFalse(loaded.longCyclePolicy.gridAuthority)
+    }
+
 }

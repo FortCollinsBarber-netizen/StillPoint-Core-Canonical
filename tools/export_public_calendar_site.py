@@ -18,6 +18,11 @@ from stillpoint.calendar_core.runtime_surface import (
     calendar_day_payload,
     load_enacted_publication,
 )
+from stillpoint.public_assistant import (
+    WEEK_READ,
+    answer_request,
+    verify_answer_receipt,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE_SOURCE = ROOT / "site" / "stillpoint-calendar" / "index.html"
@@ -25,6 +30,7 @@ FIRST_YEAR = 2026
 LAST_YEAR = 2075
 DAY_COUNT = 364
 SCHEMA = "stillpoint.public-calendar-static.v1"
+ASSISTANT_SCHEMA = "stillpoint.public-assistant-static-weeks.v1"
 
 
 def _write_json(path: Path, value: object) -> str:
@@ -87,6 +93,8 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     data_dir = output / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
+    assistant_dir = data_dir / "assistant"
+    assistant_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(SITE_SOURCE, output / "index.html")
 
     digest = source["publicationDigest"]
@@ -114,8 +122,41 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
                 "days": days,
             },
         )
+        # These are complete answers produced by the installed public Core
+        # assistant, NOT answers synthesized in JavaScript. Each answer is
+        # independently reproduced by the canonical Python verifier at build
+        # time; the static browser only presents these precomputed receipts.
+        receipts = []
+        for week in range(1, 53):
+            request = f"Show Common Calendar week {week} of {year}."
+            receipt = answer_request(
+                request, allowed_capabilities=frozenset({WEEK_READ}),
+            )
+            if (
+                receipt.get("status") != "completed"
+                or receipt["result"]["week"] != week
+                or receipt["result"]["year"] != year
+                or receipt["result"]["publication"]["digest"] != digest
+                or len(receipt["result"]["days"]) != 7
+                or not verify_answer_receipt(receipt)["verified"]
+            ):
+                raise ValueError("public assistant answer did not reproduce")
+            receipts.append(receipt)
+        assistant_name = "Y_" + str(year) + ".json"
+        assistant_sha = _write_json(
+            assistant_dir / assistant_name,
+            {
+                "schema": ASSISTANT_SCHEMA,
+                "year": year,
+                "publication_digest": digest,
+                "receipts": receipts,
+            },
+        )
         entries.append({
             "year": year,
+            "assistant_path": "data/assistant/" + assistant_name,
+            "assistant_sha256": assistant_sha,
+            "assistant_week_count": len(receipts),
             "first_civil_date": days[0]["civil_date"],
             "last_civil_date": days[-1]["civil_date"],
             "count": len(days),
@@ -126,6 +167,9 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
     manifest = {
         "schema": SCHEMA,
         "source": "published Canonical Core calendar_day_payload",
+        "assistant_source": "stillpoint.public_assistant.answer_request",
+        "assistant_verification": "verify_answer_receipt at build time; no in-browser Python",
+        "assistant_schema": ASSISTANT_SCHEMA,
         "authority": "read-only-consumer-projection",
         "publication_digest": digest,
         "first_common_year": FIRST_YEAR,

@@ -1,9 +1,10 @@
 # Public StillPoint Calendar browser — first usable interface
 
-**Status:** public-source, static-site implementation and build path. This
-document does **not** assert that the site has been deployed at a public URL,
-that the private RobertOS/StillPointOS integrations passed, or that a native
-Apple Watch binary has been qualified.
+**Status:** deployed public static browser at
+https://fortcollinsbarber-netizen.github.io/StillPoint-Core-Canonical/ .
+The independently verified [public Pages run #44171213236](https://github.com/FortCollinsBarber-netizen/StillPoint-Core-Canonical/actions/runs/44171213236)
+completed November 17, 2026 (20:38 UTC) and served HTTP 200 to independent checks.
+This does **not** qualify private RobertOS/StillPointOS integration or native Apple Watch deployment.
 
 ## What people can do
 
@@ -78,13 +79,13 @@ The public-calendar-browser workflow runs these checks and builds the full
 static site on GitHub's **existing public standard Ubuntu runner**.
 It does not deploy the site, change Pages settings, or upload private artifacts.
 
-## Publication milestone, still separate
+## Published website and distinct future release gate
 
-After a green browser build, choose an available **free** static publishing
-path within the existing public repository (for example GitHub Pages after
-verifying it is configured), review the generated output and accessibility,
-and verify the actual public URL on desktop and mobile. Do not assert a
-deployed public website until its URL is independently reachable.
+The original read-only browser and week receipts were published through GitHub
+Pages in the existing public repository and independently checked on November
+17, 2026; see the verified run above. New UI changes on feature branches remain
+**unpublished proposals** until approved, merged, deployed, and separately
+checked in a live browser (including mobile layout and keyboard operation).
 
 ## Scope that remains intentionally unfinished
 

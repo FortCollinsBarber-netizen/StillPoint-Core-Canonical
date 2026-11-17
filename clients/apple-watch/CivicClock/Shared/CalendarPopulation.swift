@@ -4,6 +4,8 @@ struct CalendarPopulation: Codable, Equatable {
     struct SacredYearProfile: Codable, Equatable {
         let id: String
         let selectionStatus: String
+        let selectedBy: String
+        let selectedOn: String
         let authorityScope: String
         let sourceCalendar: String
         let monthLengths: [Int]
@@ -17,6 +19,8 @@ struct CalendarPopulation: Codable, Equatable {
     struct LongCyclePolicy: Codable, Equatable {
         let id: String
         let selectionStatus: String
+        let selectedBy: String
+        let selectedOn: String
         let authorityScope: String
         let epochCommonYear: Int
         let epochCycle: Int
@@ -141,6 +145,12 @@ enum CalendarPopulationLoader {
         guard
             population.version == supportedVersion,
             profile.id.isEmpty == false,
+            profile.selectionStatus == "author-selected-working-rule-not-civil-enactment",
+            policy.selectionStatus == "author-selected-working-rule-not-civil-enactment",
+            profile.selectedBy == "Robert Emmanuel LaDay",
+            policy.selectedBy == profile.selectedBy,
+            profile.selectedOn == "2026-11-17",
+            policy.selectedOn == profile.selectedOn,
             profile.sourceCalendar == "schematic-enochic-364",
             profile.authorityScope == "StillPoint-religious-overlay-only",
             profile.monthLengths == [30, 30, 31, 30, 30, 31, 30, 30, 31, 30, 30, 31],
@@ -150,7 +160,7 @@ enum CalendarPopulationLoader {
             profile.annualSolarReset == false,
             policy.rolloverRule == "overlap-49",
             policy.id.isEmpty == false,
-            policy.authorityScope == "project-calculation-and-proposed-policy-only",
+            policy.authorityScope == "StillPoint-working-cycle-calculation-only",
             policy.cycleYears == 49,
             policy.proclamationOrdinalYear == 50,
             policy.year50OverlapsNextYear1 == true,

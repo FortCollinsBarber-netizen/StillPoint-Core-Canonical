@@ -1,5 +1,12 @@
 # Temporal Calendar Recovery Import — Custody Record
 
+**Historical recovery record; nonoperative calendar models.** The v3.2/v3.3
+engines described below were superseded as operating designs. The current
+364-day Common grid and author-selected March 25 / 2027 / overlap-49 rules are
+recorded in `docs/STILLPOINT_TEMPORAL_ARCHITECTURE_AUTHOR_SELECTION_2026-11-17.md`.
+Historical "locked authority" means custody of that version, not a continuing
+right to govern runtime or prevent an authorized tested successor.
+
 Source archive: StillPoint_Temporal_Core_GitHub_Recovery(1).zip
 
 Archive SHA-256:

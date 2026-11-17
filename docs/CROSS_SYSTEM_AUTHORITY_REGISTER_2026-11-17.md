@@ -1,6 +1,6 @@
 # StillPoint Cross-System Authority Register — November 17, 2026
 
-**Originating author:** Robert Emmanuel LaDay. **Status:** versioned cross-repository verification register, not civil enactment. **Post-merge status updated November 17, 2026:** repository merges completed by explicit author instruction; downstream CI and runtime qualification remain unverified. This is an as-of observation. Repository working authority may change by an explicit later authorized, qualified decision; older evidence remains intact.
+**Originating author:** Robert Emmanuel LaDay. **Status:** versioned cross-repository verification register, not civil enactment. **Resumption status updated November 17, 2026:** selected Core implementation is merged and tested; two downstream bridge defects have locally verified correction candidates, but hosted downstream CI has not executed. This is an as-of observation. Repository working authority may change by an explicit later authorized, qualified decision; older evidence remains intact.
 
 ## Governing separation
 
@@ -37,3 +37,18 @@ The existing **StillPoint Cross-System Qualification Watch** (automation `Automa
 4. The author has already directed and completed the repository integrations despite blocked CI. **Do not promote them to a qualified release, installed runtime, or live external execution** until the blocked checks have actually executed and passed, the dependency graph is reconciled, and this register is updated with exact evidence.
 
 **Scope note:** This register records inspected GitHub source, approvals and CI metadata, not physical Apple Watch deployment or local installed RobertOS/StillPointOS execution. Cross-system runtime compliance is not certified until the blocked qualification evidence exists.
+
+## Verified resumption and correction candidates
+
+The interrupted work was recovered rather than restarted. Actual selected-Core reads reproduced two defects hidden by mocked fixtures: RobertOS's company bridge still required `calendar-day.v1`, and StillPointOS looked for coverage in `publication` rather than the real v2 `map`. Neither earlier merge nor a matching mock proves the integrated behavior.
+
+| Candidate | Exact head / tree | Observed verification |
+|---|---|---|
+| [RobertOS PR #123](https://github.com/RobertEmmanuelLaDay/RobertOS/pull/123) | Head `0bc724a11c49797e7371aa035ef1c984ed70c257`; tree `d7388f3c4138400e88e16bf9537529ad3911bcea` | 278 tests and canonical release gates pass locally on Python 3.11/3.12/3.13; real selected-Core bridge and publication-boundary checks pass. Hosted run `44085648061` failed before test steps; **unmerged**. |
+| [StillPointOS PR #158](https://github.com/RobertEmmanuelLaDay/StillPointOS/pull/158) | Head `2174566199c3bf6b83dd839e147ec280edb153e1`; tree `8eae80ded18e197fb30fb9beccc7c69b862c9c8e` | 78 tests per Python version, real coupled routes, nine provenance/bridge/facade/package checks and clean-install CLI pass locally. Hosted run `44087157998` failed before test steps; **unmerged**. |
+
+PR #158's candidate manifest, lock, feature matrix and provenance consistently select the corrected RobertOS head above. Its current qualification lanes use a separately hashed 57-file selected-source snapshot. The original `qualification/robertos_pin` remains byte-identical historical evidence and is not the candidate's execution pin or current qualification runtime. Both qualification snapshots are excluded from the shipped package. The main branch has not acquired these candidate corrections while their merge gates remain unsatisfied.
+
+Core revalidation passed 723 runtime tests, 150 calendar tests and 86 explicit authority/recovery tests plus four subtests. Four reproducibly generated calendar exports matched the retained files byte-for-byte; actual Watch/Core compatibility also passed. Native Watch tests and app/WidgetKit builds were independently verified in the successful PR #83 Actions steps. These are bounded observations, not a deployment or a claim that private hosted CI passed.
+
+The [resumption verification record](CHECKPOINT004_RESUMPTION_VERIFICATION_2026-11-17.md) states the remaining gate precisely. No new calendar-anchor decision or human authorization is missing. Restore executable private Actions jobs, rerun required checks on the unchanged or reconciled heads, merge RobertOS #123 followed by StillPointOS #158 when qualified, then update this register. Do not turn the runner failure into permission to bypass the author's verify-before-merge rule.

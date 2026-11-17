@@ -2,6 +2,12 @@
 
 StillPoint is a provider-independent company operating-system runtime. Robert Emmanuel LaDay is the sole human CEO and final authority. The runtime coordinates durable company functions—Orchestra, Author, Press, Signal, Ledger, Research, Builder, and targeted Still Point review—without making any model or provider the company itself.
 
+Working authority is versioned and supersedable. Historical custody does not
+make a design permanently operative. See the [dated author-selection addendum](docs/STILLPOINT_TEMPORAL_ARCHITECTURE_AUTHOR_SELECTION_2026-11-17.md)
+and [cross-system verification register](docs/CROSS_SYSTEM_AUTHORITY_REGISTER_2026-11-17.md)
+for the current March 25 sacred anchor, 2027 epoch, overlapping 49-year rule,
+implementation identities and remaining qualification limits.
+
 The governing execution invariant is:
 
 > capacity ≠ permission ≠ execution ≠ completion

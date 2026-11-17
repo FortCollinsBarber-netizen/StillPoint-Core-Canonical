@@ -5,6 +5,17 @@ Human authority: Robert Emmanuel LaDay
 Template year: 2026  
 Finite projection: 2026–2075
 
+## Scope of this version
+
+These are the currently selected version's invariants, not permanent limits on
+Robert Emmanuel LaDay's authority to revise or replace the design. A later
+documented authorized decision becomes operative only after its implementation,
+dependent clients/resources and tests are reconciled and verified. Earlier
+versions remain historical evidence. "Enacted" here denotes project authority,
+not governmental enactment. The dated author-selection addendum governs the
+separate sacred profile and long-cycle rules; fixed date examples below do not
+make Good Friday or Easter permanent annual observances.
+
 ## Governing intervention
 
 The Calendar keeps the familiar named sequence from January 1 through December 30.

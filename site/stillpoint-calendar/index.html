@@ -465,6 +465,12 @@
     async function answerPublicWeekQuestion() {
       const queryToken = ++questionToken;
       const originalSelection = selectionToken;
+      // An invalid new question must not leave an older answer or receipt on screen.
+      assistantToken += 1;
+      activeReceipt = null;
+      $("assistantResult").classList.add("hidden");
+      $("downloadAnswer").disabled = true;
+      $("assistantStatus").textContent = "Only a supported published question can display a new answer.";
       $("questionSubmit").disabled = true;
       $("questionStatus").textContent = "Finding the published Core week for your question…";
       $("questionStatus").classList.remove("error");

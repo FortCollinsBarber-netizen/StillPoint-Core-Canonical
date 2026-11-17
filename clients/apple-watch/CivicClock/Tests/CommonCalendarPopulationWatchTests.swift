@@ -250,7 +250,9 @@ final class CommonCalendarPopulationWatchTests: XCTestCase {
         var profile = try XCTUnwrap(object["sacredYearProfile"] as? [String: Any])
         profile["anchorCommonDay"] = 24
         object["sacredYearProfile"] = profile
-        let changed = try JSONDecoder().decode(CalendarPopulation.self, from: JSONSerialization.data(withJSONObject: object))
-        XCTAssertFalse(CalendarPopulationLoader.validated(changed, calendarCoreSpec: spec))
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        try JSONSerialization.data(withJSONObject: object).write(to: temporary)
+        XCTAssertNil(CalendarPopulationLoader.load(url: temporary, calendarCoreSpec: spec))
     }
 }

@@ -642,6 +642,11 @@
     async function answerPublicDayQuestion() {
       const token = ++dayQuestionToken;
       const beforeSelection = selectionToken;
+      // A rejected new day request must not leave a prior week receipt active.
+      assistantToken += 1;
+      activeReceipt = null;
+      $("assistantResult").classList.add("hidden");
+      $("downloadAnswer").disabled = true;
       $("dayAnswerResult").classList.add("hidden");
       $("dayQuestionSubmit").disabled = true;
       $("dayQuestionStatus").textContent = "Reading the published Core day and checking year-file integrity…";

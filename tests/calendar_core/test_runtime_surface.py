@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
+from stillpoint.calendar_core.long_cycles import JubileeConfiguration
 from stillpoint.cli import main
 
 
@@ -41,6 +42,47 @@ class CalendarRuntimeSurfaceTests(unittest.TestCase):
         self.assertFalse(value["jubilee"]["is_jubilee_year"])
         self.assertEqual(value["jubilee"]["year"], 49)
         self.assertEqual(value["publication"]["authority_status"], "enacted")
+
+    def test_explicit_cycle_comparison_cannot_inherit_author_selection(self):
+        selected = calendar_day_payload(2075, 1)
+        self.assertEqual(
+            selected["jubilee"]["configuration"]["decision_status"],
+            "author-selected-working-rule-not-civil-enactment",
+        )
+        self.assertTrue(selected["jubilee"]["configuration"]["selected_policy_applies"])
+
+        comparison = calendar_day_payload(
+            2075, 1,
+            jubilee_configuration=JubileeConfiguration(
+                epoch_common_year=2026, rollover_rule="standalone-50",
+            ),
+        )
+        self.assertEqual(
+            comparison["jubilee"]["configuration"]["selection_source"],
+            "explicit-call-configuration",
+        )
+        self.assertEqual(
+            comparison["jubilee"]["configuration"]["decision_status"],
+            "explicit-comparison-input-not-author-selected",
+        )
+        self.assertEqual(
+            comparison["jubilee"]["release_day_projection_status"],
+            "computed-under-explicit-comparison-not-author-selected",
+        )
+        self.assertFalse(
+            comparison["jubilee"]["configuration"]["selected_policy_applies"]
+        )
+        # Top-level policy remains an informational description of the
+        # author-selected default; it is not an endorsement of the override.
+        self.assertEqual(
+            comparison["long_cycle_policy"]["selectionStatus"],
+            "author-selected-working-rule-not-civil-enactment",
+        )
+        unconfigured = calendar_day_payload(
+            2027, 1, jubilee_configuration=JubileeConfiguration(epoch_common_year=None)
+        )
+        self.assertEqual(unconfigured["jubilee"]["designation_status"], "unconfigured-epoch")
+        self.assertFalse(unconfigured["jubilee"]["configuration"]["selected_policy_applies"])
 
     def test_outside_publication_fails_closed(self):
         with self.assertRaises(ValueError):

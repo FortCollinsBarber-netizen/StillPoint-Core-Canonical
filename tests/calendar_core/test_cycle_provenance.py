@@ -63,7 +63,7 @@ class CycleProvenanceTests(unittest.TestCase):
         comparison = payload["long_cycle_comparison"]["models"]["existing_standalone_fifty_year_counter"]
         self.assertEqual(comparison["cycle"], 3)
 
-    def test_runtime_observance_keeps_scope_rule_and_unresolved_anchor(self):
+    def test_runtime_observance_keeps_selected_but_bounded_source_profile(self):
         payload = calendar_day_payload(2026, ordinal_day(4, 19))
         item = next(item for item in payload["observances"] if item["id"] == "firstfruits")
         self.assertEqual(item["jurisdiction"], "sacred")
@@ -80,12 +80,14 @@ class CycleProvenanceTests(unittest.TestCase):
         self.assertEqual(item["jurisdiction"], "civic")
         self.assertEqual(item["projection_status"], "declared-common-observance")
 
-    def test_release_label_does_not_claim_the_sacred_anchor_is_settled(self):
+    def test_explicit_release_comparison_cannot_inherit_author_selected_status(self):
         payload = calendar_day_payload(2075, ordinal_day(10, 2),
             jubilee_configuration=JubileeConfiguration(epoch_common_year=2026))
         self.assertTrue(payload["jubilee"]["is_jubilee_release_day"])
         self.assertEqual(payload["jubilee"]["release_day_projection_status"],
-                         PROFILE_STATUS)
+                         "computed-under-explicit-comparison-not-author-selected")
+        self.assertEqual(payload["jubilee"]["configuration"]["decision_status"],
+                         "explicit-comparison-input-not-author-selected")
         self.assertFalse(payload["long_cycle_comparison"]["release_authority"])
 
     def test_epoch_choice_and_arithmetic_do_not_extend_the_publication(self):
@@ -97,7 +99,7 @@ class CycleProvenanceTests(unittest.TestCase):
         models = comparison["models"]
         self.assertEqual(models["consecutive_forty_nine_year_blocks"]["year"], 1)
         self.assertTrue(models["existing_standalone_fifty_year_counter"]["is_jubilee_year"])
-        self.assertEqual(models["consecutive_forty_nine_year_blocks"]["proclamation_rule"], "unresolved")
+        self.assertEqual(models["consecutive_forty_nine_year_blocks"]["proclamation_rule"], "comparison-does-not-designate-authority")
         self.assertFalse(comparison["grid_authority"])
 
     def test_missing_epoch_comparison_never_manufactures_positions(self):

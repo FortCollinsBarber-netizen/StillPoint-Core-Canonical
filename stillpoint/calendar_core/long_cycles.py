@@ -90,7 +90,7 @@ def compare_long_cycles(
                 "year": elapsed % 49 + 1,
                 "completed_blocks": elapsed // 49,
                 "at_boundary_after_origin": elapsed > 0 and elapsed % 49 == 0,
-                "proclamation_rule": "unresolved",
+                "proclamation_rule": "comparison-does-not-designate-authority",
             },
             "existing_standalone_fifty_year_counter": asdict(fifty),
         },

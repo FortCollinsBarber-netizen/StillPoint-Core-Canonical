@@ -13,6 +13,7 @@ dependencies = []
 
 [project.scripts]
 stillpoint = "stillpoint.cli:main"
+stillpoint-date = "stillpoint.calendar_core.civil_lookup:main"
 stillpoint-signal-mail = "stillpoint.signal_mail_service:main"
 stillpointd = "stillpoint.supervisor_service:main"
 

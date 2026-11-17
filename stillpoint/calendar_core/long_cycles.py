@@ -1,8 +1,7 @@
 """Explicit cycle configuration and arithmetic comparison, never release authority.
 
-The operational counter implements standalone fiftieth years. Consecutive
-49-year blocks are compared here without deciding how a proclamation overlays
-them or translating a sacred appointment to a Common Calendar date.
+The project proposal overlaps a fiftieth proclamation with the next 49-year
+block's first year. A standalone-50 model remains an explicit comparison.
 """
 from __future__ import annotations
 
@@ -22,20 +21,20 @@ def _positive_integer(value: object, name: str) -> None:
 class JubileeConfiguration:
     """Caller-selected calculation inputs, not proof of adopted civic policy.
 
-    An explicit None epoch requests no designation. Only the existing counter
-    is operationally supported; comparing a 49-year model does not enable it.
+    An explicit None epoch requests no designation. Both named counting rules
+    are available; the selected rule never mutates civil calendar geometry.
     """
 
     epoch_common_year: int | None
     epoch_cycle: int = 1
-    rollover_rule: str = "standalone-50"
+    rollover_rule: str = "overlap-49"
 
     def __post_init__(self) -> None:
         if self.epoch_common_year is not None:
             _positive_integer(self.epoch_common_year, "epoch_common_year")
         _positive_integer(self.epoch_cycle, "epoch_cycle")
-        if self.rollover_rule != "standalone-50":
-            raise ValueError("operational rollover_rule supports standalone-50 only")
+        if self.rollover_rule not in {"overlap-49", "standalone-50"}:
+            raise ValueError("unsupported operational rollover_rule")
 
 
 def compare_long_cycles(
@@ -75,7 +74,7 @@ def compare_long_cycles(
 
     elapsed = common_year - epoch_common_year
     fifty = jubilee_state(common_year=common_year, epoch_common_year=epoch_common_year,
-                         epoch_cycle=epoch_cycle)
+                         epoch_cycle=epoch_cycle, rollover_rule="standalone-50")
     result.update({
         "status": "comparison-only",
         "elapsed_years": elapsed,

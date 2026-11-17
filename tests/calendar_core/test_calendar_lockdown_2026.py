@@ -198,7 +198,7 @@ class CalendarLockdown2026Tests(unittest.TestCase):
 
     def test_jubilee_changes_cycle_state_not_calendar_surface(self):
         document = load_enacted_publication()
-        ordinal = ordinal_day(7, 10)
+        ordinal = ordinal_day(10, 2)
 
         ordinary = address_from_ordinal(
             publication_document=document,

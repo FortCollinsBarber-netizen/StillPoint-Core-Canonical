@@ -10,6 +10,7 @@ from .jubilee import jubilee_state
 from .models import CalendarSnapshot, GeoPoint
 from .sunset import bracket_sunset
 from .week import protected_time_state, protected_time_state_for_common_date
+from .sacred import JUBILEE_EPOCH_COMMON_YEAR, JUBILEE_ROLLOVER_RULE
 
 
 @dataclass(frozen=True)
@@ -23,8 +24,9 @@ class CalendarConfig:
     reference_rule_version: str = "immutable-364-v1"
     reference_station_id: Optional[str] = None
     ephemeris_id: Optional[str] = None
-    jubilee_epoch_common_year: Optional[int] = None
+    jubilee_epoch_common_year: Optional[int] = JUBILEE_EPOCH_COMMON_YEAR
     jubilee_epoch_cycle: int = 1
+    jubilee_rollover_rule: str = JUBILEE_ROLLOVER_RULE
 
 
 def get_calendar_snapshot(
@@ -66,6 +68,7 @@ def get_calendar_snapshot(
         common_year=config.common_year,
         epoch_common_year=config.jubilee_epoch_common_year,
         epoch_cycle=config.jubilee_epoch_cycle,
+        rollover_rule=config.jubilee_rollover_rule,
     )
     return CalendarSnapshot(
         instant_utc=dual.instant_utc,

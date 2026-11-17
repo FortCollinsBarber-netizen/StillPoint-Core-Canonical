@@ -1,79 +1,53 @@
-# Calendar cycle configuration and observance scope
+# Cycle and sacred-year configuration: selected working rules
 
-Calendar runtime responses now identify the existing Jubilee calculation's
-epoch and rollover rule, preserve observance scope, and provide an arithmetic
-comparison of long cycles. These additions do not select a new operative
-rollover or sacred-year anchor.
+**Status:** working source-calendar anchor and overlapping rollover selected
+by Robert Emmanuel LaDay on November 17, 2026. The selection governs the
+StillPoint working implementation, not ancient history, religious communities,
+or civil law.
 
-## Existing behavior and explicit configuration
+The decision record and evidentiary limits are in `CALENDAR_RULE_RESOLUTION_2026-11-17.md`.
 
-Calling `calendar_day_payload(year, ordinal)` still uses the publication's
-first year as the historical default Jubilee epoch. Its response now identifies
-`legacy-publication-first-year-default`, `standalone-50`, and
-`rollover-reconciliation-unresolved`. This is compatibility behavior, not an
-assertion that an unresolved decision has been settled.
+## Author-selected working defaults
 
-The epoch may be supplied independently:
+- Common long-cycle Year 1 begins January 1, 2027, independently of publication.
+- Consecutive 49-year blocks; a fiftieth proclamation overlaps the next Year 1.
+- Source months are 30/30/31, with source I/1 at Common March 25, Wednesday.
+- Firstfruits is source I/26; Weeks is III/15, inclusive Day 50.
+- The source VII/10 appointment projects to Common October 2. A date label
+  does not execute a legal release or determine its astronomical instant.
+
+The fixed 364-day civil grid, standard clock and finite publication are
+unchanged. No annual solar realignment occurs. Other communities retain their
+religious calendars and Firstfruits interpretations.
+
+## Versioned interfaces
+
+The runtime response is `stillpoint.calendar-day.v2`. Population content uses
+`stillpoint-calendar-population-v2`; its carrier filename remains
+`calendar_population_v1.json` for the existing bundle/build path. The internal
+version and checksum identify the contract. The new Watch loader rejects old
+or incompatible data rather than applying its old publication-index inference.
 
 ```python
-from stillpoint.calendar_core import JubileeConfiguration
+from stillpoint.calendar_core import JubileeConfiguration, common_from_sacred
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
 
-value = calendar_day_payload(
-    2075, 1,
-    jubilee_configuration=JubileeConfiguration(epoch_common_year=2027),
-)
-assert value["jubilee"]["year"] == 49
+day = calendar_day_payload(2075, 1)
+assert day["jubilee"]["year"] == 49
+assert not day["jubilee"]["is_jubilee_year"]
+first = common_from_sacred(2027, 1, 26)
+assert (first.month, first.day, first.weekday) == (4, 19, "Sunday")
 ```
 
-The Common date, external projection, publication identity, and annual grid
-are unchanged. Passing `JubileeConfiguration(epoch_common_year=None)` explicitly
-requests no designation; consumers must use `designation_status` rather than
-interpreting an absent designation as a settled negative finding. An explicit
-calculation input is not evidence of a civic or religious enactment. Unsupported
-operational rollover identifiers are rejected rather than silently mapped to
-the existing counter.
+An explicit None epoch requests no designation. Another explicit epoch does
+not change the civil map. `rollover_rule="standalone-50"` keeps the former
+counter available as a named alternative; unsupported identifiers fail.
 
-The original finite publication still rejects Common 2076. An arithmetic model
-can examine a later year without extending publication coverage.
+The sacred year label runs from Common March 25 through the following March
+24. Common long-cycle years still change on January 1. Source and projected
+coordinates are stored separately. The first calculated working proclamation in 2076
+remains outside the current 2026–2075 publication: arithmetic can examine that
+year, but runtime calendar payloads must reject it until a separate extension.
 
-## Compare cycles without selecting a release rule
-
-```python
-from stillpoint.calendar_core import compare_long_cycles
-
-comparison = compare_long_cycles(common_year=2076, epoch_common_year=2027)
-```
-
-The comparison separately reports continuous seven-year position, six-year
-priestly-course phase, consecutive 49-year blocks, and the existing standalone
-50-year counter. The phase origin is the start of epoch Year 1. At 49 elapsed
-years, ordinal Year 50 and the next 49-year block begin together, while the
-weekly-course phase has advanced four positions. The comparison leaves the
-proclamation rule unresolved.
-
-Under the explicit assumptions of 52 weeks per year and 24 uninterrupted
-weekly courses, the joint six-/seven-/49-year recurrence is 294 years. Adding
-an independent 50-year cycle changes the joint recurrence to 7,350 years.
-Neither calculation grants release authority, predicts a prophetic event,
-corrects seasonal drift, or changes a civil date. The response states
-`scope: arithmetic-comparison-only`, `grid_authority: false`, and
-`release_authority: false`. A missing epoch yields no model positions.
-
-## Preserve observance provenance
-
-Runtime observance entries retain `id` and `name` and now include `jurisdiction`,
-`rule`, `source_refs`, `note`, the recorded Common coordinate and projection
-status. A religious or sacred-marker entry's fixed Common placement is labeled
-`legacy-placement-unreconciled-sacred-anchor`. The software does not relabel
-that recorded coordinate as a verified scriptural coordinate.
-
-The legacy Jubilee-release boolean is likewise accompanied by an unresolved
-sacred-anchor projection status. It is not proof of an authorized sacred-year
-mapping, discharge of an obligation, or permission to act. A future migration
-must reconcile those legacy placements with an explicit selected profile;
-this change does not pretend that migration has occurred.
-
-The fixed 364-day grid, publication bytes, existing weekday geometry, and
-separation of action warrants from calendar evidence are preserved. There is
-no new cloud dependency or competing calendar engine.
+Historical PR #82 behavior is preserved at
+`a5fe5fbcb8889e60df7cc1a11c2a7462659063fb`.

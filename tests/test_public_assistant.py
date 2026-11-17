@@ -23,6 +23,75 @@ class PublicAssistantTests(unittest.TestCase):
         self.assertFalse(value["authorization"]["execution_warrant"])
         self.assertTrue(verify_answer_receipt(value)["verified"])
 
+    def test_civic_observance_explanation_uses_core_rule_and_scope(self):
+        text = "Explain Common Calendar observances on Common day 1 of 2027."
+        receipt = self.ask(text)
+        self.assertEqual(receipt["status"], "completed")
+        self.assertEqual(receipt["interpretation"]["capability"], "calendar.observances.read")
+        self.assertEqual(receipt["result"]["calendar_address"], "Y_2027-001")
+        self.assertIn("New Year's Day", receipt["answer"])
+        self.assertIn("jurisdiction: civic", receipt["answer"])
+        self.assertIn("published Core annotations", receipt["answer"])
+        self.assertFalse(receipt["authorization"]["execution_warrant"])
+        self.assertTrue(verify_answer_receipt(receipt)["verified"])
+
+    def test_observance_none_does_not_invent_a_recurrence(self):
+        text = "Explain the Common Calendar observances for 2026-11-17."
+        receipt = self.ask(text)
+        self.assertEqual(receipt["status"], "completed")
+        self.assertEqual(receipt["result"]["calendar_address"], "Y_2026-321")
+        self.assertEqual(receipt["result"]["observances"], [])
+        self.assertIn("no named observances", receipt["answer"])
+        self.assertIn("separate Sabbath", receipt["answer"])
+        self.assertTrue(verify_answer_receipt(receipt)["verified"])
+
+    def test_sacred_observance_repeats_core_source_refs_not_an_invented_rule(self):
+        from stillpoint.calendar_core.observances import SACRED_OBSERVANCES
+        passover = next(item for item in SACRED_OBSERVANCES if item.id == "passover")
+        receipt = self.ask(
+            f"List Common Calendar observances on Common day {passover.start_ordinal} of 2027."
+        )
+        self.assertEqual(receipt["status"], "completed")
+        self.assertIn("Passover", receipt["answer"])
+        self.assertIn("Leviticus 23:5", receipt["answer"])
+        self.assertIn("proposed", receipt["answer"].lower())
+        self.assertTrue(verify_answer_receipt(receipt)["verified"])
+
+    def test_observance_read_is_separate_from_day_read_and_rejects_mutation(self):
+        text = "Explain Common Calendar observances on Common day 1 of 2027."
+        with patch("stillpoint.public_assistant._project") as projection:
+            denied = answer_request(text, allowed_capabilities=frozenset({DAY_READ}))
+            self.assertEqual(denied["status"], "denied")
+            projection.assert_not_called()
+        for requested in (
+            "Explain Common Calendar observances on Common day 1 of 2076.",
+            "Explain Common Calendar observances on Common day 365 of 2027.",
+            "Explain Common Calendar observances for 2075-10-31.",
+        ):
+            with self.subTest(requested=requested):
+                item = self.ask(requested)
+                self.assertEqual(item["status"], "unavailable")
+                self.assertIsNone(item["result"])
+        for requested in (
+            text + " And send an email.",
+            "Explain Common Calendar observances for today.",
+        ):
+            with self.subTest(requested=requested):
+                item = self.ask(requested)
+                self.assertIn(item["status"], {"denied", "unsupported"})
+                self.assertIsNone(item["result"])
+
+    def test_tampered_observance_notes_cannot_self_validate(self):
+        original = self.ask("Explain Common Calendar observances on Common day 1 of 2027.")
+        forged = copy.deepcopy(original)
+        forged["result"]["observances"][0]["note"] = "This is a binding federal law."
+        forged.pop("receipt_sha256")
+        forged["receipt_sha256"] = hashlib.sha256(
+            json.dumps(forged, sort_keys=True, separators=(",", ":"),
+                       ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+        self.assertFalse(verify_answer_receipt(forged)["verified"])
+
     def test_week_request_returns_seven_real_days(self):
         value = self.ask("Show the Common Calendar week for 2026-11-17.")
         self.assertEqual(value["status"], "completed")

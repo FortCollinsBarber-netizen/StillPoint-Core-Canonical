@@ -251,3 +251,62 @@ def calendar_day_payload(
             "december_31_exists": False,
         },
     }
+
+
+MAX_PUBLIC_CALENDAR_WINDOW_DAYS = 31
+WINDOW_SCHEMA = "stillpoint.calendar-window.v1"
+
+
+def calendar_window_payload(
+    year: int,
+    start_ordinal: int,
+    days: int = 7,
+    *,
+    publication_path: Path | str | None = None,
+) -> dict[str, Any]:
+    """Return a bounded sequence of previously published read-only day payloads.
+
+    The whole request is checked before reading any day. Windows cannot jump
+    into a different named Common year, infer an unpublished date, or acquire
+    action authority. Callers wanting another year must request it explicitly.
+    This is a composition of the existing Calendar Core law, not a new grid.
+    """
+    if type(year) is not int or type(start_ordinal) is not int or type(days) is not int:
+        raise ValueError("calendar window year, start ordinal, and days must be integers")
+    if not 1 <= days <= MAX_PUBLIC_CALENDAR_WINDOW_DAYS:
+        raise ValueError("calendar window must contain between 1 and 31 days")
+    if not 1 <= start_ordinal <= 364:
+        raise ValueError("calendar window start ordinal must be within 1..364")
+    end_ordinal = start_ordinal + days - 1
+    if end_ordinal > 364:
+        raise ValueError("calendar window cannot cross a Common year boundary")
+
+    # calendar_day_payload validates the finite publication on every read.
+    # No company runtime, mutable store, network, or external executor is used.
+    selected = [
+        calendar_day_payload(year, ordinal, publication_path=publication_path)
+        for ordinal in range(start_ordinal, end_ordinal + 1)
+    ]
+    first, last = selected[0], selected[-1]
+    return {
+        "schema": WINDOW_SCHEMA,
+        "authority": "read-only-calendar-law",
+        "calendar_day_schema": RUNTIME_SCHEMA,
+        "request": {
+            "year": year,
+            "start_ordinal": start_ordinal,
+            "days": days,
+            "end_ordinal": end_ordinal,
+        },
+        "bounds": {
+            "first_address": first["calendar_address"],
+            "last_address": last["calendar_address"],
+            "within_one_published_common_year": True,
+        },
+        "map": dict(first["map"]),
+        "publication": dict(first["publication"]),
+        "sacred_year_profile": dict(first["sacred_year_profile"]),
+        "long_cycle_policy": dict(first["long_cycle_policy"]),
+        "civil_or_legal_execution_authorized": False,
+        "days": selected,
+    }

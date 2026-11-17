@@ -16,8 +16,14 @@ Local/CI command:
 
 ```sh
 python -m pip install .
+python -m unittest discover -s tests/calendar_core -p 'test_public_consumer_conformance.py' -v
 python -m unittest discover -s tests/public_core -p 'test_*.py' -v
 ```
+
+The first six tests reuse the already-merged public consumer conformance suite
+from PR #89; the additional three tests check the installed read-only CLI,
+explicit rejection of an unpublished CLI year, and the sacred-versus-civic
+protected-time boundary. No duplicate calendar policy implementation is added.
 
 The public tests guard the v2 read-only calendar interface, 364-day / 52-week
 geometry, March 25 sacred source-year coordinate distinct from civil January 1,

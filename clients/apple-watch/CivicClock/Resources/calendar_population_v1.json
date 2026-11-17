@@ -405,32 +405,6 @@
     },
     {
       "assembly": false,
-      "day": 3,
-      "endDay": null,
-      "endMonth": null,
-      "id": "good-friday",
-      "jurisdiction": "christian-civic",
-      "month": 4,
-      "name": "Good Friday",
-      "note": null,
-      "rule": "2026-seed-position-on-fixed-common-grid",
-      "sourceRefs": []
-    },
-    {
-      "assembly": false,
-      "day": 5,
-      "endDay": null,
-      "endMonth": null,
-      "id": "easter-sunday",
-      "jurisdiction": "christian-civic",
-      "month": 4,
-      "name": "Easter Sunday",
-      "note": null,
-      "rule": "2026-seed-position-on-fixed-common-grid",
-      "sourceRefs": []
-    },
-    {
-      "assembly": false,
       "day": 10,
       "endDay": null,
       "endMonth": null,

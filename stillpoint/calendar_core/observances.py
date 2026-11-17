@@ -178,22 +178,6 @@ CIVIC_OBSERVANCES: tuple[Observance, ...] = (
         rule="third-monday-february-on-fixed-common-grid",
     ),
     Observance(
-        "good-friday",
-        "Good Friday",
-        "christian-civic",
-        4,
-        3,
-        rule="2026-seed-position-on-fixed-common-grid",
-    ),
-    Observance(
-        "easter-sunday",
-        "Easter Sunday",
-        "christian-civic",
-        4,
-        5,
-        rule="2026-seed-position-on-fixed-common-grid",
-    ),
-    Observance(
         "mothers-day",
         "Mother's Day",
         "civic-family",
@@ -255,6 +239,30 @@ CIVIC_OBSERVANCES: tuple[Observance, ...] = (
         30,
         rule="final-day-of-common-year",
         note="December 31 does not exist in the Common Calendar.",
+    ),
+)
+
+
+# Preserved for historical interpretation of the 2026 seed only. These two
+# occurrences are NOT recurring civic or universal Christian observances.
+# Easter/Pascha belongs to the independently chosen ecclesiastical calendar;
+# no Common Calendar projection may silently fix it to April 5 in every year.
+CHRISTIAN_2026_SEED_EXAMPLES: tuple[Observance, ...] = (
+    Observance(
+        "good-friday-2026-example",
+        "Good Friday (2026 example only)",
+        "historical-external-example",
+        4,
+        3,
+        rule="single-2026-reference-not-a-perpetual-date",
+    ),
+    Observance(
+        "easter-sunday-2026-example",
+        "Easter Sunday (2026 example only)",
+        "historical-external-example",
+        4,
+        5,
+        rule="single-2026-reference-not-a-perpetual-date",
     ),
 )
 

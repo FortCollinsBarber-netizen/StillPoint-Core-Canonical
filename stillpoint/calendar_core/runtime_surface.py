@@ -19,6 +19,8 @@ from .governor import (
     RhythmRequest,
 )
 from .population import address_from_ordinal
+from .long_cycles import JubileeConfiguration, compare_long_cycles
+from .observances import observances_for_ordinal
 from .publication import validate_publication_document
 from .witness_overlays import witnesses_for_external_date
 
@@ -45,18 +47,35 @@ def calendar_day_payload(
     ordinal: int,
     *,
     publication_path: Path | str | None = None,
+    jubilee_configuration: JubileeConfiguration | None = None,
 ) -> dict[str, Any]:
+    """Project a published day with visible, separately scoped cycle inputs.
+
+    Omitting the configuration preserves the historical publication-first-year
+    default and labels it as such. Passing a configuration never changes the
+    annual grid or extends publication coverage. None as its epoch explicitly
+    requests no Jubilee designation.
+    """
     document = load_enacted_publication(publication_path)
     rows = document["years"]
     first_year = int(rows[0]["year"])
     last_year = int(rows[-1]["year"])
+    if jubilee_configuration is not None and not isinstance(
+        jubilee_configuration, JubileeConfiguration
+    ):
+        raise ValueError("jubilee_configuration must be a JubileeConfiguration")
+    configuration = (
+        jubilee_configuration
+        if jubilee_configuration is not None
+        else JubileeConfiguration(epoch_common_year=first_year)
+    )
 
     day = address_from_ordinal(
         publication_document=document,
         year=int(year),
         ordinal=int(ordinal),
-        jubilee_epoch_common_year=first_year,
-        jubilee_epoch_cycle=1,
+        jubilee_epoch_common_year=configuration.epoch_common_year,
+        jubilee_epoch_cycle=configuration.epoch_cycle,
     )
     RHYTHM_GOVERNOR.require(
         RhythmRequest(
@@ -114,10 +133,43 @@ def calendar_day_payload(
             "boundary_authority": "local-light-overlay-no-grid-mutation",
         },
         "observances": [
-            {"id": oid, "name": name}
-            for oid, name in zip(day.observance_ids, day.observance_names)
+            {
+                "id": item.id,
+                "name": item.name,
+                "jurisdiction": item.jurisdiction,
+                "rule": item.rule,
+                "source_refs": list(item.source_refs),
+                "note": item.note,
+                "common_coordinate": {"month": item.month, "day": item.day},
+                "projection_status": (
+                    "legacy-placement-unreconciled-sacred-anchor"
+                    if item.jurisdiction in {"sacred", "sacred-marker"}
+                    else "declared-common-observance"
+                ),
+            }
+            for item in observances_for_ordinal(day.ordinal)
         ],
         "jubilee": {
+            "configuration": {
+                "epoch_common_year": configuration.epoch_common_year,
+                "epoch_cycle": configuration.epoch_cycle,
+                "rollover_rule": configuration.rollover_rule,
+                "selection_source": (
+                    "explicit-call-configuration"
+                    if jubilee_configuration is not None
+                    else "legacy-publication-first-year-default"
+                ),
+                "authority_scope": "calculation-inputs-only",
+                "decision_status": "rollover-reconciliation-unresolved",
+            },
+            "designation_status": (
+                "unconfigured-epoch"
+                if configuration.epoch_common_year is None
+                else "before-epoch"
+                if day.year < configuration.epoch_common_year
+                else "computed-under-stated-configuration"
+            ),
+            "release_day_projection_status": "legacy-placement-unreconciled-sacred-anchor",
             "cycle": day.jubilee_cycle,
             "year": day.jubilee_year,
             "seven_year": {
@@ -146,6 +198,11 @@ def calendar_day_payload(
             "is_jubilee_year": day.is_jubilee_year,
             "is_jubilee_release_day": day.is_jubilee_release_day,
         },
+        "long_cycle_comparison": compare_long_cycles(
+            common_year=day.year,
+            epoch_common_year=configuration.epoch_common_year,
+            epoch_cycle=configuration.epoch_cycle,
+        ),
         "provenance": list(day.source_refs),
         "publication": {
             "version": document.get("publicationVersion"),

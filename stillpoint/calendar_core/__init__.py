@@ -31,6 +31,7 @@ from .calendar import (
     ordinal_day,
 )
 from .dual_stamp import project_dual_stamp
+from .long_cycles import JubileeConfiguration, compare_long_cycles
 from .governor import (
     ANCHOR_WEEKDAY,
     CANONICAL_FIRST_YEAR,
@@ -209,6 +210,8 @@ __all__ = [
     "EnochPhase",
     "GeoPoint",
     "JubileeState",
+    "JubileeConfiguration",
+    "compare_long_cycles",
     "JubileeReleaseGate",
     "LunarWitness",
     "SeasonGateWitness",

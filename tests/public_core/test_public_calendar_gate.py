@@ -5,20 +5,37 @@ No private repository, credential, manuscript, or hidden integration fixture is 
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 from stillpoint.calendar_core.runtime_surface import calendar_day_payload
 
 
 class PublicOperatorQualification(unittest.TestCase):
+    def _run_installed_cli(self, year: int) -> subprocess.CompletedProcess[str]:
+        # Isolated mode and an empty working directory prevent the checkout or
+        # PYTHONPATH from concealing missing modules/resources in the wheel.
+        with tempfile.TemporaryDirectory(prefix="stillpoint-public-cli-") as root:
+            result = subprocess.run(
+                [sys.executable, "-I", "-m", "stillpoint.cli",
+                 "calendar-day", str(year), "--ordinal", "1"],
+                cwd=root,
+                env={**os.environ, "STILLPOINT_ROOT": root},
+                capture_output=True, text=True, timeout=40,
+            )
+            self.assertEqual(
+                list(Path(root).iterdir()), [],
+                "Read-only calendar CLI created files or company state",
+            )
+        return result
+
     def test_installed_public_cli_returns_v2_and_bounded_final_year(self):
-        process = subprocess.run(
-            [sys.executable, "-m", "stillpoint.cli",
-             "calendar-day", "2075", "--ordinal", "1"],
-            capture_output=True, text=True, check=True, timeout=40,
-        )
+        process = self._run_installed_cli(2075)
+        self.assertEqual(process.returncode, 0, process.stderr)
         result = json.loads(process.stdout)
         self.assertEqual(result["schema"], "stillpoint.calendar-day.v2")
         self.assertEqual(result["authority"], "read-only-calendar-law")
@@ -27,12 +44,13 @@ class PublicOperatorQualification(unittest.TestCase):
         self.assertEqual(result["map"]["last_year"], 2075)
 
     def test_public_cli_refuses_unpublished_next_year(self):
-        result = subprocess.run(
-            [sys.executable, "-m", "stillpoint.cli",
-             "calendar-day", "2076", "--ordinal", "1"],
-            capture_output=True, text=True, timeout=40,
-        )
+        result = self._run_installed_cli(2076)
         self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, "")
+        self.assertIn(
+            "ValueError: year 2076 is outside the finite publication",
+            result.stderr,
+        )
 
     def test_public_consumer_does_not_conflate_civic_and_sacred_boundaries(self):
         protected = calendar_day_payload(2027, 1)["protected_time"]

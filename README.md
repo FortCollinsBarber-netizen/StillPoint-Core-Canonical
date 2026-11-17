@@ -94,7 +94,11 @@ A task can become `completed` after external execution only when the registered 
 
 ## Tests
 
+Install the package first so the operator checks can exercise it outside the
+source checkout:
+
 ```bash
+python -m pip install .
 python -m unittest discover -s tests -q
 ```
 

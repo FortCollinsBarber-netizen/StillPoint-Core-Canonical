@@ -25,6 +25,13 @@ from PR #89; the additional three tests check the installed read-only CLI,
 explicit rejection of an unpublished CLI year, and the sacred-versus-civic
 protected-time boundary. No duplicate calendar policy implementation is added.
 
+The CLI checks use the installed package with Python isolated mode (`-I`) from
+an empty temporary directory, with that directory bound as `STILLPOINT_ROOT`.
+They assert that neither invocation creates company state or other files. The
+2076 check requires the finite-publication error and empty stdout, so an import
+or packaging failure cannot count as a valid rejection. The operator checks are
+also included in the standard recursive test discovery run after installation.
+
 The public tests guard the v2 read-only calendar interface, 364-day / 52-week
 geometry, March 25 sacred source-year coordinate distinct from civil January 1,
 the dated 2027 overlap-49 Jubilee selection, alternative rollover models as

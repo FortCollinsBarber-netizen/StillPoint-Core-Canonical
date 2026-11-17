@@ -1,0 +1,61 @@
+# Public-only gate: never checks out a private repository or uses secrets.
+name: Public Core Continuation
+
+on:
+  push:
+    branches:
+      - 'ops/public-core-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-core-qualification:
+    name: Public Core only - calendar and authority checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out this public Core repository only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - name: Install public Core from this checkout
+        run: python -m pip install .
+      - name: Execute public calendar domain and authority tests
+        run: |
+          python -m unittest discover -s tests/calendar_core -p 'test_*.py' -q
+          python -m unittest discover -s tests -p 'test_common_calendar_v2.py' -q
+          python -m unittest discover -s tests -p 'test_temporal_authority.py' -q
+      - name: Prove live public API and finite calendar publication
+        run: |
+          python - <<'PY'
+          from stillpoint.calendar_core.runtime_surface import calendar_day_payload
+
+          first = calendar_day_payload(2026, 1)
+          assert first["schema"] == "stillpoint.calendar-day.v2"
+          assert first["calendar_address"] == "Y_2026-001"
+          assert first["common_date"]["weekday"] == "Thursday"
+          assert first["map"]["year_days"] == 364
+          assert first["map"]["weeks_per_year"] == 52
+          assert first["map"]["december_31_exists"] is False
+          assert (first["map"]["first_year"], first["map"]["last_year"]) == (2026, 2075)
+
+          last = calendar_day_payload(2075, 364)
+          assert last["calendar_address"] == "Y_2075-364"
+          assert last["jubilee"]["year"] == 49
+          assert last["jubilee"]["is_jubilee_year"] is False
+
+          try:
+              calendar_day_payload(2076, 1)
+          except ValueError:
+              pass
+          else:
+              raise AssertionError("unpublished 2076 was exposed")
+
+          print("PUBLIC_CORE_ONLY_CONTRACT_PASS")
+          PY

@@ -30,7 +30,8 @@ class CalendarServiceTests(unittest.TestCase):
         self.assertEqual(snap.common_date.weekday, "Friday")
         self.assertEqual(snap.named_day, "Saturday")
         self.assertTrue(snap.sabbath_active)
-        self.assertTrue(snap.stillpoint_active)
+        # Apparent sunset starts the sacred Sabbath; civil dusk starts civic protection.
+        self.assertFalse(snap.stillpoint_active)
         self.assertEqual(snap.annual_phase, 9)
         self.assertEqual(snap.solar_gate, 1)
         self.assertEqual(snap.jubilee.cycle_year, 1)

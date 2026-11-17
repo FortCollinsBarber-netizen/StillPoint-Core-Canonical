@@ -1,4 +1,4 @@
-"""An explicitly proposed StillPoint overlay, distinct from civil month names.
+"""An author-selected working StillPoint overlay, distinct from civil month names.
 
 March 25 is a modern project anchor, not an ancient Common Calendar date or a
 rule for other communities. The anchor is fixed, with no annual solar reset.
@@ -12,7 +12,9 @@ from .calendar import common_date, ordinal_day
 
 SACRED_MONTH_LENGTHS = (30, 30, 31) * 4
 PROFILE_ID = "stillpoint-enochic-march25-v1"
-PROFILE_STATUS = "proposed-project-rule-awaiting-author-selection"
+PROFILE_STATUS = "author-selected-working-rule-not-civil-enactment"
+AUTHOR_SELECTION_NAME = "Robert Emmanuel LaDay"
+AUTHOR_SELECTION_DATE = "2026-11-17"
 JUBILEE_EPOCH_COMMON_YEAR = 2027
 JUBILEE_ROLLOVER_RULE = "overlap-49"
 
@@ -92,6 +94,8 @@ def sacred_profile_payload() -> dict[str, Any]:
     return {
         "id": PROFILE_ID,
         "selectionStatus": PROFILE_STATUS,
+        "selectedBy": AUTHOR_SELECTION_NAME,
+        "selectedOn": AUTHOR_SELECTION_DATE,
         "authorityScope": "StillPoint-religious-overlay-only",
         "sourceCalendar": "schematic-enochic-364",
         "monthLengths": list(SACRED_MONTH_LENGTHS),
@@ -109,7 +113,9 @@ def long_cycle_policy_payload() -> dict[str, Any]:
     return {
         "id": "stillpoint-overlap49-2027-v1",
         "selectionStatus": PROFILE_STATUS,
-        "authorityScope": "project-calculation-and-proposed-policy-only",
+        "selectedBy": AUTHOR_SELECTION_NAME,
+        "selectedOn": AUTHOR_SELECTION_DATE,
+        "authorityScope": "StillPoint-working-cycle-calculation-only",
         "epochCommonYear": JUBILEE_EPOCH_COMMON_YEAR, "epochCycle": 1,
         "rolloverRule": JUBILEE_ROLLOVER_RULE, "cycleYears": 49,
         "proclamationOrdinalYear": 50,

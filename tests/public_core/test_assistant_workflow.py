@@ -16,14 +16,33 @@ class InstalledAssistantWorkflowTests(unittest.TestCase):
         return subprocess.run([sys.executable, "-I", "-m", "stillpoint.cli", *args],
                               cwd=root, env=env, capture_output=True, text=True, timeout=40)
 
-    def test_published_example_reproduces_from_the_installed_package(self):
-        receipt = (Path(__file__).resolve().parents[2] /
-                   "docs/examples/public_assistant_week_answer.json")
-        with tempfile.TemporaryDirectory(prefix="stillpoint-assistant-example-") as td:
+    def test_published_examples_reproduce_from_the_installed_package(self):
+        examples = (
+            ("public_assistant_week_answer.json", "calendar.week.read"),
+            ("public_assistant_observance_answer.json", "calendar.observances.read"),
+        )
+        with tempfile.TemporaryDirectory(prefix="stillpoint-assistant-examples-") as td:
             root = Path(td)
-            run = self.invoke(root, "verify-answer", str(receipt))
-            self.assertEqual(run.returncode, 0, run.stderr + run.stdout)
-            self.assertTrue(json.loads(run.stdout)["verified"])
+            for name, capability in examples:
+                with self.subTest(name=name):
+                    receipt = Path(__file__).resolve().parents[2] / "docs/examples" / name
+                    value = json.loads(receipt.read_text())
+                    self.assertEqual(value["interpretation"]["capability"], capability)
+                    run = self.invoke(root, "verify-answer", str(receipt))
+                    self.assertEqual(run.returncode, 0, run.stderr + run.stdout)
+                    self.assertTrue(json.loads(run.stdout)["verified"])
+                    self.assertEqual(list(root.iterdir()), [])
+
+    def test_previous_public_example_is_preserved_as_historical_not_current(self):
+        archive = (
+            Path(__file__).resolve().parents[2]
+            / "docs/examples/archive/public_assistant_week_answer_0261e0c_pre_observance.json"
+        )
+        with tempfile.TemporaryDirectory(prefix="stillpoint-assistant-archive-") as td:
+            root = Path(td)
+            run = self.invoke(root, "verify-answer", str(archive))
+            self.assertEqual(run.returncode, 2, run.stderr)
+            self.assertFalse(json.loads(run.stdout)["verified"])
             self.assertEqual(list(root.iterdir()), [])
 
     def test_request_result_and_independent_receipt_verification_without_provider(self):

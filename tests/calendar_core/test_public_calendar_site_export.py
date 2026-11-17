@@ -559,6 +559,8 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('entry.observance_index_sha256', text)
         self.assertIn('row.common_date.year !== filters.year', text)
         self.assertIn('No named Core occurrences matched', text)
+        self.assertIn('invalidateDetailReceiptSelection(', text)
+        self.assertIn('activeReceiptDay = null;', text)
         self.assertIn('id="saveDayReceipt"', text)
         self.assertIn('id="saveObservanceReceipt"', text)
         self.assertIn('async function getDetailReceiptShard(entry, kind)', text)

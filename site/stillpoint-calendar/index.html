@@ -77,6 +77,17 @@
     .code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.79rem;
       overflow-wrap:anywhere; }
     .hidden { display:none; }
+    .assistant-panel { border-color:#bed0dd; background:linear-gradient(145deg,#fff,#f5f9fc); }
+    .assistant-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:15px 0; }
+    .assistant-status { color:var(--muted); font-size:.9rem; min-height:1.5em; }
+    .assistant-answer { padding:16px; background:white; border:1px solid var(--line);
+      border-radius:11px; }
+    .assistant-answer p { margin:0 0 12px; font-weight:650; }
+    .assistant-days { margin:10px 0; padding-left:21px; font-size:.88rem; }
+    .assistant-receipt { padding:10px 12px; background:var(--soft);
+      border-radius:8px; overflow-wrap:anywhere; font-size:.83rem; }
+    .assistant-disclaimer { font-size:.86rem; color:var(--muted); margin-top:13px; }
+    .assistant-error { color:var(--danger); font-weight:700; }
     @media(max-width:760px) {
       header { padding:32px 0 35px; }
       .panel { padding:18px; }
@@ -154,6 +165,27 @@
           <p class="week-note" id="protectedNote"></p>
         </section>
       </div>
+
+      <section class="panel assistant-panel" aria-labelledby="assistant-heading">
+        <p class="overline">First public assistant capability</p>
+        <h2 id="assistant-heading">Ask StillPoint about this week</h2>
+        <p class="hint">Explore a real answer generated and independently verified by the public Python Core during site export. This static page does not run Python or execute new requests on a server.</p>
+        <p class="code" id="assistantRequest"></p>
+        <div class="assistant-controls">
+          <button type="button" class="primary" id="askWeek">Show verified week answer</button>
+          <button type="button" class="secondary" id="downloadAnswer" disabled>Save answer receipt (JSON)</button>
+        </div>
+        <p class="assistant-status" id="assistantStatus" role="status" aria-live="polite">Choose a published Common day, then ask for its week.</p>
+        <div id="assistantResult" class="assistant-answer hidden">
+          <p id="assistantAnswer"></p>
+          <ul id="assistantDays" class="assistant-days"></ul>
+          <div class="assistant-receipt">
+            <strong>Build-time verification:</strong> passed against public Core.
+            <div class="code" id="assistantReceiptHash"></div>
+          </div>
+        </div>
+        <p class="assistant-disclaimer">A saved receipt can be independently reproduced with <code>stillpoint verify-answer receipt.json</code> using the matching public Core installation. It is not a signature, consent record, execution warrant, or private-integration qualification.</p>
+      </section>
     </div>
   </main>
   <footer class="wrap">
@@ -169,6 +201,11 @@
       "July","August","September","October","November","December"];
     let manifest = null;
     const cache = new Map();
+    const assistantCache = new Map();
+    let activeWeek = null;
+    let activeReceipt = null;
+    let selectionToken = 0;
+    let assistantToken = 0;
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -205,6 +242,49 @@
       cache.set(entry.year, data);
       return data;
     }
+    async function getAssistantShard(entry) {
+      if (assistantCache.has(entry.year)) return assistantCache.get(entry.year);
+      if (!entry.assistant_path || !/^[a-f0-9]{64}$/.test(entry.assistant_sha256)) {
+        throw new Error("The verified public assistant dataset is unavailable.");
+      }
+      if (!window.crypto || !window.crypto.subtle) {
+        throw new Error("Receipt integrity requires a secure HTTPS or localhost browser context.");
+      }
+      const response = await fetch("./" + entry.assistant_path, {cache:"force-cache"});
+      if (!response.ok) throw new Error("Could not load the public assistant answers.");
+      const bytes = await response.arrayBuffer();
+      const computed = Array.from(
+        new Uint8Array(await window.crypto.subtle.digest("SHA-256", bytes)),
+        function (part) { return part.toString(16).padStart(2, "0"); }
+      ).join("");
+      if (computed !== entry.assistant_sha256) {
+        throw new Error("Public assistant answer file failed its SHA-256 integrity check.");
+      }
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      if (data.schema !== manifest.assistant_schema ||
+          data.year !== entry.year ||
+          data.publication_digest !== manifest.publication_digest ||
+          !Array.isArray(data.receipts) ||
+          data.receipts.length !== 52 ||
+          entry.assistant_week_count !== 52) {
+        throw new Error("The assistant answer file has an invalid publication boundary.");
+      }
+      data.receipts.forEach(function (receipt, i) {
+        if (receipt.status !== "completed" ||
+            receipt.interpretation.capability !== "calendar.week.read" ||
+            receipt.authorization.allowed !== true ||
+            receipt.authorization.execution_warrant !== false ||
+            receipt.result.year !== entry.year ||
+            receipt.result.week !== i + 1 ||
+            receipt.result.days.length !== 7 ||
+            receipt.evidence.publication_digest !== manifest.publication_digest ||
+            !/^[a-f0-9]{64}$/.test(receipt.receipt_sha256)) {
+          throw new Error("The assistant answer file contains an invalid receipt.");
+        }
+      });
+      assistantCache.set(entry.year, data);
+      return data;
+    }
     function node(tag, text) {
       const element = document.createElement(tag);
       if (text !== undefined) element.textContent = String(text);
@@ -236,6 +316,16 @@
       });
     }
     function render(selected, shard) {
+      assistantToken += 1;
+      activeWeek = {year:selected.common_date.year, week:selected.common_date.week};
+      activeReceipt = null;
+      $("assistantResult").classList.add("hidden");
+      $("askWeek").disabled = false;
+      $("downloadAnswer").disabled = true;
+      $("assistantRequest").textContent =
+        'Show Common Calendar week ' + activeWeek.week + ' of ' + activeWeek.year + '.';
+      $("assistantStatus").textContent = "Ready to load a precomputed, verified Core answer.";
+      $("assistantStatus").classList.remove("assistant-error");
       const day = selected.common_date;
       $("results").classList.remove("hidden");
       $("day-heading").textContent = day.weekday + ", " +
@@ -271,6 +361,7 @@
       $("nextDay").disabled = selected.civil_date === last;
     }
     async function showDate(iso) {
+      const token = ++selectionToken;
       try {
         if (!manifest) throw new Error("Calendar data is not ready.");
         const entry = chooseYear(iso);
@@ -278,6 +369,7 @@
           "That ordinary date is outside this finite public calendar projection."
         );
         const shard = await getShard(entry);
+        if (token !== selectionToken) return;
         const selected = shard.days.find(function (day) {
           return day.civil_date === iso;
         });
@@ -286,9 +378,71 @@
         $("civilDate").value = iso;
         setStatus("Published calendar day loaded from Canonical Core.", false);
       } catch (error) {
-        setStatus(error.message || "Unable to load the selected date.", true);
+        if (token === selectionToken) {
+          setStatus(error.message || "Unable to load the selected date.", true);
+        }
       }
     }
+    async function showAssistantWeek() {
+      if (!manifest || !activeWeek) return;
+      const token = ++assistantToken;
+      const {year, week} = activeWeek;
+      $("askWeek").disabled = true;
+      $("assistantStatus").textContent = "Loading Core-generated answer and checking file integrity…";
+      $("assistantStatus").classList.remove("assistant-error");
+      try {
+        const entry = manifest.years.find(function (item) { return item.year === year; });
+        if (!entry) throw new Error("No published Core assistant data for that year.");
+        const data = await getAssistantShard(entry);
+        if (token !== assistantToken) return;
+        const receipt = data.receipts[week - 1];
+        const request = "Show Common Calendar week " + week + " of " + year + ".";
+        if (receipt.request !== request ||
+            receipt.result.first_address !== receipt.result.days[0].calendar_address ||
+            receipt.result.last_address !== receipt.result.days[6].calendar_address) {
+          throw new Error("The assistant answer does not match the selected week.");
+        }
+        activeReceipt = receipt;
+        $("assistantAnswer").textContent = receipt.answer;
+        const list = $("assistantDays");
+        list.replaceChildren();
+        receipt.result.days.forEach(function (day) {
+          const common = day.common_date;
+          list.appendChild(node("li", common.weekday + " · Common " +
+            common.year + "-" + String(common.month).padStart(2,"0") + "-" +
+            String(common.day).padStart(2,"0") + " · " + day.calendar_address));
+        });
+        $("assistantReceiptHash").textContent = "Receipt SHA-256: " + receipt.receipt_sha256;
+        $("assistantResult").classList.remove("hidden");
+        $("downloadAnswer").disabled = false;
+        $("assistantStatus").textContent =
+          "Answer loaded. File SHA-256 matches the build manifest; the Python verifier passed during export.";
+      } catch (error) {
+        if (token === assistantToken) {
+          activeReceipt = null;
+          $("assistantResult").classList.add("hidden");
+          $("downloadAnswer").disabled = true;
+          $("assistantStatus").textContent = error.message || "Unable to load the assistant answer.";
+          $("assistantStatus").classList.add("assistant-error");
+        }
+      } finally {
+        if (token === assistantToken) $("askWeek").disabled = false;
+      }
+    }
+    $("askWeek").addEventListener("click", function () { void showAssistantWeek(); });
+    $("downloadAnswer").addEventListener("click", function () {
+      if (!activeReceipt) return;
+      const blob = new Blob([JSON.stringify(activeReceipt, null, 2) + "\n"], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "stillpoint-week-" + activeReceipt.result.year +
+        "-" + String(activeReceipt.result.week).padStart(2,"0") + "-receipt.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
     $("dateForm").addEventListener("submit", function (event) {
       event.preventDefault();
       void showDate($("civilDate").value);
@@ -307,7 +461,8 @@
         if (data.schema !== "stillpoint.public-calendar-static.v1" ||
             data.complete_publication !== true || data.year_days !== 364 ||
             data.first_common_year !== 2026 || data.last_common_year !== 2075 ||
-            !Array.isArray(data.years) || data.years.length !== 50) {
+            !Array.isArray(data.years) || data.years.length !== 50 ||
+            data.assistant_schema !== "stillpoint.public-assistant-static-weeks.v1") {
           throw new Error("The expected complete 2026–2075 public export was not found.");
         }
         manifest = data;

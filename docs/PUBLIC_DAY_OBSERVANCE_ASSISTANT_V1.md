@@ -77,8 +77,12 @@ observance entries now preserve the existing published Core source references,
 rule, note and status without any independent JavaScript calendar calculation.
 The browser computes **SHA-256 on the fetched annual JSON bytes** and rejects
 a mismatch against the site's published manifest before presenting the
-day/observance details. It keeps the existing week-answer receipt mechanism
-separate.
+day/observance details. Both annual day and precomputed week-answer shard
+requests include their manifest digest as a URL query. This separates
+different release cache keys, avoiding an older cached year file or week
+receipt silently conflicting with the newly published manifest. The check
+still fails closed if an incorrect file is delivered. The separate
+week-answer receipt mechanism remains independently reproducible.
 
 **Do not mislabel the two types of verification:**
 

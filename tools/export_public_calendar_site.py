@@ -31,6 +31,8 @@ LAST_YEAR = 2075
 DAY_COUNT = 364
 SCHEMA = "stillpoint.public-calendar-static.v1"
 ASSISTANT_SCHEMA = "stillpoint.public-assistant-static-weeks.v1"
+OBSERVANCE_INDEX_SCHEMA = "stillpoint.public-observance-index.v1"
+MAX_PUBLIC_OBSERVANCE_ROWS = 10_000
 
 
 def _write_json(path: Path, value: object) -> str:
@@ -109,6 +111,7 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
 
     digest = source["publicationDigest"]
     entries = []
+    observance_rows: list[dict] = []
     for year in selected:
         days = []
         for ordinal in range(1, DAY_COUNT + 1):
@@ -120,7 +123,18 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
                 or full["map"]["last_year"] != LAST_YEAR
             ):
                 raise ValueError("Core returned inconsistent publication data")
-            days.append(_consumer_day(full))
+            record = _consumer_day(full)
+            days.append(record)
+            for observance in record["observances"]:
+                # Only index annotations projected from the public Core.
+                # An occurrence is addressed by its exact published Common day;
+                # no recurrence or Gregorian date is calculated by the indexer.
+                observance_rows.append({
+                    "calendar_address": record["calendar_address"],
+                    "civil_date": record["civil_date"],
+                    "common_date": record["common_date"],
+                    **observance,
+                })
         # A year shard is small enough to load on demand in a phone browser.
         name = "Y_" + str(year) + ".json"
         sha = _write_json(
@@ -174,12 +188,37 @@ def export_site(output: Path, years: list[int] | None = None) -> dict:
             "sha256": sha,
         })
 
+    if len(observance_rows) > MAX_PUBLIC_OBSERVANCE_ROWS:
+        raise ValueError("public observance search index exceeds the finite bound")
+    observance_jurisdictions = sorted({
+        item["jurisdiction"] for item in observance_rows
+    })
+    observance_index_name = "observances.json"
+    observance_index_hash = _write_json(
+        data_dir / observance_index_name,
+        {
+            "schema": OBSERVANCE_INDEX_SCHEMA,
+            "publication_digest": digest,
+            "first_common_year": selected[0],
+            "last_common_year": selected[-1],
+            "year_count": len(selected),
+            "occurrence_count": len(observance_rows),
+            "jurisdictions": observance_jurisdictions,
+            "rows": observance_rows,
+        },
+    )
+
     manifest = {
         "schema": SCHEMA,
         "source": "published Canonical Core calendar_day_payload",
         "assistant_source": "stillpoint.public_assistant.answer_request",
         "assistant_verification": "verify_answer_receipt at build time; no in-browser Python",
         "assistant_schema": ASSISTANT_SCHEMA,
+        "observance_index_schema": OBSERVANCE_INDEX_SCHEMA,
+        "observance_index_path": "data/" + observance_index_name,
+        "observance_index_sha256": observance_index_hash,
+        "observance_index_count": len(observance_rows),
+        "observance_index_jurisdictions": observance_jurisdictions,
         "authority": "read-only-consumer-projection",
         "publication_digest": digest,
         "first_common_year": FIRST_YEAR,

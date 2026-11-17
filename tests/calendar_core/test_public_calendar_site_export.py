@@ -115,6 +115,121 @@ class PublicCalendarSiteExportTests(unittest.TestCase):
             self.assertEqual(record["sacred_date"], source["sacred_date"])
             self.assertEqual(record["jubilee"]["year"], source["jubilee"]["year"])
 
+    def test_finite_observance_index_has_only_core_projected_occurrences(self):
+        with tempfile.TemporaryDirectory(prefix="stillpoint-observance-index-") as td:
+            root = Path(td)
+            manifest = export_site(root, years=[2026, 2027, 2075])
+            path = root / manifest["observance_index_path"]
+            original = path.read_bytes()
+            self.assertEqual(hashlib.sha256(original).hexdigest(),
+                             manifest["observance_index_sha256"])
+            index = json.loads(original)
+            self.assertEqual(index["schema"], "stillpoint.public-observance-index.v1")
+            self.assertEqual(index["publication_digest"], manifest["publication_digest"])
+            self.assertEqual(index["year_count"], 3)
+            self.assertEqual(index["first_common_year"], 2026)
+            self.assertEqual(index["last_common_year"], 2075)
+            self.assertEqual(index["occurrence_count"], manifest["observance_index_count"])
+            self.assertEqual(index["jurisdictions"], manifest["observance_index_jurisdictions"])
+            expected = []
+            for entry in manifest["years"]:
+                shard = json.loads((root / entry["path"]).read_bytes())
+                for day in shard["days"]:
+                    for observance in day["observances"]:
+                        expected.append({
+                            "calendar_address": day["calendar_address"],
+                            "civil_date": day["civil_date"],
+                            "common_date": day["common_date"],
+                            **observance,
+                        })
+            self.assertEqual(index["rows"], expected)
+            self.assertLess(len(index["rows"]), 10_000)
+            self.assertFalse(any(row["common_date"]["year"] == 2076
+                                 for row in index["rows"]))
+            # Ordinary Gregorian translation at the new Common year's start
+            # must be inherited from Core, not recalculated by search.
+            self.assertTrue(any(row["calendar_address"] == "Y_2027-001"
+                                and row["civil_date"] == "2026-12-31"
+                                and row["name"] == "New Year's Day"
+                                for row in index["rows"]))
+            self.assertTrue(any(row["name"] == "Passover"
+                                and "Leviticus 23:5" in row["source_refs"]
+                                and row["projection_status"] != "civil-enacted-law"
+                                for row in index["rows"]))
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js required to execute real search filter")
+    def test_observance_index_browser_integrity_and_filters_execute(self):
+        with tempfile.TemporaryDirectory(prefix="stillpoint-observance-search-") as td:
+            root = Path(td)
+            export_site(root, years=[2026, 2027, 2075])
+            site = root / "index.html"
+            manifest = root / "data/index.json"
+            index = root / "data/observances.json"
+            script = r"""
+const fs = require("node:fs");
+const vm = require("node:vm");
+const crypto = require("node:crypto");
+const assert = require("node:assert/strict");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const original = fs.readFileSync(process.argv[3]);
+const start = html.indexOf("    async function getObservanceIndex()");
+const end = html.indexOf("    function parsePublicWeekQuestion(text)", start);
+assert.ok(start >= 0 && end > start, "real search must be present");
+let served = original;
+const sandbox = {
+  manifest, observanceIndexPromise:null, TextDecoder,
+  sha256Hex: async bytes =>
+    crypto.createHash("sha256").update(Buffer.from(bytes)).digest("hex"),
+  chooseYear: civil => manifest.years.find(x =>
+    x.first_civil_date <= civil && civil <= x.last_civil_date),
+  fetch: async url => {
+    assert.match(url, /data\/observances\.json[?]sha256=[a-f0-9]{64}$/);
+    return {ok:true, arrayBuffer:async () =>
+      served.buffer.slice(served.byteOffset, served.byteOffset+served.byteLength)};
+  }
+};
+vm.createContext(sandbox);
+vm.runInContext(html.slice(start,end), sandbox);
+const filters = (changes={}) => ({name:"", jurisdiction:"", year:null,
+  civil_date:"", ...changes});
+(async () => {
+  const index = await sandbox.getObservanceIndex();
+  assert.equal(index.rows.length, index.occurrence_count);
+  const passovers = sandbox.filterObservanceOccurrences(index, filters({name:"passover"}));
+  assert.equal(passovers.total, 3);
+  assert.equal(passovers.rows.length, 3);
+  assert.ok(passovers.rows.every(x => x.name === "Passover"));
+  const civic = sandbox.filterObservanceOccurrences(index,
+    filters({name:"New Year\'s Day",jurisdiction:"civic",year:2027}));
+  assert.equal(civic.total, 1);
+  assert.equal(civic.rows[0].calendar_address, "Y_2027-001");
+  assert.equal(civic.rows[0].civil_date, "2026-12-31");
+  const date = sandbox.filterObservanceOccurrences(index,
+    filters({civil_date:"2026-12-31"}));
+  assert.ok(date.rows.some(x => x.name === "New Year's Day"));
+  const absent = sandbox.filterObservanceOccurrences(index,
+    filters({name:"An Event That Is Not In Core"}));
+  assert.equal(absent.total, 0);
+  for (const bad of [
+    filters(), filters({name:"p"}), filters({year:2076}),
+    filters({civil_date:"2076-01-01"}), filters({jurisdiction:"unknown"})
+  ]) assert.throws(() => sandbox.filterObservanceOccurrences(index,bad));
+  sandbox.observanceIndexPromise = null;
+  served = Buffer.concat([original, Buffer.from(" ")]);
+  await assert.rejects(sandbox.getObservanceIndex(),
+    /SHA-256 integrity check/);
+  console.log("Real bounded observance browser search and SHA-256: PASS");
+})().catch(err => { console.error(err); process.exitCode = 1; });
+"""
+            completed = subprocess.run(
+                [shutil.which("node"), "-e", script, str(site),
+                 str(manifest), str(index)],
+                capture_output=True, text=True, check=False, timeout=25,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertIn("PASS", completed.stdout)
+
     def test_published_observance_evidence_matches_public_core_exactly(self):
         from stillpoint.calendar_core.observances import SACRED_OBSERVANCES
         passover = next(item for item in SACRED_OBSERVANCES if item.id == "passover")
@@ -318,6 +433,13 @@ console.log("Executed bounded public week question grammar: PASS");
         self.assertIn('An invalid new question must not leave an older answer', text)
         self.assertIn('$("assistantResult").classList.add("hidden");', text)
         self.assertIn('No unrestricted AI or actions.', text)
+        self.assertIn('id="observanceSearchForm"', text)
+        self.assertIn('id="observanceSearchResults"', text)
+        self.assertIn('async function getObservanceIndex()', text)
+        self.assertIn('filterObservanceOccurrences(index, filters)', text)
+        self.assertIn('entry.observance_index_sha256', text)
+        self.assertIn('row.common_date.year !== filters.year', text)
+        self.assertIn('No named Core occurrences matched', text)
         self.assertIn('id="dayQuestionForm"', text)
         self.assertIn('id="dayQuestionStatus"', text)
         self.assertIn('id="dayObservanceEvidence"', text)

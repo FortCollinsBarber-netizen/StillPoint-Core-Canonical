@@ -96,6 +96,17 @@
     .day-evidence-detail { margin-top:5px; font-size:.89rem; color:var(--muted); }
     .digest-line { font: .79rem ui-monospace,SFMono-Regular,Consolas,monospace;
       overflow-wrap:anywhere; padding:9px; background:var(--soft); border-radius:8px; }
+    .search-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; margin-top:17px; }
+    .search-filters > div { min-width:0; }
+    .search-filters input, .search-filters select { width:100%; min-height:48px;
+      border:1px solid #aebac4; border-radius:9px; padding:9px 12px; background:white; color:var(--ink); }
+    .search-results { margin-top:15px; padding:0; list-style:none; }
+    .search-results > li { background:white; border:1px solid var(--line);
+      border-radius:10px; padding:14px 16px; margin:10px 0; overflow-wrap:anywhere; }
+    .search-results strong { display:block; color:var(--blue); }
+    .search-results .secondary { margin-top:8px; }
+    .search-results .details { display:block; font-size:.86rem; margin-top:4px; color:var(--muted); }
+    @media(max-width:540px) { .search-filters { grid-template-columns:1fr; } }
     @media(max-width:760px) {
       header { padding:32px 0 35px; }
       .panel { padding:18px; }
@@ -232,6 +243,41 @@
         <p class="assistant-disclaimer">The year-file SHA-256 check confirms agreement with this site's manifest, not a signature or a separate Python answer receipt. To reproduce and independently verify a full receipt, run the displayed <code>stillpoint ask</code> request with the matching public Core and use <code>stillpoint verify-answer</code>. Source references describe this author's selected profile; they are not automatic civil law or required practice for other communities.</p>
       </section>
     </div>
+
+    <section class="panel" aria-labelledby="observance-search-heading">
+      <p class="overline">Third public calendar capability</p>
+      <h2 id="observance-search-heading">Search published observances</h2>
+      <p class="hint">Search only the named occurrences already projected by the public Core into Common years 2026–2075. All source references, notes, and jurisdictions come from that same Core. Search is not a new calendar or holiday rule.</p>
+      <form id="observanceSearchForm">
+        <div class="search-filters">
+          <div>
+            <label for="observanceSearchName">Observance name</label>
+            <input id="observanceSearchName" type="search" maxlength="80" placeholder="Passover, Thanksgiving, Weeks…">
+          </div>
+          <div>
+            <label for="observanceSearchJurisdiction">Core jurisdiction</label>
+            <select id="observanceSearchJurisdiction"><option value="">Any jurisdiction</option></select>
+          </div>
+          <div>
+            <label for="observanceSearchYear">Common year</label>
+            <select id="observanceSearchYear"><option value="">Any published Common year</option></select>
+          </div>
+          <div>
+            <label for="observanceSearchCivil">Ordinary Gregorian date (optional)</label>
+            <input id="observanceSearchCivil" type="date">
+          </div>
+        </div>
+        <p class="hint">Choose at least one filter. Name searches need two or more characters. Results are chronological and limited to 30 visible occurrences; the total match count is shown. Gregorian dates are external labels, not the governing Common Calendar.</p>
+        <div class="assistant-controls">
+          <button class="primary" id="observanceSearchSubmit" type="submit">Search Core observances</button>
+          <button class="secondary" type="reset" id="observanceSearchReset">Clear filters</button>
+        </div>
+      </form>
+      <p id="observanceSearchStatus" class="status" role="status" aria-live="polite">Loading the finite observance index…</p>
+      <ul id="observanceSearchResults" class="search-results" aria-label="Published observance matches"></ul>
+      <p class="digest-line" id="observanceSearchDigest"></p>
+      <p class="assistant-disclaimer">These are indexed Core-generated annotations, not independent legal dates, compulsory religious practices, or a signed verification receipt. Selecting a result opens its published day; CLI day/observance receipts must still be independently reproduced with matching public Core code.</p>
+    </section>
   </main>
   <footer class="wrap">
     <p><strong>Read-only public information.</strong> The sacred profile is an author-selected working StillPoint interpretation, not a universal religious prescription or civil enactment.</p>
@@ -253,6 +299,8 @@
     let assistantToken = 0;
     let questionToken = 0;
     let dayQuestionToken = 0;
+    let observanceIndexPromise = null;
+    let observanceSearchToken = 0;
 
     function setStatus(message, error) {
       $("status").textContent = message;
@@ -348,6 +396,210 @@
       });
       assistantCache.set(entry.year, data);
       return data;
+    }
+    async function getObservanceIndex() {
+      if (observanceIndexPromise) return observanceIndexPromise;
+      observanceIndexPromise = (async function () {
+        const entry = manifest;
+        if (!entry || entry.observance_index_schema !== "stillpoint.public-observance-index.v1" ||
+            entry.observance_index_path !== "data/observances.json" ||
+            !/^[a-f0-9]{64}$/.test(entry.observance_index_sha256)) {
+          throw new Error("The finite published observance index is unavailable.");
+        }
+        const response = await fetch("./" + entry.observance_index_path +
+          "?sha256=" + entry.observance_index_sha256, {cache:"force-cache"});
+        if (!response.ok) throw new Error("Could not load the Core observance search index.");
+        const bytes = await response.arrayBuffer();
+        if (await sha256Hex(bytes) !== entry.observance_index_sha256) {
+          throw new Error("Observance index failed its manifest SHA-256 integrity check.");
+        }
+        const data = JSON.parse(new TextDecoder().decode(bytes));
+        if (data.schema !== entry.observance_index_schema ||
+            data.publication_digest !== entry.publication_digest ||
+            data.first_common_year !== entry.first_common_year ||
+            data.last_common_year !== entry.last_common_year ||
+            data.year_count !== entry.years.length ||
+            !Array.isArray(data.rows) || data.rows.length > 10000 ||
+            data.occurrence_count !== data.rows.length ||
+            data.occurrence_count !== entry.observance_index_count ||
+            !Array.isArray(data.jurisdictions) ||
+            JSON.stringify(data.jurisdictions) !== JSON.stringify(entry.observance_index_jurisdictions)) {
+          throw new Error("Observance index does not match the finite published Core.");
+        }
+        let previousYear = 0;
+        let previousOrdinal = 0;
+        for (const row of data.rows) {
+          const common = row.common_date;
+          if (!common || !Number.isInteger(common.year) ||
+              common.year < 2026 || common.year > 2075 ||
+              !Number.isInteger(common.ordinal) ||
+              common.ordinal < 1 || common.ordinal > 364 ||
+              !entry.years.some(function (item) { return item.year === common.year; }) ||
+              (common.year < previousYear ||
+                (common.year === previousYear && common.ordinal < previousOrdinal)) ||
+              row.calendar_address !==
+                "Y_" + common.year + "-" + String(common.ordinal).padStart(3, "0") ||
+              typeof row.name !== "string" || !row.name ||
+              typeof row.id !== "string" || !row.id ||
+              typeof row.jurisdiction !== "string" ||
+              !data.jurisdictions.includes(row.jurisdiction) ||
+              typeof row.rule !== "string" ||
+              typeof row.projection_status !== "string" ||
+              typeof row.civil_date !== "string" ||
+              !/^\d{4}-\d{2}-\d{2}$/.test(row.civil_date) ||
+              !Array.isArray(row.source_refs) ||
+              !row.source_refs.every(function (ref) { return typeof ref === "string"; })) {
+            throw new Error("Observance index contains an invalid or unpublished Core occurrence.");
+          }
+          previousYear = common.year;
+          previousOrdinal = common.ordinal;
+        }
+        return data;
+      })();
+      try {
+        return await observanceIndexPromise;
+      } catch (error) {
+        observanceIndexPromise = null;
+        throw error;
+      }
+    }
+    function filterObservanceOccurrences(index, filters) {
+      const needle = filters.name.trim().toLocaleLowerCase("en");
+      if (needle && needle.length < 2) {
+        throw new Error("Use at least two characters to search observance names.");
+      }
+      if (!needle && !filters.jurisdiction && !filters.year && !filters.civil_date) {
+        throw new Error("Choose a name, jurisdiction, Common year, or exact Gregorian date.");
+      }
+      if (filters.jurisdiction && !index.jurisdictions.includes(filters.jurisdiction)) {
+        throw new Error("That jurisdiction is not present in the published index.");
+      }
+      if (filters.year && (!Number.isInteger(filters.year) ||
+          filters.year < 2026 || filters.year > 2075)) {
+        throw new Error("Only published Common years 2026–2075 may be searched.");
+      }
+      if (filters.civil_date && (!/^\d{4}-\d{2}-\d{2}$/.test(filters.civil_date) ||
+          !chooseYear(filters.civil_date))) {
+        throw new Error("That ordinary date is outside the published Core projection.");
+      }
+      const rows = [];
+      let count = 0;
+      for (const row of index.rows) {
+        if (needle && !row.name.toLocaleLowerCase("en").includes(needle)) continue;
+        if (filters.jurisdiction && row.jurisdiction !== filters.jurisdiction) continue;
+        if (filters.year && row.common_date.year !== filters.year) continue;
+        if (filters.civil_date && row.civil_date !== filters.civil_date) continue;
+        count += 1;
+        if (rows.length < 30) rows.push(row);
+      }
+      return {total:count, rows};
+    }
+    function renderObservanceOccurrences(index, result) {
+      const host = $("observanceSearchResults");
+      host.replaceChildren();
+      for (const occurrence of result.rows) {
+        const common = occurrence.common_date;
+        const li = node("li");
+        li.appendChild(node("strong", occurrence.name));
+        li.appendChild(node("div",
+          "Common " + common.year + "-" + String(common.month).padStart(2,"0") +
+          "-" + String(common.day).padStart(2,"0") +
+          " · " + occurrence.calendar_address + " · ordinary date " +
+          occurrence.civil_date));
+        const facts = node("span",
+          "Jurisdiction: " + occurrence.jurisdiction + "; Core rule: " +
+          occurrence.rule + "; projection: " + occurrence.projection_status + ".");
+        facts.className = "details";
+        li.appendChild(facts);
+        const refs = node("span", occurrence.source_refs.length ?
+          "Recorded source references: " + occurrence.source_refs.join("; ") :
+          "No textual references recorded in Core for this occurrence.");
+        refs.className = "details";
+        li.appendChild(refs);
+        if (occurrence.source_coordinate) {
+          const source = occurrence.source_coordinate;
+          const sourceLabel = node("span",
+            "Recorded source coordinate: " + source.calendar + ", month " +
+            source.month + ", day " + source.day +
+            (source.end_month === null ? "" :
+             " through month " + source.end_month + ", day " + source.end_day) + ".");
+          sourceLabel.className = "details";
+          li.appendChild(sourceLabel);
+        }
+        if (occurrence.note) {
+          const note = node("span", "Core note: " + occurrence.note);
+          note.className = "details";
+          li.appendChild(note);
+        }
+        const button = node("button", "Explore this published day");
+        button.type = "button";
+        button.className = "secondary";
+        button.addEventListener("click", function () {
+          void showDate(occurrence.civil_date);
+        });
+        li.appendChild(button);
+        host.appendChild(li);
+      }
+      $("observanceSearchStatus").textContent = result.total ?
+        ("Found " + result.total + " published Core occurrence(s); showing " +
+         result.rows.length + (result.total > result.rows.length ? " (first 30)." : ".")) :
+        "No named Core occurrences matched those filters. No additional observance was invented.";
+      $("observanceSearchDigest").textContent =
+        "Index SHA-256 checked against public manifest: " + manifest.observance_index_sha256 +
+        " · Publication digest: " + index.publication_digest +
+        " · Not a signature or Python assistant receipt.";
+    }
+    async function searchObservances() {
+      const token = ++observanceSearchToken;
+      $("observanceSearchResults").replaceChildren();
+      $("observanceSearchDigest").textContent = "";
+      $("observanceSearchSubmit").disabled = true;
+      $("observanceSearchStatus").classList.remove("error");
+      $("observanceSearchStatus").textContent = "Checking the finite Core index…";
+      try {
+        if (!manifest) throw new Error("Published Common Calendar is not ready.");
+        const index = await getObservanceIndex();
+        const yearValue = $("observanceSearchYear").value;
+        const result = filterObservanceOccurrences(index, {
+          name:$("observanceSearchName").value,
+          jurisdiction:$("observanceSearchJurisdiction").value,
+          year:yearValue ? Number(yearValue) : null,
+          civil_date:$("observanceSearchCivil").value
+        });
+        if (token !== observanceSearchToken) return;
+        renderObservanceOccurrences(index, result);
+      } catch (error) {
+        if (token === observanceSearchToken) {
+          $("observanceSearchStatus").textContent = error.message || "Unable to search Core observances.";
+          $("observanceSearchStatus").classList.add("error");
+        }
+      } finally {
+        if (token === observanceSearchToken) $("observanceSearchSubmit").disabled = false;
+      }
+    }
+    async function initializeObservanceSearch() {
+      const years = manifest.years;
+      $("observanceSearchCivil").min = years[0].first_civil_date;
+      $("observanceSearchCivil").max = years[years.length - 1].last_civil_date;
+      for (const entry of years) {
+        const option = node("option", "Common " + entry.year);
+        option.value = String(entry.year);
+        $("observanceSearchYear").appendChild(option);
+      }
+      try {
+        const data = await getObservanceIndex();
+        for (const jurisdiction of data.jurisdictions) {
+          const option = node("option", jurisdiction);
+          option.value = jurisdiction;
+          $("observanceSearchJurisdiction").appendChild(option);
+        }
+        $("observanceSearchStatus").textContent =
+          data.occurrence_count + " finite named Core occurrences ready. Choose filters to search.";
+      } catch (error) {
+        $("observanceSearchStatus").textContent = error.message ||
+          "Core observance search is temporarily unavailable.";
+        $("observanceSearchStatus").classList.add("error");
+      }
     }
     function parsePublicWeekQuestion(text) {
       const question = String(text).trim();
@@ -681,6 +933,18 @@
         if (token === dayQuestionToken) $("dayQuestionSubmit").disabled = false;
       }
     }
+    $("observanceSearchForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      void searchObservances();
+    });
+    $("observanceSearchForm").addEventListener("reset", function () {
+      observanceSearchToken += 1;
+      $("observanceSearchSubmit").disabled = false;
+      $("observanceSearchResults").replaceChildren();
+      $("observanceSearchDigest").textContent = "";
+      $("observanceSearchStatus").classList.remove("error");
+      $("observanceSearchStatus").textContent = "Filters cleared. Choose a new search.";
+    });
     $("dayQuestionForm").addEventListener("submit", function (event) {
       event.preventDefault();
       void answerPublicDayQuestion();
@@ -734,6 +998,7 @@
           data.publication_digest.slice(0, 24) + "… · Data is precomputed from public Python Core";
         const today = localISO(new Date());
         await showDate(today >= first && today <= last ? today : first);
+        void initializeObservanceSearch();
       } catch (error) {
         setStatus((error.message || "Could not initialize the calendar.") +
           " If viewing local files, serve the exported folder with a static HTTP server.", true);

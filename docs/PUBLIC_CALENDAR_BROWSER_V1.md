@@ -118,7 +118,7 @@ viewport were tested against the deployed source.
 
 ## Proposed day questions and observance provenance
 
-The next public-safe feature is defined in
+The separate public day/observance capability is defined in
 [PUBLIC_DAY_OBSERVANCE_ASSISTANT_V1.md](PUBLIC_DAY_OBSERVANCE_ASSISTANT_V1.md).
 It adds explicit observance-read permission in Python Core, publishes the
 existing Core rules/notes/source references in year shards, and accepts

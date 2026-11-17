@@ -1,8 +1,9 @@
 # StillPoint public day and observance assistant — bounded read-only v1
 
-**Status:** public Canonical Core feature candidate. A feature branch or successful
-build is not a live release. After approval and merge, confirm the deployed
-GitHub Pages URL, exact source SHA, and actual browser behavior separately.
+**Status:** public Canonical Core read-only implementation. Its live release
+status depends on the specific deployed GitHub Pages source revision, not this
+document or a green feature-branch build. Verify the actual live browser URL,
+exact commit SHA, and tests separately before claiming publication.
 
 ## New, useful operations
 

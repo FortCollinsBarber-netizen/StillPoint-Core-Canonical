@@ -1144,7 +1144,13 @@
             data.assistant_schema !== "stillpoint.public-assistant-static-weeks.v1" ||
             data.day_receipt_schema !== "stillpoint.public-assistant-static-day-receipts.v1" ||
             data.observance_receipt_schema !== "stillpoint.public-assistant-static-observance-receipts.v1" ||
-            data.receipt_format !== "gzip-json-mtime-zero") {
+            data.receipt_format !== "gzip-json-mtime-zero" ||
+            data.day_receipt_total !== 18200 ||
+            data.observance_receipt_total !== 18200 ||
+            data.years.some(function (entry) {
+              return entry.day_receipt_count !== 364 ||
+                entry.observance_receipt_count !== 364;
+            })) {
           throw new Error("The expected complete 2026–2075 public export was not found.");
         }
         manifest = data;

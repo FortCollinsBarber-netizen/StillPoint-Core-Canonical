@@ -106,6 +106,10 @@
     .search-results strong { display:block; color:var(--blue); }
     .search-results .secondary { margin-top:8px; }
     .search-results .details { display:block; font-size:.86rem; margin-top:4px; color:var(--muted); }
+    .inspector-input { display:block; width:100%; max-width:590px; border:1px solid #aebac4;
+      border-radius:9px; padding:12px; background:#fff; color:var(--ink); }
+    .inspector-sources { margin:12px 0; font-size:.87rem; overflow-wrap:anywhere; }
+    .inspector-sources li { margin:7px 0; }
     @media(max-width:540px) { .search-filters { grid-template-columns:1fr; } }
     @media(max-width:760px) {
       header { padding:32px 0 35px; }
@@ -284,6 +288,29 @@
       <p class="digest-line" id="observanceSearchDigest"></p>
       <p class="assistant-disclaimer">These are indexed Core-generated annotations, not independent legal dates, compulsory religious practices, or a signed verification receipt. Selecting a result opens its published day; CLI day/observance receipts must still be independently reproduced with matching public Core code.</p>
     </section>
+
+    <section class="panel assistant-panel" aria-labelledby="inspectorHeading">
+      <p class="overline">Fourth public assistant capability</p>
+      <h2 id="inspectorHeading">Inspect a saved Core receipt</h2>
+      <p class="hint">Choose a previously saved StillPoint week, day, or observance JSON receipt. Your file is read locally in this browser; it is not uploaded. The inspector checks its own receipt SHA-256 and compares the complete content with the matching Core receipt in this site's manifest-checked publication.</p>
+      <form id="receiptInspectorForm">
+        <label for="receiptInspectorFile">Saved receipt (.json, 256 KB maximum)</label>
+        <input id="receiptInspectorFile" class="inspector-input" type="file" accept=".json,application/json" required>
+        <div class="assistant-controls">
+          <button id="receiptInspectorSubmit" class="primary" type="submit">Inspect receipt locally</button>
+        </div>
+      </form>
+      <p id="receiptInspectorStatus" class="status" role="status" aria-live="polite">Select a saved public Core receipt to inspect its integrity and provenance.</p>
+      <div id="receiptInspectorResult" class="assistant-answer hidden" aria-live="polite">
+        <p id="receiptInspectorSummary"></p>
+        <p id="receiptInspectorHashes" class="digest-line"></p>
+        <p id="receiptInspectorScope" class="hint"></p>
+        <h3>Recorded public source fingerprints</h3>
+        <ul id="receiptInspectorSources" class="inspector-sources"></ul>
+        <p class="digest-line">Independent reproduction: <code>stillpoint verify-answer saved-receipt.json</code> using the matching public Python Core source and data.</p>
+      </div>
+      <p class="assistant-disclaimer">A matching self-hash only establishes internal consistency; it can be recalculated after tampering. A complete match to this site's SHA-256-checked archive is stronger but still depends on the unsigned public manifest. This browser does not execute the Python verifier, prove an author's identity or consent, sign receipts, or grant any civil, religious, or execution authority. Receipts from prior public releases may not match the current source revision.</p>
+    </section>
   </main>
   <footer class="wrap">
     <p><strong>Read-only public information.</strong> The sacred profile is an author-selected working StillPoint interpretation, not a universal religious prescription or civil enactment.</p>
@@ -310,6 +337,7 @@
     let receiptToken = 0;
     let activeReceiptDay = null;
     const detailReceiptCache = new Map();
+    let receiptInspectorToken = 0;
 
     function setStatus(message, error) {
       $("status").textContent = message;

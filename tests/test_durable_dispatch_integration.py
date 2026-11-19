@@ -389,8 +389,12 @@ class DurableDispatchIntegrationTests(unittest.TestCase):
             )
             conn = rt.db._connection()
             conn.execute(
-                "UPDATE temporal_warrants SET valid_from=? WHERE warrant_id=?",
-                ((datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(), row["warrant_id"]),
+                "UPDATE temporal_warrants SET valid_from=?,valid_to=? WHERE warrant_id=?",
+                (
+                    (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(),
+                    (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(),
+                    row["warrant_id"],
+                ),
             )
             conn.commit()
             with self.assertRaisesRegex(RuntimeError, "no longer valid at dispatch"):

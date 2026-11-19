@@ -197,10 +197,14 @@ struct CivicClockView: View {
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
                     } else {
-                        Text("GROUND ZERO NOT LOCKED · REOPEN TO RETRY")
+                        Text("GROUND ZERO NOT LOCKED · TAP TO RETRY")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
+                        Button("Retry Ground Zero") {
+                            locationService.retry()
+                        }
+                        .font(.caption2)
                     }
 
                     Text("CLOCK COORDINATES · LIGHT MARKS PROTECTED TIME")

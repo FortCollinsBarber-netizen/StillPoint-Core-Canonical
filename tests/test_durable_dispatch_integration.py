@@ -356,10 +356,23 @@ class DurableDispatchIntegrationTests(unittest.TestCase):
                 approval_id=row["approval_id"],
                 artifact_hashes=[],
             )
-            warrant = rt.db.get_temporal_warrant(row["warrant_id"])
-            warrant.valid_to = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
-            rt.db.update_temporal_warrant(warrant)
-            self.assertEqual(warrant.status.value, "active")
+            # The database requires valid_from < valid_to. Model a genuine
+            # time-limited warrant that was valid in the past but expired while
+            # a worker held its existing reservation.
+            now = datetime.now(timezone.utc)
+            conn = rt.db._connection()
+            conn.execute(
+                "UPDATE temporal_warrants SET valid_from=?,valid_to=? WHERE warrant_id=?",
+                (
+                    (now - timedelta(hours=2)).isoformat(),
+                    (now - timedelta(seconds=1)).isoformat(),
+                    row["warrant_id"],
+                ),
+            )
+            conn.commit()
+            self.assertEqual(
+                rt.db.get_temporal_warrant(row["warrant_id"]).status.value, "active"
+            )
             with self.assertRaisesRegex(RuntimeError, "no longer valid at dispatch"):
                 rt.db.begin_external_dispatch(
                     action_id=action["id"],

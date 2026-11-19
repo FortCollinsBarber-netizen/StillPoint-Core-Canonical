@@ -52,6 +52,57 @@ class SecretCustodyTests(unittest.TestCase):
             )
 
 
+    def test_real_pipe_partial_secret_times_out_without_legacy_fallback(self):
+        # Use real select/os.read and leave the writer open after a partial
+        # credential. A short per-test limit avoids a slow or flaky CI test.
+        read_fd, write_fd = os.pipe()
+        try:
+            os.write(write_fd, b"partial-secret")
+            with patch("stillpoint.secret_custody.SECRET_READ_TIMEOUT_SECONDS", 0.15):
+                with self.assertRaisesRegex(SecretCustodyError, "timed out"):
+                    read_secret(
+                        {"SECRET_FD": str(read_fd), "SECRET_VALUE": "legacy-secret"},
+                        value_name="SECRET_VALUE",
+                        fd_name="SECRET_FD",
+                    )
+            # The descriptor is consumed and closed even though the writer
+            # never closed and the direct environment value was available.
+            with self.assertRaises(OSError):
+                os.read(read_fd, 1)
+        finally:
+            os.close(write_fd)
+
+    def test_missing_fd_value_uses_documented_legacy_fallback(self):
+        self.assertEqual(
+            read_secret(
+                {"SECRET_FD": "", "SECRET_VALUE": "legacy-secret"},
+                value_name="SECRET_VALUE",
+                fd_name="SECRET_FD",
+            ),
+            "legacy-secret",
+        )
+
+    def test_closed_fd_fails_closed_without_legacy_fallback(self):
+        read_fd, write_fd = os.pipe()
+        os.close(read_fd)
+        os.close(write_fd)
+        with self.assertRaises(SecretCustodyError):
+            read_secret(
+                {"SECRET_FD": str(read_fd), "SECRET_VALUE": "legacy-secret"},
+                value_name="SECRET_VALUE",
+                fd_name="SECRET_FD",
+            )
+
+    def test_empty_inherited_secret_is_rejected(self):
+        read_fd, write_fd = os.pipe()
+        os.close(write_fd)
+        with self.assertRaisesRegex(SecretCustodyError, "empty secret"):
+            read_secret(
+                {"SECRET_FD": str(read_fd)},
+                value_name="SECRET_VALUE",
+                fd_name="SECRET_FD",
+            )
+
     def test_stalled_pipe_fails_closed_and_closes_fd(self):
         read_fd, write_fd = os.pipe()
         try:

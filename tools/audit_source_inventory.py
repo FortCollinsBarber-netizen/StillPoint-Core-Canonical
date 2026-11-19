@@ -2,6 +2,7 @@
 
 Usage: python tools/audit_source_inventory.py --repo . > local_inventory.json
 Keep inventory output from private repositories private.
+A dirty or unborn checkout is NOT evidence of the pinned HEAD contents.
 """
 from __future__ import annotations
 
@@ -17,13 +18,25 @@ SENSITIVE_PATH = re.compile(r"(?:authority|warrant|secret|credential|adapter|mig
 REVIEW_MARKER = re.compile(r"\b(?:TODO|FIXME|HACK|XXX)\b")
 
 
-def inventory(repo: Path) -> dict:
-    root = repo.resolve(strict=True)
+def _git(root: Path, *args: str) -> bytes:
     completed = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--cached", "-z", "--full-name"],
+        ["git", "-C", str(root), *args],
         check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
-    names = sorted(item.decode("utf-8", "surrogateescape") for item in completed.stdout.split(b"\0") if item)
+    return completed.stdout
+
+
+def inventory(repo: Path) -> dict:
+    selected = repo.resolve(strict=True)
+    root = Path(_git(selected, "rev-parse", "--show-toplevel").decode("utf-8").strip())
+    names = sorted(item.decode("utf-8", "surrogateescape") for item in
+                   _git(root, "ls-files", "--cached", "-z", "--full-name").split(b"\0") if item)
+    try:
+        head_commit = _git(root, "rev-parse", "--verify", "HEAD").decode("ascii").strip()
+    except subprocess.CalledProcessError:
+        head_commit = None
+    status = _git(root, "status", "--porcelain=v1", "--untracked-files=all", "-z")
+    worktree_clean = not bool(status) and head_commit is not None
     rows = []
     for name in names:
         target = root / name
@@ -45,7 +58,9 @@ def inventory(repo: Path) -> dict:
                        physical_lines=lines,
                        review_markers=len(REVIEW_MARKER.findall(decoded)) if decoded is not None else None)
         rows.append(row)
-    return {"schema": "stillpoint-offline-inventory-v1", "root": str(root),
+    return {"schema": "stillpoint-offline-inventory-v2", "root": str(root),
+            "head_commit": head_commit, "worktree_clean": worktree_clean,
+            "snapshot_basis": "pinned_HEAD_clean_worktree" if worktree_clean else "unqualified_worktree",
             "tracked_file_count": len(rows),
             "code_or_config_count": sum(x["kind"] == "code_or_config" for x in rows),
             "not_read_count": len(rows),

@@ -84,7 +84,7 @@ class SecretCustodyTests(unittest.TestCase):
 
     def test_non_utf8_descriptor_is_rejected_with_bounded_error(self):
         read_fd, write_fd = os.pipe()
-        os.write(write_fd, b"\\xff")
+        os.write(write_fd, b"\xff")
         os.close(write_fd)
         with self.assertRaisesRegex(SecretCustodyError, "must be UTF-8"):
             read_secret(

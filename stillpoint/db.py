@@ -938,13 +938,17 @@ class CompanyDB:
                 raise RuntimeError("action intent is no longer present in current plan")
 
             warrant = conn.execute(
-                "SELECT status FROM temporal_warrants WHERE warrant_id=?",
+                "SELECT * FROM temporal_warrants WHERE warrant_id=?",
                 (warrant_id,),
             ).fetchone()
             if not warrant:
                 raise KeyError(warrant_id)
-            if warrant["status"] != "active":
-                raise RuntimeError("bound warrant is no longer active")
+            # The earlier runtime gate can become stale while an adapter is
+            # selected or a worker waits. Recheck actual UTC time under this
+            # BEGIN IMMEDIATE transaction immediately before durable dispatch.
+            now = utcnow()
+            if not self._row_to_warrant(dict(warrant)).is_active(now_iso=now):
+                raise RuntimeError("bound warrant is no longer valid at dispatch")
 
             consumption = conn.execute(
                 "SELECT disposition FROM action_warrant_consumptions WHERE action_id=?",
@@ -960,7 +964,6 @@ class CompanyDB:
                     f"{consumption['disposition']}"
                 )
 
-            now = utcnow()
             conn.execute(
                 """INSERT INTO action_dispatches
                 (action_id,warrant_id,task_id,adapter,idempotency_key,
@@ -996,13 +999,13 @@ class CompanyDB:
 
             # A one-use authorization is spent when real external dispatch begins,
             # not when we later learn the outcome.
-            conn.execute(
+            spent = conn.execute(
                 """UPDATE temporal_warrants
                    SET status='completed',completed_at=?,updated_at=?
                    WHERE warrant_id=? AND status='active'""",
                 (now, now, warrant_id),
             )
-            if conn.total_changes < 1:
+            if spent.rowcount != 1:
                 raise RuntimeError("failed to consume active warrant")
 
             conn.commit()

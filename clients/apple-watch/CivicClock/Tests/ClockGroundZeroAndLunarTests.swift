@@ -122,6 +122,24 @@ final class ClockGroundZeroAndLunarTests: XCTestCase {
         )
     }
 
+    func testGroundZeroSessionStartRequiresForegroundAndAnIdleSession() {
+        XCTAssertTrue(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: false, authorized: true, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: false, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: false, isSampling: true
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: true, isSampling: false
+        ))
+    }
+
     func testSeptember23ObservationIsWaxingGibbous() throws {
         let parser = ISO8601DateFormatter()
         let instant = try XCTUnwrap(

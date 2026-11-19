@@ -31,6 +31,9 @@ class InventoryTests(unittest.TestCase):
             self.assertEqual(rows["binary.dat"]["kind"], "binary_or_non_utf8")
             self.assertIsNone(rows["binary.dat"]["physical_lines"])
             self.assertTrue(all(x["review_status"] == "NOT_READ" for x in rows.values()))
+            self.assertIsNone(report["head_commit"])
+            self.assertFalse(report["worktree_clean"])
+            self.assertEqual(report["snapshot_basis"], "unqualified_worktree")
 
     def test_missing_worktree_file_is_not_claimed_read(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -42,6 +45,27 @@ class InventoryTests(unittest.TestCase):
             row = audit_module.inventory(root)["files"][0]
             self.assertEqual(row["kind"], "missing_worktree_file")
             self.assertIsNone(row["sha256"])
+
+    def test_head_and_cleanliness_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            (root / "tracked.py").write_text("print(1)\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "tracked.py"], check=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Test", "-c", "user.email=test@example.org", "commit", "-qm", "fixture"], check=True)
+            clean = audit_module.inventory(root)
+            self.assertEqual(len(clean["head_commit"]), 40)
+            self.assertTrue(clean["worktree_clean"])
+            self.assertEqual(clean["snapshot_basis"], "pinned_HEAD_clean_worktree")
+            nested = root / "nested"
+            nested.mkdir()
+            self.assertEqual(audit_module.inventory(nested)["root"], str(root))
+            (root / "tracked.py").write_text("print(2)\n", encoding="utf-8")
+            dirty = audit_module.inventory(root)
+            self.assertEqual(dirty["head_commit"], clean["head_commit"])
+            self.assertFalse(dirty["worktree_clean"])
+            self.assertEqual(dirty["snapshot_basis"], "unqualified_worktree")
+            self.assertNotEqual(dirty["files"][0]["sha256"], clean["files"][0]["sha256"])
 
 
 if __name__ == "__main__":

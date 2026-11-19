@@ -4,6 +4,7 @@ from __future__ import annotations
 import tempfile
 import threading
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from stillpoint.adapters.registry import ActionAdapterRegistry
@@ -339,6 +340,70 @@ class DurableDispatchIntegrationTests(unittest.TestCase):
             # result still separate — still dispatching
             disp = rt.db.get_action_dispatch(action["id"])
             self.assertEqual(disp["state"], "dispatching")
+            rt.db.close()
+
+    # A warrant can expire or become not-yet-valid after an earlier
+    # authorization check but before the durable external-dispatch transaction.
+    def test_begin_external_dispatch_rejects_expired_warrant_after_reservation(self):
+        with tempfile.TemporaryDirectory() as d:
+            rt = self.make(Path(d))
+            _, action = self._approve_and_get_action(rt)
+            row = rt.db.get_action_request(action["id"])
+            rt.db.reserve_warrant_for_action(
+                action_id=action["id"],
+                warrant_id=row["warrant_id"],
+                authority_revision=row["authority_revision"],
+                approval_id=row["approval_id"],
+                artifact_hashes=[],
+            )
+            warrant = rt.db.get_temporal_warrant(row["warrant_id"])
+            warrant.valid_to = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
+            rt.db.update_temporal_warrant(warrant)
+            self.assertEqual(warrant.status.value, "active")
+            with self.assertRaisesRegex(RuntimeError, "no longer valid at dispatch"):
+                rt.db.begin_external_dispatch(
+                    action_id=action["id"],
+                    warrant_id=row["warrant_id"],
+                    adapter="side-effect",
+                    idempotency_key=row["idempotency_key"],
+                    authority_revision=row["authority_revision"],
+                    approval_id=row["approval_id"],
+                    artifact_hashes=[],
+                )
+            self.assertIsNone(rt.db.get_action_dispatch(action["id"]))
+            self.assertEqual(rt.db.get_action_request(action["id"])["status"], "ready_for_action")
+            self.assertEqual(rt.db.get_temporal_warrant(row["warrant_id"]).status.value, "active")
+            rt.db.close()
+
+    def test_begin_external_dispatch_rejects_future_warrant_start(self):
+        with tempfile.TemporaryDirectory() as d:
+            rt = self.make(Path(d))
+            _, action = self._approve_and_get_action(rt)
+            row = rt.db.get_action_request(action["id"])
+            rt.db.reserve_warrant_for_action(
+                action_id=action["id"],
+                warrant_id=row["warrant_id"],
+                authority_revision=row["authority_revision"],
+                approval_id=row["approval_id"],
+                artifact_hashes=[],
+            )
+            conn = rt.db._connection()
+            conn.execute(
+                "UPDATE temporal_warrants SET valid_from=? WHERE warrant_id=?",
+                ((datetime.now(timezone.utc) + timedelta(hours=1)).isoformat(), row["warrant_id"]),
+            )
+            conn.commit()
+            with self.assertRaisesRegex(RuntimeError, "no longer valid at dispatch"):
+                rt.db.begin_external_dispatch(
+                    action_id=action["id"],
+                    warrant_id=row["warrant_id"],
+                    adapter="side-effect",
+                    idempotency_key=row["idempotency_key"],
+                    authority_revision=row["authority_revision"],
+                    approval_id=row["approval_id"],
+                    artifact_hashes=[],
+                )
+            self.assertIsNone(rt.db.get_action_dispatch(action["id"]))
             rt.db.close()
 
     # 11. IDEMPOTENCY — unique index on idempotency_key

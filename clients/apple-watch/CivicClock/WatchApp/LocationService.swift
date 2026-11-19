@@ -40,7 +40,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         case .authorizedAlways, .authorizedWhenInUse:
             beginMeasurement()
         default:
-            stop()
+            stopSampling()
         }
     }
 
@@ -49,6 +49,12 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     // A later foreground activation may start a new bounded attempt.
     func stop() {
         sceneIsActive = false
+        stopSampling()
+    }
+
+    // Timeout, permission loss, failure and a successful lock stop only
+    // the current measurement; they do not claim the scene went inactive.
+    private func stopSampling() {
         acquisitionTimeout?.cancel()
         acquisitionTimeout = nil
         if isMeasuringGroundZero {
@@ -66,7 +72,13 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         if groundZero == nil {
             // One bounded high-accuracy attempt. A poor GPS fix must not keep
             // continuous location sampling running indefinitely.
-            guard !isMeasuringGroundZero else { return }
+            guard GroundZeroSamplingPolicy.shouldBegin(
+                sceneActive: sceneIsActive,
+                authorized: authorization == .authorizedAlways
+                    || authorization == .authorizedWhenInUse,
+                hasGroundZero: groundZero != nil,
+                isSampling: isMeasuringGroundZero
+            ) else { return }
             acquisitionStartedAt = Date()
             isMeasuringGroundZero = true
             manager.startUpdatingLocation()
@@ -81,13 +93,20 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
                 } catch {
                     return
                 }
-                self?.stop()
+                self?.stopSampling()
             }
         } else {
             // Ground Zero is immutable. Later measurements are current-location
             // inputs for local horizon calculations only.
             manager.requestLocation()
         }
+    }
+
+    func retry() {
+        // A stopped attempt can restart only on an explicit user action.
+        // Repeated start while measuring cannot reset the 60-second budget.
+        guard sceneIsActive else { return }
+        start()
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -97,7 +116,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
             && (authorization == .authorizedAlways || authorization == .authorizedWhenInUse) {
             beginMeasurement()
         } else {
-            stop()
+            stopSampling()
         }
     }
 
@@ -130,7 +149,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
                 hasGroundZero: groundZero != nil
             )
         else {
-            stop()
+            stopSampling()
             return
         }
 
@@ -170,17 +189,17 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
         if CivicClockSharedStore.saveGroundZeroIfAbsent(observation) {
             groundZero = observation
-            stop()
+            stopSampling()
         } else if let existing = CivicClockSharedStore.loadGroundZero() {
             // Another consumer may have already saved the immutable value.
             groundZero = existing
-            stop()
+            stopSampling()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         // Stop a failed acquisition instead of draining battery indefinitely.
         // Preserve the last good coordinate and any immutable Ground Zero.
-        stop()
+        stopSampling()
     }
 }

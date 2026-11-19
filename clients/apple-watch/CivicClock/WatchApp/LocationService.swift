@@ -12,6 +12,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     private let manager = CLLocationManager()
     private var acquisitionStartedAt: Date?
     private var acquisitionTimeout: Task<Void, Never>?
+    private var sceneIsActive = false
 
     override init() {
         authorization = manager.authorizationStatus
@@ -29,6 +30,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func start() {
+        sceneIsActive = true
         authorization = manager.authorizationStatus
         accuracyAuthorization = manager.accuracyAuthorization
 
@@ -46,6 +48,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     // authorization is withdrawn, an error occurs, or the attempt times out.
     // A later foreground activation may start a new bounded attempt.
     func stop() {
+        sceneIsActive = false
         acquisitionTimeout?.cancel()
         acquisitionTimeout = nil
         if isMeasuringGroundZero {
@@ -56,6 +59,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     private func beginMeasurement() {
+        guard sceneIsActive else { return }
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = kCLDistanceFilterNone
 
@@ -89,7 +93,8 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorization = manager.authorizationStatus
         accuracyAuthorization = manager.accuracyAuthorization
-        if authorization == .authorizedAlways || authorization == .authorizedWhenInUse {
+        if sceneIsActive
+            && (authorization == .authorizedAlways || authorization == .authorizedWhenInUse) {
             beginMeasurement()
         } else {
             stop()
@@ -97,7 +102,8 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard authorization == .authorizedAlways || authorization == .authorizedWhenInUse else {
+        guard sceneIsActive,
+              authorization == .authorizedAlways || authorization == .authorizedWhenInUse else {
             return
         }
         guard

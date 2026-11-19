@@ -1,5 +1,9 @@
 #!/bin/bash
 set -euo pipefail
+# Company and Signal are per-user LaunchAgents. Keep newly created local
+# company state, session files, and credential-related material owner-only.
+# This does not replace an authenticated per-operation approval boundary.
+umask 077
 
 APP_SUPPORT="$HOME/Library/Application Support/StillPoint"
 RUNTIME="$APP_SUPPORT/Runtime"

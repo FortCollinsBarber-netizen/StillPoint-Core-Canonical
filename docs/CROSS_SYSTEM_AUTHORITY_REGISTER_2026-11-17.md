@@ -52,3 +52,14 @@ PR #158's candidate manifest, lock, feature matrix and provenance consistently s
 Core revalidation passed 723 runtime tests, 150 calendar tests and 86 explicit authority/recovery tests plus four subtests. Four reproducibly generated calendar exports matched the retained files byte-for-byte; actual Watch/Core compatibility also passed. Native Watch tests and app/WidgetKit builds were independently verified in the successful PR #83 Actions steps. These are bounded observations, not a deployment or a claim that private hosted CI passed.
 
 The [resumption verification record](CHECKPOINT004_RESUMPTION_VERIFICATION_2026-11-17.md) states the remaining gate precisely. No new calendar-anchor decision or human authorization is missing. Restore executable private Actions jobs, rerun required checks on the unchanged or reconciled heads, merge RobertOS #123 followed by StillPointOS #158 when qualified, then update this register. Do not turn the runner failure into permission to bypass the author's verify-before-merge rule.
+
+
+## November 19, 2026 operational correction — recurring engineering stop order
+
+This section records a **later user instruction**, without rewriting the historical November 17 register.
+
+Robert Emmanuel LaDay stopped recurring StillPoint development, research and qualification automations on November 18. The historical sentence above claiming the **StillPoint Cross-System Qualification Watch remains enabled** is **no longer the current automation state or an instruction to reactivate it**. Its associated schedule was disabled. Do not restart that watch or any other previously disabled engineering automation without a new explicit user instruction.
+
+This stop order concerns autonomous recurring execution, **not** the preservation of repository history, existing GitHub Actions triggered by code/PR events, or separately requested interactive engineering work. A future owner-authorized task may create a reviewed branch, run tests and make bounded changes; it must not silently turn the old schedules back on.
+
+This update does not change Calendar law, previously qualified code, exact CI evidence, or the release gates. For current engineering instructions see the repository root AGENTS.md and docs/APPLE_OPENAI_ENGINEERING_PLAYBOOK.md. Reverify live account automation state before making claims about any later date.

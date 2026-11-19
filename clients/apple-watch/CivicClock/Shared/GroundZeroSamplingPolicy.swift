@@ -6,6 +6,15 @@ import Foundation
 enum GroundZeroSamplingPolicy {
     static let maximumDurationSeconds: TimeInterval = 60
 
+    static func shouldBegin(
+        sceneActive: Bool,
+        authorized: Bool,
+        hasGroundZero: Bool,
+        isSampling: Bool
+    ) -> Bool {
+        sceneActive && authorized && !hasGroundZero && !isSampling
+    }
+
     static func shouldContinue(
         startedAt: Date,
         now: Date,

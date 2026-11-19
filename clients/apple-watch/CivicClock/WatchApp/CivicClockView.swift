@@ -185,16 +185,26 @@ struct CivicClockView: View {
                             .font(.system(size: 6))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.tertiary)
-                    } else if locationService.coordinate == nil {
-                        Text("LOCATION NEEDED FOR LOCAL HORIZON BOUNDARIES")
+                    } else if locationService.authorization == .denied
+                        || locationService.authorization == .restricted {
+                        Text("LOCATION PERMISSION NEEDED FOR LOCAL LIGHT")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
-                    } else {
+                    } else if locationService.isMeasuringGroundZero {
                         Text("MEASURING GROUND ZERO · NEED ≤25 m FIX")
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(.secondary)
+                    } else {
+                        Text("GROUND ZERO NOT LOCKED · TAP TO RETRY")
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
+                        Button("Retry Ground Zero") {
+                            locationService.retry()
+                        }
+                        .font(.caption2)
                     }
 
                     Text("CLOCK COORDINATES · LIGHT MARKS PROTECTED TIME")

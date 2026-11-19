@@ -2,6 +2,26 @@
 
 Civic Clock is the Apple Watch surface for the StillPoint common clock and calendar.
 
+## Current working status — November 19, 2026
+
+This README retains the original first-build design history below. The old
+statements about the annual publication being "pending" have been superseded:
+`Resources/published_calendar.json` now contains the enacted 50-year
+**2026–2075** projection and is byte-identical to
+`stillpoint/contracts/calendar_publication_2026_2075.json`. The Watch consumes
+the published Core resource; it does not make an independent calendar law.
+Common civil dates, sacred sunset observations and civic protected time are
+different layers.
+
+The Ground Zero high-accuracy acquisition is bounded by a 60-second attempt,
+with explicit cancellation on app backgrounding, lost permission and Core
+Location failure (implementation proposed in PR #117). This reduces the risk
+of unnecessary continuous GPS activity when no suitable fix is available.
+Core/Watch CI and watchsimulator build evidence do **not** by themselves
+establish physical Watch battery behavior, distribution, or release approval.
+The earlier section titled "Next locked input" is retained as historical
+first-build context, **not** a current dependency.
+
 ## What this first build does
 
 - Shows ordinary civil clock time without pretending clock time defines the lived day.

@@ -7,8 +7,12 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     @Published private(set) var authorization: CLAuthorizationStatus
     @Published private(set) var accuracyAuthorization: CLAccuracyAuthorization
     @Published private(set) var groundZero: GroundZeroObservation?
+    @Published private(set) var isMeasuringGroundZero = false
 
     private let manager = CLLocationManager()
+    private var acquisitionStartedAt: Date?
+    private var acquisitionTimeout: Task<Void, Never>?
+    private var sceneIsActive = false
 
     override init() {
         authorization = manager.authorizationStatus
@@ -26,6 +30,7 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func start() {
+        sceneIsActive = true
         authorization = manager.authorizationStatus
         accuracyAuthorization = manager.accuracyAuthorization
 
@@ -35,18 +40,61 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         case .authorizedAlways, .authorizedWhenInUse:
             beginMeasurement()
         default:
-            break
+            stopSampling()
         }
     }
 
+    // End Core Location's high-accuracy sampling when the app is inactive,
+    // authorization is withdrawn, an error occurs, or the attempt times out.
+    // A later foreground activation may start a new bounded attempt.
+    func stop() {
+        sceneIsActive = false
+        stopSampling()
+    }
+
+    // Timeout, permission loss, failure and a successful lock stop only
+    // the current measurement; they do not claim the scene went inactive.
+    private func stopSampling() {
+        acquisitionTimeout?.cancel()
+        acquisitionTimeout = nil
+        if isMeasuringGroundZero {
+            manager.stopUpdatingLocation()
+        }
+        isMeasuringGroundZero = false
+        acquisitionStartedAt = nil
+    }
+
     private func beginMeasurement() {
+        guard sceneIsActive else { return }
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.distanceFilter = kCLDistanceFilterNone
 
         if groundZero == nil {
-            // Keep sampling until the first precise, fresh, non-simulated
-            // observation is locked.
+            // One bounded high-accuracy attempt. A poor GPS fix must not keep
+            // continuous location sampling running indefinitely.
+            guard GroundZeroSamplingPolicy.shouldBegin(
+                sceneActive: sceneIsActive,
+                authorized: authorization == .authorizedAlways
+                    || authorization == .authorizedWhenInUse,
+                hasGroundZero: groundZero != nil,
+                isSampling: isMeasuringGroundZero
+            ) else { return }
+            acquisitionStartedAt = Date()
+            isMeasuringGroundZero = true
             manager.startUpdatingLocation()
+            acquisitionTimeout?.cancel()
+            acquisitionTimeout = Task { [weak self] in
+                do {
+                    try await Task.sleep(
+                        nanoseconds: UInt64(
+                            GroundZeroSamplingPolicy.maximumDurationSeconds * 1_000_000_000
+                        )
+                    )
+                } catch {
+                    return
+                }
+                self?.stopSampling()
+            }
         } else {
             // Ground Zero is immutable. Later measurements are current-location
             // inputs for local horizon calculations only.
@@ -54,15 +102,29 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         }
     }
 
+    func retry() {
+        // A stopped attempt can restart only on an explicit user action.
+        // Repeated start while measuring cannot reset the 60-second budget.
+        guard sceneIsActive else { return }
+        start()
+    }
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorization = manager.authorizationStatus
         accuracyAuthorization = manager.accuracyAuthorization
-        if authorization == .authorizedAlways || authorization == .authorizedWhenInUse {
+        if sceneIsActive
+            && (authorization == .authorizedAlways || authorization == .authorizedWhenInUse) {
             beginMeasurement()
+        } else {
+            stopSampling()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard sceneIsActive,
+              authorization == .authorizedAlways || authorization == .authorizedWhenInUse else {
+            return
+        }
         guard
             let location = locations
                 .filter({ $0.horizontalAccuracy >= 0 })
@@ -76,6 +138,20 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         )
 
         guard groundZero == nil else { return }
+
+        guard
+            let acquisitionStartedAt,
+            GroundZeroSamplingPolicy.shouldContinue(
+                startedAt: acquisitionStartedAt,
+                now: Date(),
+                authorized: authorization == .authorizedAlways
+                    || authorization == .authorizedWhenInUse,
+                hasGroundZero: groundZero != nil
+            )
+        else {
+            stopSampling()
+            return
+        }
 
         accuracyAuthorization = manager.accuracyAuthorization
         let fullAccuracy = accuracyAuthorization == .fullAccuracy
@@ -113,12 +189,17 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
 
         if CivicClockSharedStore.saveGroundZeroIfAbsent(observation) {
             groundZero = observation
-            manager.stopUpdatingLocation()
+            stopSampling()
+        } else if let existing = CivicClockSharedStore.loadGroundZero() {
+            // Another consumer may have already saved the immutable value.
+            groundZero = existing
+            stopSampling()
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Cached current location and the immutable Ground Zero observation remain
-        // available. The UI owns the visible degraded state.
+        // Stop a failed acquisition instead of draining battery indefinitely.
+        // Preserve the last good coordinate and any immutable Ground Zero.
+        stopSampling()
     }
 }

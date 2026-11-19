@@ -79,6 +79,67 @@ final class ClockGroundZeroAndLunarTests: XCTestCase {
         XCTAssertNil(object["id"])
     }
 
+    func testGroundZeroAcquisitionIsBoundedAndPermissionGated() {
+        let start = Date(timeIntervalSince1970: 1_795_433_529)
+        let active = GroundZeroSamplingPolicy.shouldContinue(
+            startedAt: start,
+            now: start.addingTimeInterval(59),
+            authorized: true,
+            hasGroundZero: false
+        )
+        XCTAssertTrue(active)
+        XCTAssertFalse(
+            GroundZeroSamplingPolicy.shouldContinue(
+                startedAt: start,
+                now: start.addingTimeInterval(60),
+                authorized: true,
+                hasGroundZero: false
+            )
+        )
+        XCTAssertFalse(
+            GroundZeroSamplingPolicy.shouldContinue(
+                startedAt: start,
+                now: start.addingTimeInterval(1),
+                authorized: false,
+                hasGroundZero: false
+            )
+        )
+        XCTAssertFalse(
+            GroundZeroSamplingPolicy.shouldContinue(
+                startedAt: start,
+                now: start.addingTimeInterval(1),
+                authorized: true,
+                hasGroundZero: true
+            )
+        )
+        XCTAssertFalse(
+            GroundZeroSamplingPolicy.shouldContinue(
+                startedAt: start,
+                now: start.addingTimeInterval(-1),
+                authorized: true,
+                hasGroundZero: false
+            )
+        )
+    }
+
+    func testGroundZeroSessionStartRequiresForegroundAndAnIdleSession() {
+        XCTAssertTrue(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: false, authorized: true, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: false, hasGroundZero: false, isSampling: false
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: false, isSampling: true
+        ))
+        XCTAssertFalse(GroundZeroSamplingPolicy.shouldBegin(
+            sceneActive: true, authorized: true, hasGroundZero: true, isSampling: false
+        ))
+    }
+
     func testSeptember23ObservationIsWaxingGibbous() throws {
         let parser = ISO8601DateFormatter()
         let instant = try XCTUnwrap(

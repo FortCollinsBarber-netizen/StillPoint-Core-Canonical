@@ -1,0 +1,29 @@
+name: Core Capture77 feedback advisory offline
+
+on:
+  push:
+    branches:
+      - feature/core-capture77-feedback-advisory-20261101
+  pull_request:
+    paths:
+      - "stillpoint/capture_feedback.py"
+      - "tests/test_capture_feedback.py"
+      - ".github/workflows/core-capture-feedback-offline.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  advisory-offline:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run isolated trust-boundary tests without network/API credentials
+        run: python -m unittest discover -s tests -p 'test_capture_feedback.py' -v

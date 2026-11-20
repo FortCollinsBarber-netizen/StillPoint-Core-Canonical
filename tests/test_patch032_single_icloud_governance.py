@@ -10,8 +10,11 @@ DRAFT_PATH=Path(__file__).resolve().parent/'fixtures'/'signal_icloud_personal_bu
 def raw(): return json.loads(DRAFT_PATH.read_text())
 
 class DB:
-    def __init__(self):
-        self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row;self.c.execute('pragma foreign_keys=on')
+    def __init__(self, add_cleanup):
+        self.c=sqlite3.connect(':memory:')
+        add_cleanup(self.c.close)
+        self.c.row_factory = sqlite3.Row
+        self.c.execute('pragma foreign_keys=on')
         self.c.executescript('''
 CREATE TABLE temporal_claims(claim_id TEXT PRIMARY KEY,subject TEXT NOT NULL,predicate TEXT NOT NULL,value_json TEXT,domain TEXT NOT NULL,source TEXT NOT NULL,evidence_refs_json TEXT NOT NULL DEFAULT '[]',time_observed TEXT,time_asserted TEXT NOT NULL,effective_from TEXT,effective_to TEXT,confidence REAL,status TEXT NOT NULL,supersedes TEXT,superseded_by TEXT,review_conditions_json TEXT NOT NULL DEFAULT '[]',provenance_json TEXT NOT NULL DEFAULT '{}',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
 CREATE TABLE temporal_claim_envelopes(envelope_id TEXT PRIMARY KEY,claim_id TEXT NOT NULL,domain TEXT NOT NULL,purpose TEXT NOT NULL,epistemic_reach_json TEXT NOT NULL,permitted_uses_json TEXT NOT NULL,prohibited_uses_json TEXT NOT NULL,continuation_conditions_json TEXT NOT NULL,correction_routes_json TEXT NOT NULL,release_conditions_json TEXT NOT NULL,reentry_requirements_json TEXT NOT NULL,memory_policy_json TEXT NOT NULL,memory_may_reauthorize INTEGER NOT NULL,operational INTEGER NOT NULL,status TEXT NOT NULL,supersedes_envelope_id TEXT,superseded_by_envelope_id TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,FOREIGN KEY(claim_id) REFERENCES temporal_claims(claim_id));
@@ -31,13 +34,15 @@ class Tests(unittest.TestCase):
         payload=json.dumps(raw()).lower();self.assertNotIn('students.ccu.edu',payload);self.assertNotIn('gmail',payload)
     def test_bootstrap_is_deterministic_and_non_authorizing(self):
         a=build_bootstrap_plan(raw());b=build_bootstrap_plan(raw());self.assertEqual(a.draft_sha256,b.draft_sha256);self.assertEqual(a.governance_sha256,b.governance_sha256);self.assertEqual(len(a.envelopes),3)
-        db=DB();p=SignalMailGovernanceProvisioner(db);before=db.c.total_changes;o=p.preview_seed(raw());self.assertFalse(o['authority_change']);self.assertEqual(before,db.c.total_changes)
+        db = DB(self.addCleanup)
+        p=SignalMailGovernanceProvisioner(db);before=db.c.total_changes;o=p.preview_seed(raw());self.assertFalse(o['authority_change']);self.assertEqual(before,db.c.total_changes)
     def test_facts_must_bind_exact_provider_account_and_jurisdiction(self):
         for key,value in [('provider','gmail'),('account','other@icloud.com'),('jurisdiction','business')]:
             r=raw();r['facts_snapshot']['facts']['signal_mail'][key]=value
             with self.assertRaises(SignalMailGovernanceError):build_bootstrap_plan(r)
     def test_seed_creates_claims_only_then_apply_requires_exact_ceo_digest(self):
-        db=DB();p=SignalMailGovernanceProvisioner(db);plan=build_bootstrap_plan(raw())
+        db = DB(self.addCleanup)
+        p=SignalMailGovernanceProvisioner(db);plan=build_bootstrap_plan(raw())
         with self.assertRaises(SignalMailGovernanceError):p.seed(raw(),expected_draft_sha256=plan.draft_sha256,ceo_confirmed=False)
         seeded=p.seed(raw(),expected_draft_sha256=plan.draft_sha256,ceo_confirmed=True);self.assertTrue(seeded['seeded']);self.assertEqual(db.c.execute('select count(*) from standing_delegations').fetchone()[0],0)
         spec=plan.governance_spec
@@ -52,7 +57,8 @@ class Tests(unittest.TestCase):
             m=db.c.execute('select * from signal_governance_materializations').fetchone();self.assertEqual(m['status'],'materialized');self.assertEqual(m['facts_sha256'],out['facts_sha256'])
             events=[r['status'] for r in db.c.execute('select status from signal_governance_materialization_events order by rowid').fetchall()];self.assertEqual(events,['pending','materialized'])
     def test_filesystem_failure_leaves_governance_non_operational(self):
-        db=DB();p=SignalMailGovernanceProvisioner(db);plan=build_bootstrap_plan(raw());p.seed(raw(),expected_draft_sha256=plan.draft_sha256,ceo_confirmed=True);spec=plan.governance_spec
+        db = DB(self.addCleanup)
+        p=SignalMailGovernanceProvisioner(db);plan=build_bootstrap_plan(raw());p.seed(raw(),expected_draft_sha256=plan.draft_sha256,ceo_confirmed=True);spec=plan.governance_spec
         with tempfile.TemporaryDirectory() as td:
             f=Path(td)/'facts.json'
             with patch('stillpoint.signal_mail_governance_policy.os.replace',side_effect=OSError('injected materialization failure')):

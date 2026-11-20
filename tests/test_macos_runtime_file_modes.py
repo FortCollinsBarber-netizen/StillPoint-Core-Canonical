@@ -6,6 +6,7 @@ import sqlite3
 import stat
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 
@@ -36,7 +37,7 @@ class MacOSRuntimeFileModeTests(unittest.TestCase):
             target = Path(tmp) / "company.sqlite"
             old = os.umask(0o077)
             try:
-                with sqlite3.connect(target) as db:
+                with closing(sqlite3.connect(target)) as db, db:
                     db.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY)")
             finally:
                 os.umask(old)

@@ -7,15 +7,21 @@ def iso(d):return d.isoformat()
 def spec_raw():
  return {'schema':SCHEMA,'issuer':CEO_ISSUER,'spec_id':'sig-pol-1','gmail_account':'signal@example.com','delegation_id':'del-1','trigger_id':'trig-1','policy_basis':'CEO approved Signal routine email','purpose':'Routine business email','claim_envelope_ids':['env-1'],'allowed_classifications':['scheduling','acknowledgement'],'continuation_conditions':[{'key':'company_policy_current','operator':'eq','expected':True}], 'additional_execution_conditions':[],'exclusions':['money','contracts','legal','security'],'release_conditions':['CEO revocation','review boundary','supporting envelope no longer current'],'valid_from':iso(NOW-timedelta(minutes=1)),'review_by':iso(NOW+timedelta(days=7)),'trigger_valid_from':iso(NOW-timedelta(minutes=1)),'trigger_review_by':iso(NOW+timedelta(days=7)),'facts_snapshot':{'observed_at':iso(NOW-timedelta(minutes=1)),'valid_until':iso(NOW+timedelta(hours=1)),'source':'CEO','facts':{'company_policy_current':True},'envelopes':{'env-1':{'policy_current':True}}}}
 class DB:
- def __init__(self):
-  self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row;self.c.executescript('''
+ def __init__(self, add_cleanup):
+  self.c=sqlite3.connect(':memory:')
+  add_cleanup(self.c.close)
+  self.c.row_factory = sqlite3.Row
+  self.c.executescript('''
 CREATE TABLE temporal_claim_envelopes(envelope_id TEXT PRIMARY KEY,status TEXT);
 CREATE TABLE standing_delegations(delegation_id TEXT PRIMARY KEY,delegate_role TEXT,issuer TEXT,policy_basis TEXT,purpose TEXT,claim_envelope_ids_json TEXT,allowed_action_types_json TEXT,continuation_conditions_json TEXT,execution_conditions_json TEXT,exclusions_json TEXT,release_conditions_json TEXT,valid_from TEXT,review_by TEXT,status TEXT,supersedes_delegation_id TEXT,created_at TEXT,updated_at TEXT);
 CREATE TABLE trigger_definitions(trigger_id TEXT PRIMARY KEY,owner_role TEXT,trigger_kind TEXT,source TEXT,event_type TEXT,goal_template TEXT,project TEXT,status TEXT,valid_from TEXT,review_by TEXT,next_run_at TEXT,interval_seconds INTEGER,max_runs INTEGER,run_count INTEGER,catch_up_policy TEXT,metadata_json TEXT,created_at TEXT,updated_at TEXT);
 ''');self.c.execute("insert into temporal_claim_envelopes values('env-1','active')");self.c.commit()
  def _connection(self):return self.c
 class Tests(unittest.TestCase):
- def setUp(self):self.db=DB();self.p=SignalGovernanceProvisioner(self.db);self.spec=SignalGovernanceSpec.from_dict(spec_raw())
+ def setUp(self):
+  self.db = DB(self.addCleanup)
+  self.p = SignalGovernanceProvisioner(self.db)
+  self.spec = SignalGovernanceSpec.from_dict(spec_raw())
  def test_digest_is_deterministic(self):
   self.assertEqual(self.spec.digest(),SignalGovernanceSpec.from_dict(spec_raw()).digest());self.assertEqual(len(self.spec.digest()),64)
  def test_unsafe_classification_cannot_enter_autonomy_allowset(self):

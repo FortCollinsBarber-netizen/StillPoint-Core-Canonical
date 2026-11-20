@@ -15,7 +15,7 @@ from stillpoint.registry import AgentRegistry
 from stillpoint.runtime import CompanyRuntime
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class SpySendAdapter:

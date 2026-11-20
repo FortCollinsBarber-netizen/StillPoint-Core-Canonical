@@ -6,8 +6,11 @@ from stillpoint.signal_status import SignalStatusInspector
 NOW=datetime(2026,9,17,22,0,tzinfo=timezone.utc)
 def iso(d):return d.isoformat()
 class DB:
- def __init__(self):
-  self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row;self.c.executescript('''
+ def __init__(self, add_cleanup):
+  self.c=sqlite3.connect(':memory:')
+  add_cleanup(self.c.close)
+  self.c.row_factory = sqlite3.Row
+  self.c.executescript('''
  CREATE TABLE signal_gmail_mailboxes(account TEXT PRIMARY KEY,history_id TEXT,status TEXT,bootstrap_completed_at TEXT,last_polled_at TEXT,last_success_at TEXT,last_error TEXT,updated_at TEXT);
  CREATE TABLE signal_gmail_poll_receipts(receipt_id TEXT PRIMARY KEY,account TEXT,mode TEXT,started_at TEXT,finished_at TEXT,start_history_id TEXT,end_history_id TEXT,messages_seen INTEGER,tasks_created INTEGER,status TEXT,error TEXT);
  CREATE TABLE trigger_definitions(trigger_id TEXT PRIMARY KEY,owner_role TEXT,trigger_kind TEXT,source TEXT,event_type TEXT,goal_template TEXT,project TEXT,status TEXT,valid_from TEXT,review_by TEXT,next_run_at TEXT,interval_seconds INTEGER,max_runs INTEGER,run_count INTEGER,catch_up_policy TEXT,metadata_json TEXT,created_at TEXT,updated_at TEXT);
@@ -22,15 +25,17 @@ class DB:
  def _connection(self):return self.c
 class Tests(unittest.TestCase):
  def setUp(self):
-  self.td=tempfile.TemporaryDirectory();root=Path(self.td.name);facts=root/'facts.json';facts.write_text(json.dumps({'observed_at':iso(NOW-timedelta(minutes=1)),'valid_until':iso(NOW+timedelta(minutes=30)),'facts':{'policy':True}}))
+  self.td=tempfile.TemporaryDirectory()
+  self.addCleanup(self.td.cleanup)
+  root=Path(self.td.name);facts=root/'facts.json';facts.write_text(json.dumps({'observed_at':iso(NOW-timedelta(minutes=1)),'valid_until':iso(NOW+timedelta(minutes=30)),'facts':{'policy':True}}))
   self.cfg=SignalServiceConfig(root=root,provider_name='xai',model='m',gmail_account='signal@example.com',gmail_access_token='secret',delegation_id='del',trigger_id='trig',facts_file=facts,worker_id='w')
-  self.db=DB();c=self.db.c
+  self.db = DB(self.addCleanup)
+  c = self.db.c
   c.execute("insert into signal_gmail_mailboxes values(?,?,?,?,?,?,?,?)",('signal@example.com','h','active',iso(NOW-timedelta(hours=1)),iso(NOW),iso(NOW),None,iso(NOW)))
   c.execute("insert into signal_gmail_poll_receipts values(?,?,?,?,?,?,?,?,?,?,?)",('p','signal@example.com','history',iso(NOW),iso(NOW),'h0','h1',1,1,'succeeded',None))
   c.execute("insert into trigger_definitions values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",('trig','signal','event','gmail','message_received','g',None,'active',iso(NOW-timedelta(days=1)),iso(NOW+timedelta(days=2)),None,None,None,0,'coalesce','{}',iso(NOW),iso(NOW)))
   c.execute("insert into standing_delegations values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",('del','signal','CEO','p','p','[\"env\"]','[\"send_email\"]','[]','[]','[]','[\"review\"]',iso(NOW-timedelta(days=1)),iso(NOW+timedelta(days=2)),'active',None,iso(NOW),iso(NOW)))
   c.execute("insert into worker_instances values(?,?,?,?,?,?)",('w','signal',iso(NOW-timedelta(hours=1)),iso(NOW),'active','{}'));c.commit()
- def tearDown(self):self.td.cleanup()
  def snap(self,**kw):return SignalStatusInspector(db=self.db,config=self.cfg,now_fn=lambda:NOW,**kw).snapshot()
  def test_healthy_state_is_ok(self):self.assertEqual(self.snap(review_warning_seconds=3600,facts_warning_seconds=60)['health'],'ok')
  def test_resync_is_critical(self):

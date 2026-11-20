@@ -337,6 +337,8 @@ class SignalMailGovernanceProvisioner:
         if not preview["ready_to_apply"]: raise SignalMailGovernanceError("governance spec is not applicable: "+_canon(preview))
         facts_file=Path(facts_file)
         if not facts_file.is_absolute() or facts_file.is_symlink(): raise SignalMailGovernanceError("facts_file must be absolute and not a symlink")
+        # Use the service's canonical custody path without following a final symlink.
+        facts_file = facts_file.parent.resolve(strict=False) / facts_file.name
         facts_file.parent.mkdir(parents=True,exist_ok=True)
         facts_bytes=(_canon(spec.facts_snapshot)+"\n").encode("utf-8")
         facts_sha256=hashlib.sha256(facts_bytes).hexdigest()

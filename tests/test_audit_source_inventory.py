@@ -59,7 +59,7 @@ class InventoryTests(unittest.TestCase):
             self.assertEqual(clean["snapshot_basis"], "pinned_HEAD_clean_worktree")
             nested = root / "nested"
             nested.mkdir()
-            self.assertEqual(audit_module.inventory(nested)["root"], str(root))
+            self.assertEqual(audit_module.inventory(nested)["root"], str(root.resolve()))
             (root / "tracked.py").write_text("print(2)\n", encoding="utf-8")
             dirty = audit_module.inventory(root)
             self.assertEqual(dirty["head_commit"], clean["head_commit"])

@@ -27,8 +27,11 @@ class Tests(unittest.TestCase):
  def test_executor_blocks_reply_to_mismatch_before_model_or_action(self):
   import sqlite3,json,hashlib,tempfile
   class D:
-   def __init__(self):
-    self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row;self.c.executescript("""
+   def __init__(self, add_cleanup):
+    self.c=sqlite3.connect(':memory:')
+    add_cleanup(self.c.close)
+    self.c.row_factory = sqlite3.Row
+    self.c.executescript("""
 CREATE TABLE tasks(id TEXT PRIMARY KEY,status TEXT,error TEXT,final_output TEXT,approval_reason TEXT);INSERT INTO tasks(id,status) VALUES('t','new');
 CREATE TABLE signal_email_decisions(decision_id TEXT PRIMARY KEY,task_id TEXT,event_id TEXT,message_id TEXT,account TEXT,sender TEXT,reply_target TEXT,disposition TEXT,classification TEXT,requires_human INTEGER,reason TEXT,facts_json TEXT,artifact_id TEXT,action_id TEXT,created_at TEXT,mail_provider TEXT,mail_jurisdiction TEXT);
 CREATE TABLE agent_runs(id TEXT PRIMARY KEY,task_id TEXT,agent_id TEXT,phase TEXT,output TEXT,stage_key TEXT);CREATE TABLE artifacts(id TEXT PRIMARY KEY,task_id TEXT,kind TEXT,name TEXT,sha256 TEXT,produced_by_run_id TEXT,phase TEXT,version INTEGER,project TEXT);CREATE TABLE action_requests(id TEXT PRIMARY KEY,idempotency_key TEXT);
@@ -40,7 +43,8 @@ CREATE TABLE agent_runs(id TEXT PRIMARY KEY,task_id TEXT,agent_id TEXT,phase TEX
   class R:
    called=False
    def draft(self,*a,**k):self.called=True;return SignalDraftDecision('draft_reply','scheduling','ok')
-  db=D();r=R();out=SignalInboxExecutor(db=db,trigger_coordinator=Tr(),account='signal@example.com',responder=r).execute('t',now_iso=NOW.isoformat());self.assertEqual(out['disposition'],'human_review');self.assertFalse(r.called);self.assertEqual(db.c.execute('select count(*) from action_requests').fetchone()[0],0)
+  db = D(self.addCleanup)
+  r=R();out=SignalInboxExecutor(db=db,trigger_coordinator=Tr(),account='signal@example.com',responder=r).execute('t',now_iso=NOW.isoformat());self.assertEqual(out['disposition'],'human_review');self.assertFalse(r.called);self.assertEqual(db.c.execute('select count(*) from action_requests').fetchone()[0],0)
 
  def conditions(self,classification=True):
   C=lambda k,o,e:SimpleNamespace(key=k,operator=SimpleNamespace(value=o),expected=e)

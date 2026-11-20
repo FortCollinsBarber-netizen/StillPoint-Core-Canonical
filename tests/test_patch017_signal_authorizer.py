@@ -4,8 +4,11 @@ from pathlib import Path
 from stillpoint.signal_autonomy import SignalStandingAuthorizer,SignalAutonomyError
 T='2026-09-17T20:00:00+00:00'
 class DB:
- def __init__(self):
-  self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row;self.c.executescript('''
+ def __init__(self, add_cleanup):
+  self.c=sqlite3.connect(':memory:')
+  add_cleanup(self.c.close)
+  self.c.row_factory = sqlite3.Row
+  self.c.executescript('''
  CREATE TABLE action_requests(id TEXT PRIMARY KEY,action_type TEXT,target TEXT,status TEXT);
  CREATE TABLE signal_email_decisions(action_id TEXT,disposition TEXT,requires_human INTEGER,classification TEXT,sender TEXT,reply_target TEXT,account TEXT,message_id TEXT,facts_json TEXT);
  INSERT INTO action_requests VALUES('a1','send_email','target','waiting_approval');
@@ -29,7 +32,8 @@ class Issuer:
  def authorize_waiting_action(self,**kw):self.calls.append(kw);return SimpleNamespace(warrant_id='w1')
 class Tests(unittest.TestCase):
  def build(self,ok=True):
-  self.db=DB();self.d=Delegation(ok);self.ds=DStore(self.d);self.es=EStore();self.iss=Issuer();return SignalStandingAuthorizer(db=self.db,delegation_store=self.ds,envelope_store=self.es,warrant_issuer=self.iss)
+  self.db = DB(self.addCleanup)
+  self.d=Delegation(ok);self.ds=DStore(self.d);self.es=EStore();self.iss=Issuer();return SignalStandingAuthorizer(db=self.db,delegation_store=self.ds,envelope_store=self.es,warrant_issuer=self.iss)
  def test_current_assessment_issues_exact_action_warrant(self):
   a=self.build(True);r=a.authorize_prepared_reply(action_id='a1',delegation_id='del',now_iso=T,continuation_facts={'company_policy_current':True});self.assertTrue(r['authorized']);self.assertEqual(self.iss.calls[0]['action_id'],'a1');self.assertEqual(self.ds.records[0]['action_target'],'target');self.assertEqual(self.d.seen['execution_facts']['signal_email']['message_id'],'m1')
  def test_failed_assessment_records_but_does_not_issue(self):

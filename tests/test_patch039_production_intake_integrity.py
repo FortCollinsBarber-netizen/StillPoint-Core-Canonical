@@ -49,7 +49,9 @@ class Patch039Tests(unittest.TestCase):
             t.fetch_since(None)
 
     def test_fresh_generic_mailbox_baselines_without_creating_historical_work(self):
-        con=sqlite3.connect(":memory:");con.row_factory=sqlite3.Row
+        con=sqlite3.connect(":memory:")
+        self.addCleanup(con.close)
+        con.row_factory=sqlite3.Row
         con.executescript('''
         create table trigger_definitions(trigger_id text primary key,owner_role text,trigger_kind text,source text,event_type text,status text);
         create table signal_email_decisions(decision_id text primary key,task_id text,event_id text,message_id text,account text,sender text,reply_target text,disposition text,classification text,requires_human integer,reason text,facts_json text,artifact_id text,action_id text,created_at text);
@@ -72,7 +74,9 @@ class Patch039Tests(unittest.TestCase):
         receipt=con.execute("select status,messages_seen,tasks_created from signal_mail_poll_receipts").fetchone();self.assertEqual(tuple(receipt),("baseline",0,0))
 
     def test_missing_baseline_capability_fails_closed_without_fetching_backlog(self):
-        con=sqlite3.connect(":memory:");con.row_factory=sqlite3.Row
+        con=sqlite3.connect(":memory:")
+        self.addCleanup(con.close)
+        con.row_factory=sqlite3.Row
         con.executescript('''
         create table trigger_definitions(trigger_id text primary key,owner_role text,trigger_kind text,source text,event_type text,status text);
         create table signal_email_decisions(decision_id text primary key,task_id text,event_id text,message_id text,account text,sender text,reply_target text,disposition text,classification text,requires_human integer,reason text,facts_json text,artifact_id text,action_id text,created_at text);

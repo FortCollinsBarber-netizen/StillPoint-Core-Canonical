@@ -34,8 +34,10 @@ def env_for(tmp:Path):
     }
 
 class DB:
-    def __init__(self):
-        self.c=sqlite3.connect(':memory:');self.c.row_factory=sqlite3.Row
+    def __init__(self, add_cleanup):
+        self.c=sqlite3.connect(':memory:')
+        add_cleanup(self.c.close)
+        self.c.row_factory=sqlite3.Row
     def _connection(self):return self.c
 
 class TestConfig(unittest.TestCase):
@@ -83,7 +85,8 @@ class TestFacts(unittest.TestCase):
 
 class TestReadinessBindings(unittest.TestCase):
     def test_trigger_must_be_exact_signal_gmail_event_and_current(self):
-        db=DB();db.c.execute('create table trigger_definitions(trigger_id text,status text,owner_role text,trigger_kind text,source text,event_type text,valid_from text,review_by text)')
+        db = DB(self.addCleanup)
+        db.c.execute('create table trigger_definitions(trigger_id text,status text,owner_role text,trigger_kind text,source text,event_type text,valid_from text,review_by text)')
         db.c.execute("insert into trigger_definitions values('trig','active','signal','event','gmail','message_received',?,?)",(PAST,FUT));db.c.commit()
         cfg=SimpleNamespace(trigger_id='trig')
         row=_require_trigger(db,cfg,now_iso=NOW.isoformat());self.assertEqual(row['owner_role'],'signal')

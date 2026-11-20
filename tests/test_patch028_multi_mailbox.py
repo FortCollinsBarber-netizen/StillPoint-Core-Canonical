@@ -11,7 +11,9 @@ from stillpoint.signal_autonomy import SignalStandingAuthorizer
 
 class Patch028Tests(unittest.TestCase):
     def test_migration_adds_provider_neutral_mailbox_state(self):
-        con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row
+        con=sqlite3.connect(':memory:')
+        self.addCleanup(con.close)
+        con.row_factory=sqlite3.Row
         con.executescript('''
         create table trigger_definitions(trigger_id text primary key,owner_role text,trigger_kind text,source text,event_type text,status text);
         create table signal_email_decisions(decision_id text primary key,task_id text,event_id text,message_id text,account text,sender text,reply_target text,disposition text,classification text,requires_human integer,reason text,facts_json text,artifact_id text,action_id text,created_at text);
@@ -80,7 +82,9 @@ class Patch028Tests(unittest.TestCase):
         self.assertFalse(out['authorized']);self.assertEqual(d.execution['signal_email']['provider'],'icloud');self.assertEqual(d.execution['signal_email']['jurisdiction'],'personal')
 
     def test_generic_poller_emits_provider_scoped_event_and_cursor(self):
-        con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row
+        con=sqlite3.connect(':memory:')
+        self.addCleanup(con.close)
+        con.row_factory=sqlite3.Row
         con.executescript('''
         create table trigger_definitions(trigger_id text primary key,owner_role text,trigger_kind text,source text,event_type text,status text);
         create table signal_email_decisions(decision_id text primary key,task_id text,event_id text,message_id text,account text,sender text,reply_target text,disposition text,classification text,requires_human integer,reason text,facts_json text,artifact_id text,action_id text,created_at text);
